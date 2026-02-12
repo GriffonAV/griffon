@@ -9,6 +9,9 @@ build-cli:
 build-daemon:
     cargo build -p daemon
 
+build-runner:
+    cargo build -p runner
+
 setup-gui:
     cd gui && npm install
 
@@ -18,7 +21,7 @@ build-gui:
 dev-gui:
     cd gui && npm run dev
 
-tauri-dev:
+tauri-dev: build-runner
     cd gui && npx tauri dev
 
 lint:
