@@ -1,7 +1,7 @@
 import { ThemeProvider } from "@/components/theme-provider";
 import { TitleBar } from "@/components/title-bar";
 import { Sidebar } from "@/components/sidebar";
-import { Outlet, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
 import HomePage from "@/pages/home/HomePage";
 import PluginPage from "@/pages/plugins/PluginPage";

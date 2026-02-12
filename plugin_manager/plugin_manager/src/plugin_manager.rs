@@ -6,10 +6,33 @@ use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd};
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
+use std::collections::VecDeque;
+use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 
 use ipc_protocol::ipc_payload::{CallPayload, Message, recv_message, send_message};
 
-static RUNNER_BINARY: &str = "./target/debug/runner";
+
+#[derive(Debug, Clone)]
+pub enum PluginEvent {
+    Result {
+        pid: u32,
+        request_id: u32,
+        ok: bool,
+        output: String,
+    },
+    Error {
+        pid: u32,
+        request_id: u32,
+        message: String,
+    },
+    Heartbeat {
+        pid: u32,
+    },
+    Closed {
+        pid: u32,
+        reason: String,
+    },
+}
 
 #[derive(Debug)]
 struct RunningPlugin {
@@ -36,18 +59,46 @@ pub enum LogLevel {
 
 pub struct PluginManager {
     pub plugins_dir: PathBuf,
+    runner_binary: PathBuf,
     plugins_list: Vec<RunningPlugin>,
     pub log_level: LogLevel,
     next_request_id: u32,
+
+    events_tx: Sender<PluginEvent>,
+    events_rx: Receiver<PluginEvent>,
+    pending_events: VecDeque<PluginEvent>,
+}
+
+const RUNNER_ENV: &str = "GRIFFON_RUNNER_BINARY";
+
+fn resolve_runner_binary() -> Result<PathBuf, String> {
+    if let Ok(p) = std::env::var(RUNNER_ENV) {
+        return Ok(PathBuf::from(p));
+    }
+
+    let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
+    let exe_dir = exe.parent().ok_or("exe has no parent")?;
+
+    let profile = if cfg!(debug_assertions) { "debug" } else { "release" };
+    let candidate = exe_dir.join("../..").join("target").join(profile).join("runner");
+
+    if candidate.exists() { Ok(candidate) }
+    else { Err(format!("runner not found at {:?}", candidate)) }
 }
 
 impl PluginManager {
     pub fn new<P: AsRef<Path>>(dir: P, log_level: LogLevel) -> Self {
+        let runner_binary = resolve_runner_binary().expect("runner binary not found");
+        let (events_tx, events_rx) = mpsc::channel();
         Self {
             plugins_dir: dir.as_ref().to_path_buf(),
+            runner_binary,
             plugins_list: Vec::new(),
             log_level,
             next_request_id: 0,
+            events_tx,
+            events_rx,
+            pending_events: VecDeque::new(),
         }
     }
 
@@ -79,6 +130,11 @@ impl PluginManager {
 
     pub fn scan_dir(&mut self) {
         let mut current_paths = Vec::new();
+        use std::env;
+
+        println!("[debug] cwd = {:?}", env::current_dir().unwrap());
+        println!("[debug] plugins_dir = {:?}", self.plugins_dir);
+        println!("[debug] plugins_dir exists = {}", self.plugins_dir.exists());
 
         for entry in read_dir(&self.plugins_dir).expect("Bad plugin directory") {
             let path = entry.unwrap().path();
@@ -143,6 +199,49 @@ impl PluginManager {
         Ok(request_id)
     }
 
+    pub fn try_recv_event(&mut self) -> Option<PluginEvent> {
+        if let Some(ev) = self.pending_events.pop_front() {
+            return Some(ev);
+        }
+
+        match self.events_rx.try_recv() {
+            Ok(ev) => Some(ev),
+            Err(TryRecvError::Empty) | Err(TryRecvError::Disconnected) => None,
+        }
+    }
+
+    pub fn wait_for_response(&mut self, request_id: u32) -> io::Result<PluginEvent> {
+        if let Some(pos) = self.pending_events.iter().position(|ev| {
+            matches!(
+            ev,
+            PluginEvent::Result { request_id: rid, .. }
+                | PluginEvent::Error { request_id: rid, .. }
+                if *rid == request_id
+        )
+        }) {
+            return Ok(self.pending_events.remove(pos).unwrap());
+        }
+
+        loop {
+            let ev = self.events_rx.recv().map_err(|_| {
+                io::Error::new(io::ErrorKind::BrokenPipe, "event channel disconnected")
+            })?;
+
+            let is_match = matches!(
+            ev,
+            PluginEvent::Result { request_id: rid, .. }
+                | PluginEvent::Error { request_id: rid, .. }
+                if rid == request_id
+        );
+
+            if is_match {
+                return Ok(ev);
+            }
+
+            self.pending_events.push_back(ev);
+        }
+    }
+
     fn check_plugin(&mut self, path: &Path) {
         let already_running = self.plugins_list.iter().any(|p| p.plugin_info.path == path);
         if already_running {
@@ -176,7 +275,7 @@ impl PluginManager {
 
         let handshake_res = {
             let last = self.plugins_list.last_mut().unwrap();
-            read_plugin_messages(last, self.log_level)
+            read_plugin_messages(last, self.log_level, self.events_tx.clone())
         };
 
         if let Err(e) = handshake_res {
@@ -220,7 +319,7 @@ impl PluginManager {
         )
         .map_err(|e| format!("socketpair failed: {e}"))?;
 
-        let mut cmd = Command::new(RUNNER_BINARY);
+        let mut cmd = Command::new(&self.runner_binary);
         cmd.arg(path);
 
         unsafe {
@@ -261,7 +360,7 @@ impl PluginManager {
     }
 }
 
-fn read_plugin_messages(plugin: &mut RunningPlugin, log_level: LogLevel) -> io::Result<()> {
+fn read_plugin_messages(plugin: &mut RunningPlugin, log_level: LogLevel, events_tx: Sender<PluginEvent>) -> io::Result<()> {
     let mut fd_clone = plugin
         .fd
         .try_clone()
@@ -309,6 +408,10 @@ fn read_plugin_messages(plugin: &mut RunningPlugin, log_level: LogLevel) -> io::
                             "[PLUGIN_MANAGER](INFO) Plugin {name} ({pid}) closed / recv error: {e}"
                         );
                     }
+                    let _ = events_tx.send(PluginEvent::Closed {
+                        pid,
+                        reason: e.to_string(),
+                    });
                     break;
                 }
             };
@@ -321,6 +424,12 @@ fn read_plugin_messages(plugin: &mut RunningPlugin, log_level: LogLevel) -> io::
                             data.ok, data.output
                         );
                     }
+                    let _ = events_tx.send(PluginEvent::Result {
+                        pid,
+                        request_id,
+                        ok: data.ok,
+                        output: data.output,
+                    });
                 }
                 Message::Error { request_id, data } => {
                     if log_level >= LogLevel::Error {
@@ -329,6 +438,11 @@ fn read_plugin_messages(plugin: &mut RunningPlugin, log_level: LogLevel) -> io::
                             data.code, data.message
                         );
                     }
+                    let _ = events_tx.send(PluginEvent::Error {
+                        pid,
+                        request_id,
+                        message: data.message,
+                    });
                 }
                 Message::Heartbeat => {
                     if log_level >= LogLevel::Debug {

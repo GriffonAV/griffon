@@ -5,6 +5,12 @@ use ipc_protocol;
 
 static PLUGIN_DIR_PATH: &str = "./plugins";
 
+fn drain_events(pm: &mut PluginManager) {
+    while let Some(ev) = pm.try_recv_event() {
+        println!("[CORE] EVENT: {:?}", ev);
+    }
+}
+
 fn main() {
     let mut pm = PluginManager::new(PLUGIN_DIR_PATH, LogLevel::Info);
 
@@ -117,7 +123,13 @@ fn main() {
                 let call_payload = ipc_protocol::ipc_payload::CallPayload { fn_name, args };
 
                 match pm.send_call(pid, call_payload) {
-                    Ok(req_id) => println!("[CORE] CALL sent (request_id={req_id})"),
+                    Ok(req_id) => {
+                        println!("[CORE] CALL sent (request_id={req_id})");
+                        match pm.wait_for_response(req_id) {
+                            Ok(ev) => println!("[CORE] RESPONSE: {:?}", ev),
+                            Err(e) => eprintln!("[CORE](ERROR) wait_for_response failed: {e}"),
+                        }
+                    },
                     Err(e) => println!("[CORE](ERROR) Failed to send CALL: {e}"),
                 }
             }
