@@ -1,26 +1,31 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Copy, Minus, Square, X, Github} from "lucide-react";
+import { Copy, Minus, Square, X, Github, Bell } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { SearchInput } from "./search";
+import { openPath, openUrl } from '@tauri-apps/plugin-opener';
+
 
 function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
   const [isTauri, setIsTauri] = useState(false);
 
   useEffect(() => {
-  const detectTauri = async () => {
-    try {
-      await getCurrentWindow();  // If this doesn't throw, you're in Tauri
-      setIsTauri(true);
-    } catch {
-      setIsTauri(false);
-    }
-  };
+    const detectTauri = async () => {
+      try {
+        await getCurrentWindow();  // If this doesn't throw, you're in Tauri
+        setIsTauri(true);
+      } catch {
+        setIsTauri(false);
+      }
+    };
 
-  detectTauri();
-}, []);
+    detectTauri();
+  }, []);
+
+  const openGitHub = () => {
+    openUrl('https://github.com/GriffonAV/GriffonAV');
+  };
 
 
   useEffect(() => {
@@ -54,26 +59,33 @@ function TitleBar() {
 
   return (
     <div className="px-4 py-3 flex items-center  rounded-b-none" data-tauri-drag-region>
-      {/* <img
-        src="/assets/logo.png"
+      <img
+        src="/assets/logo_test/G-white.png"
         alt="Griffon Logo"
         style={{
           imageRendering: "pixelated",
         }}
-        className="w-14 h-auto"
-      /> */}
-      <div className="pl-6 font-bold">Griffon</div>
+        className="w-9 h-auto"
+      />
+      <div className="pl-2 font-bold">Griffon</div>
       <div className="flex-1"></div>
-      <SearchInput></SearchInput>
       {/* link to github */}
-      <a href="https://github.com/GriffonAV/GriffonAV" target="_blank" rel="noopener noreferrer">
+      <Button
+        className="cursor-pointer text-muted-foreground"
+        variant={"ghost"}
+      >
+        <Bell />
+        {/* // stars number secondary text */}
+
+      </Button>
+      <a target="_blank" rel="noopener noreferrer" onClick={openGitHub}>
         <Button
-              className="cursor-pointer text-muted-foreground"
-              variant={"ghost"}
-              >
-            <Github />
-            {/* // stars number secondary text */}
-            4
+          className="cursor-pointer text-muted-foreground"
+          variant={"ghost"}
+        >
+          <Github />
+          {/* // stars number secondary text */}
+          7
         </Button>
       </a>
       {isTauri && (

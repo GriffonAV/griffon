@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/command";
 import { Button } from "./ui/button";
 import { SearchCode } from "lucide-react";
+import clsx from "clsx";
 
 function SearchInput() {
     const [open, setOpen] = React.useState(false);
@@ -24,16 +25,20 @@ function SearchInput() {
         return () => document.removeEventListener("keydown", down);
     }, []);
 
+
+
     return (
         <div>
             <Button
                 variant="ghost"
-                className="mx-4 bg-accent/50 hover:bg-accent/70"
+                className={clsx(
+                    "w-full justify-start cursor-pointer mb-2",
+                )}
                 onClick={() => setOpen((open) => !open)}
             >
-               
-                Search Anything...
-                 <SearchCode className="text-muted-foreground ms-3"/>
+
+                <SearchCode className="mr-2" />
+                Search
             </Button>
             <CommandDialog open={open} onOpenChange={setOpen}>
                 <CommandInput placeholder="Type a command or search..." />

@@ -1,59 +1,75 @@
 import { Link, useLocation } from "react-router-dom";
 import { usePlugins } from "@/hooks/usePlugins";
-import { Button } from "@/components/ui/button";
 import clsx from "clsx";
+import { ModeToggle } from "./mode-toggle";
+import { Settings2, LayoutDashboard, Logs } from "lucide-react";
+import { SearchInput } from "./search";
+import { Info } from "./info";
+import { SidebarButton } from "./sidebar-button";
+import SidebarNotifications from "./sidebar-notifications.tsx";
+import { Button } from "./ui/button.tsx";
 
 export function Sidebar() {
   const { plugins } = usePlugins();
-    const location = useLocation();
-
+  const location = useLocation();
 
   return (
-    <aside className="w-48 p-4 space-y-2">
-      <span className="text-xs text-muted-foreground uppercase px-2">
+    <aside className="flex flex-col w-48 m-2">
+      <Link to="/dashboard">
+        <SidebarButton
+          to="/dashboard"
+          icon={<LayoutDashboard />}
+          label="Dashboard"
+          isActive={location.pathname === "/dashboard" || location.pathname === "/"}
+        />
+      </Link>
+      <SidebarNotifications />
+      <Link to="/log">
+        <SidebarButton
+          to="/log"
+          icon={<Logs />}
+          label="Logs"
+          isActive={location.pathname === "/log"}
+        />
+      </Link>
+      <SearchInput />
+
+      <span className="text-xs text-muted-foreground px-2 my-2 select-none">
         Plugins
       </span>
+      {plugins.map((plugin) => (
+        <Link key={plugin.pid} to={`/plugin/${plugin.pid}`}>
+          <SidebarButton
+            to={`/plugin/${plugin.pid}`}
+            icon={null}
+            label={plugin.name}
+            isActive={location.pathname === `/plugin/${plugin.pid}`}
+          />
+        </Link>
+      ))}
 
-      {plugins.map((plugin) => {
-        const isActive = location.pathname === `/plugin/${plugin.pid}`;
+      {/* <Link to="/settings">
+        <SidebarButton
+          to="/settings"
+          icon={<Settings2 />}
+          label="Settings"
+          isActive={location.pathname === "/settings"}
+        />
+      </Link> */}
 
-        return (
-          <Link key={plugin.pid} to={`/plugin/${plugin.pid}`}>
-            <Button
-              variant="ghost"
-              className={clsx(
-                "w-full justify-start cursor-pointer capitalize",
-                // Hover UI (applies always)
-                "hover:bg-accent hover:text-accent-foreground",
-                // Active UI
-                isActive &&
-                  "bg-accent text-accent-foreground font-medium"
-              )}
-            >
-              {plugin.name}
-            </Button>
-          </Link>
-        );
-      })}
+      <div className="flex-1" />
 
-      <span className="text-xs text-muted-foreground uppercase px-2 mt-6 block">
-        App
-      </span>
+      <div className="flex flex-row gap-2 justify-end">
+        <Link to="/settings">
+          <Button variant="outline" size="icon" className="cursor-pointer">
+            <Settings2 ></Settings2>
+            <span className="sr-only">Settings</span>
+          </Button>
+        </Link>
+        <ModeToggle />
+        <Info />
 
-      {/* Settings example */}
-      <Link to="/settings">
-        <Button
-          variant="ghost"
-          className={clsx(
-            "w-full justify-start cursor-pointer capitalize",
-            "hover:bg-accent hover:text-accent-foreground",
-            location.pathname === "/settings" &&
-              "bg-accent text-accent-foreground font-medium"
-          )}
-        >
-          Settings
-        </Button>
-      </Link>
+      </div>
     </aside>
   );
 }
