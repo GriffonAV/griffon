@@ -1,33 +1,35 @@
-INSERT INTO metrics (service, metric, value, ts) VALUES
--- API service
-('api', 'latency_ms', 120, '2026-01-01 00:00:00'),
-('api', 'latency_ms', 135, '2026-01-01 01:00:00'),
-('api', 'latency_ms', 110, '2026-01-01 02:00:00'),
-('api', 'error_rate', 0.01, '2026-01-01 00:00:00'),
-('api', 'error_rate', 0.02, '2026-01-01 01:00:00'),
-('api', 'error_rate', 0.015, '2026-01-01 02:00:00'),
-('api', 'throughput_rps', 320, '2026-01-01 00:00:00'),
-('api', 'throughput_rps', 350, '2026-01-01 01:00:00'),
-('api', 'throughput_rps', 340, '2026-01-01 02:00:00'),
+INSERT INTO scan_metrics (target_type, hit, total, ts) VALUES
+('ELF', 300, 1000, '2026-01-01'),
+('PE', 500, 1500, '2026-01-01'),
+('PDF', 200, 800, '2026-01-01');
 
--- Web service
-('web', 'latency_ms', 220, '2026-01-01 00:00:00'),
-('web', 'latency_ms', 210, '2026-01-01 01:00:00'),
-('web', 'latency_ms', 230, '2026-01-01 02:00:00'),
-('web', 'error_rate', 0.03, '2026-01-01 00:00:00'),
-('web', 'error_rate', 0.025, '2026-01-01 01:00:00'),
-('web', 'error_rate', 0.04, '2026-01-01 02:00:00'),
-('web', 'throughput_rps', 150, '2026-01-01 00:00:00'),
-('web', 'throughput_rps', 165, '2026-01-01 01:00:00'),
-('web', 'throughput_rps', 140, '2026-01-01 02:00:00'),
+INSERT INTO scan_metrics (target_type, hit, total, ts) VALUES
+('ELF', 400, 1000, '2026-01-02'),
+('PE', 300, 1500, '2026-01-02'),
+('PDF', 800, 800, '2026-01-02');
 
--- Worker service
-('worker', 'latency_ms', 80, '2026-01-01 00:00:00'),
-('worker', 'latency_ms', 90, '2026-01-01 01:00:00'),
-('worker', 'latency_ms', 85, '2026-01-01 02:00:00'),
-('worker', 'error_rate', 0.005, '2026-01-01 00:00:00'),
-('worker', 'error_rate', 0.0, '2026-01-01 01:00:00'),
-('worker', 'error_rate', 0.01, '2026-01-01 02:00:00'),
-('worker', 'throughput_rps', 500, '2026-01-01 00:00:00'),
-('worker', 'throughput_rps', 520, '2026-01-01 01:00:00'),
-('worker', 'throughput_rps', 510, '2026-01-01 02:00:00');
+
+INSERT INTO disk_usage (value, is_active, time) VALUES
+(20, 1, 1771236709),
+(25, 1, 1771240309),
+(13, 1, 1771243909),
+(10, 0, 1771247509),
+(9, 0, 1771251109),
+(7.89, 1, 1771254709);
+
+
+INSERT INTO cpu_usage (value, is_active, time) VALUES
+(15.5, 1, 1771236709),
+(18.2, 1, 1771240309),
+(12.3, 1, 1771243909),
+(10.0, 0, 1771247509),
+(8.5, 0, 1771251109),
+(6.7, 1, 1771254709);
+
+INSERT INTO ram_usage (value, is_active, time) VALUES
+(10.5, 1, 1771236709),
+(12.3, 1, 1771240309),
+(8.7, 1, 1771243909),
+(6.0, 0, 1771247509),
+(5.5, 0, 1771251109),
+(4.2, 1, 1771254709);

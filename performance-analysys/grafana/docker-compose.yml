@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   grafana:
     image: grafana/grafana:latest
@@ -11,7 +9,7 @@ services:
       - ./data:/data
       - ./provisioning:/etc/grafana/provisioning
     environment:
-      - GF_INSTALL_PLUGINS=frser-sqlite-datasource
+      - GF_PLUGINS_PREINSTALL=grafana-image-renderer, frser-sqlite-datasource
     restart: unless-stopped
 
 volumes:

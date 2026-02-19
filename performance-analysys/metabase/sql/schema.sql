@@ -1,12 +1,16 @@
--- sql/schema.sql
-
-CREATE TABLE performance (
-    id INTEGER PRIMARY KEY,
-    service TEXT NOT NULL,
-    metric TEXT NOT NULL,
-    value REAL NOT NULL,
-    recorded_at TEXT NOT NULL  -- ISO-8601 datetime
+CREATE TABLE scan_metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_type TEXT NOT NULL,
+    hit INTEGER NOT NULL,
+    total INTEGER NOT NULL,
+    ts TEXT NOT NULL
 );
 
-CREATE INDEX idx_performance_service ON performance(service);
-CREATE INDEX idx_performance_time ON performance(recorded_at);
+CREATE TABLE system_metrics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    ram_usage REAL NOT NULL,
+    cpu_usage REAL NOT NULL,
+    disk_usage REAL NOT NULL,
+    is_active INTEGER,
+    ts TEXT NOT NULL
+);
