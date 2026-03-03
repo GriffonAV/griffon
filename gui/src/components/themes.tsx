@@ -19,7 +19,28 @@ const ThemesList = {
         '--primary': 'oklch(0.7 0.15 300)',
         '--card': 'oklch(0.98 0.05 310)',
         '--border': 'oklch(0.85 0.05 315)',
-    }
+    },
+    'doom64': {
+        '--background': 'oklch(0.05 0.1 280)',
+        '--foreground': 'oklch(0.8 0.2 280)',
+        '--primary': 'oklch(0.9 0.3 260)',
+        '--card': 'oklch(0.1 0.05 270)',
+        '--border': 'oklch(0.2 0.1 290)',
+    },
+    'quantum-rose': {
+        '--background': 'oklch(0.85 0.15 320)',
+        '--foreground': 'oklch(0.3 0.1 320)',
+        '--primary': 'oklch(0.75 0.25 300)',
+        '--card': 'oklch(0.95 0.05 310)',
+        '--border': 'oklch(0.8 0.1 315)',
+    },
+    'cafeine': {
+        '--background': 'oklch(0.9 0.1 30)',
+        '--foreground': 'oklch(0.4 0.1 30)',
+        '--primary': 'oklch(0.7 0.2 20)',
+        '--card': 'oklch(0.95 0.05 25)',
+        '--border': 'oklch(0.8 0.1 15)',
+    },
 };
 
 export default ThemesList;
