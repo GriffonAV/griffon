@@ -8,6 +8,9 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/components/theme-provider";
+import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import ThemesList from "./themes";
+import { useState } from "react";
 
 export function ModeToggle() {
     const { setTheme } = useTheme();
@@ -28,10 +31,109 @@ export function ModeToggle() {
                 <DropdownMenuItem onClick={() => setTheme("dark")}>
                     Dark
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme("system")}>
+                {/* <DropdownMenuItem onClick={() => setTheme("system")}>
                     System
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
             </DropdownMenuContent>
         </DropdownMenu>
     );
+}
+
+export function ModeToggleGroup() {
+    const { setTheme } = useTheme();
+
+    return (
+        <ToggleGroup type="single" className="cursor-pointer" defaultValue="top" variant="outline">
+            <ToggleGroupItem value="top" aria-label="Dark" className="cursor-pointer" onClick={() => setTheme("dark")}>
+                Dark <Moon className="ml-2" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="bottom" aria-label="Light" className="cursor-pointer" onClick={() => setTheme("light")}>
+                Light <Sun className="ml-2" />
+            </ToggleGroupItem>
+            {/* <ToggleGroupItem value="left" aria-label="System" onClick={() => setTheme("system")}>
+                System
+            </ToggleGroupItem> */}
+        </ToggleGroup>
+    );
+}
+
+// app wrapper that apply the theme on startup
+export function ThemeInitializer() {
+    function setTheme(themeName: string) {
+        const existingTheme = document.getElementById('dynamic-theme');
+        if (existingTheme) {
+            existingTheme.remove();
+        }
+
+        // Create a new link element for the selected theme
+        const link = document.createElement('link');
+        link.id = 'dynamic-theme';
+        link.rel = 'stylesheet';
+        link.href = `/src/assets/themes/${themeName}.css`; // Adjust path as needed
+        document.head.appendChild(link);
+    }
+
+    useState(() => {
+        const savedTheme = localStorage.getItem('theme') || 'default';
+        setTheme(savedTheme);
+    }
+    );
+
+    return null; // This component doesn't render anything
+}
+
+export function ChangeThemeButtonTest() {
+    const [selectedTheme, setSelectedTheme] = useState<string>(() => {
+        return localStorage.getItem('theme') || 'default';
+    });
+
+    function switchTheme(themeName: string) {
+        // Remove any existing theme stylesheet
+        const existingTheme = document.getElementById('dynamic-theme');
+        if (existingTheme) {
+            existingTheme.remove();
+        }
+
+        // Create a new link element for the selected theme
+        const link = document.createElement('link');
+        link.id = 'dynamic-theme';
+        link.rel = 'stylesheet';
+        link.href = `/src/assets/themes/${themeName}.css`; // Adjust path as needed
+        document.head.appendChild(link);
+
+        // Set theme in local storage and state
+        localStorage.setItem('theme', themeName);
+        setSelectedTheme(themeName);
+    }
+
+    return (
+        <div className="flex flex-col m-5">
+            <span>Color theme:</span>
+            <div className="flex flex-wrap gap-2">
+                {(Object.keys(ThemesList) as Array<keyof typeof ThemesList>).map((theme) => (
+                    <div
+                        key={theme}
+                        className={`flex flex-row gap-1 items-center cursor-pointer px-7 py-1 hover:bg-muted rounded ${selectedTheme === theme ? 'border-2 border-primary' : ''
+                            }`}
+                        style={themePreviewStyle(ThemesList[theme])}
+                        onClick={() => switchTheme(theme)}
+                    >
+                        <div className="border size-3 bg-primary rounded-sm" />
+                        <div className="border size-3 bg-secondary rounded-sm" />
+                        <div className="border size-3 bg-accent rounded-sm" />
+                        <span >{theme}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+
+function themePreviewStyle(theme: any): React.CSSProperties {
+    return {
+        '--primary': theme['--primary'],
+        '--secondary': theme['--secondary'],
+        '--accent': theme['--accent'],
+    } as React.CSSProperties;
 }

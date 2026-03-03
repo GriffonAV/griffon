@@ -7,10 +7,12 @@ import HomePage from "@/pages/home/HomePage";
 import PluginPage from "@/pages/plugins/PluginPage";
 import SettingsPage from "@/pages/settings/SettingsPage";
 import HistoryPage from "./pages/log/HistoryPage";
+import { ThemeInitializer } from "./components/mode-toggle";
 
 export default function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <ThemeInitializer />
       <div className="bg-sidebar flex h-screen flex-col">
         <TitleBar />
         <div className="flex flex-1 overflow-hidden">

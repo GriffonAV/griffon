@@ -8,7 +8,7 @@ import {
     CommandList,
 } from "@/components/ui/command";
 import { Button } from "./ui/button";
-import { SearchCode } from "lucide-react";
+import { Search } from "lucide-react";
 import clsx from "clsx";
 
 function SearchInput() {
@@ -37,7 +37,7 @@ function SearchInput() {
                 onClick={() => setOpen((open) => !open)}
             >
 
-                <SearchCode className="mr-2" />
+                <Search className="mr-2" />
                 Search
             </Button>
             <CommandDialog open={open} onOpenChange={setOpen}>

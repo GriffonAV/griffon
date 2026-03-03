@@ -2,12 +2,12 @@ import { Link, useLocation } from "react-router-dom";
 import { usePlugins } from "@/hooks/usePlugins";
 import clsx from "clsx";
 import { ModeToggle } from "./mode-toggle";
-import { Settings2, LayoutDashboard, Logs } from "lucide-react";
+import { Settings2, LayoutDashboard, Logs, Divide } from "lucide-react";
 import { SearchInput } from "./search";
 import { Info } from "./info";
 import { SidebarButton } from "./sidebar-button";
-import SidebarNotifications from "./sidebar-notifications.tsx";
 import { Button } from "./ui/button.tsx";
+import { Separator } from "@/components/ui/separator.tsx";
 
 export function Sidebar() {
   const { plugins } = usePlugins();
@@ -23,7 +23,6 @@ export function Sidebar() {
           isActive={location.pathname === "/dashboard" || location.pathname === "/"}
         />
       </Link>
-      <SidebarNotifications />
       <Link to="/log">
         <SidebarButton
           to="/log"
@@ -33,7 +32,7 @@ export function Sidebar() {
         />
       </Link>
       <SearchInput />
-
+      <Separator />
       <span className="text-xs text-muted-foreground px-2 my-2 select-none">
         Plugins
       </span>

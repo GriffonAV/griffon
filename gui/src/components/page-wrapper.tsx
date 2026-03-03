@@ -26,7 +26,12 @@ export const PageWrapper: React.FC<PageProps> = ({ title, children }) => {
                 {title && <h1>{title}</h1>}
             </div>
             {/* scrollable content */}
-            <main className='flex flex-col m-2 flex-1 overflow-auto'>{children}</main>
+            <main className='flex flex-col m-2 flex-1 overflow-auto sm:px-0 md:px-7 lg:px-36 items-start gap-4'>{children}</main>
+            {/* <main className='flex flex-col m-2 flex-1 overflow-auto margin-auto perspective-distant'>
+                <div className='rotate-x-51 rotate-z-43 transform-3d size-12'>
+                    {children}
+                </div>
+            </main> */}
         </div>
     );
 };
