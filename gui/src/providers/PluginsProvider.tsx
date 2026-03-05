@@ -6,7 +6,7 @@ interface PageProps {
     children?: React.ReactNode;
 }
 
-export const PluginsWrapper: React.FC<PageProps> = ({ children }) => {
+export const PluginsProvider: React.FC<PageProps> = ({ children }) => {
     return (
         children
     );

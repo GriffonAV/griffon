@@ -1,5 +1,5 @@
-import { ChangeThemeButtonTest, ModeToggle, ModeToggleGroup } from "@/components/mode-toggle";
-import { PageWrapper } from "@/components/page-wrapper";
+import { ChangeThemeButtonTest, ModeToggle, ModeToggleGroup } from "@/components/layout/ModeToggle";
+import { PageWrapper } from "@/components/layout/PageLayout";
 
 import {
   NavigationMenu,

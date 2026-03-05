@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { PageWrapper } from "@/components/page-wrapper";
+import { PageWrapper } from "@/components/layout/PageLayout";
 
 interface PluginInfo {
   pid: number;

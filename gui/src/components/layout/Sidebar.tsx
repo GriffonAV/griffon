@@ -1,12 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { usePlugins } from "@/hooks/usePlugins";
+import { usePlugins } from "@/bindings/usePlugins.ts";
 import clsx from "clsx";
-import { ModeToggle } from "./mode-toggle";
+import { ModeToggle } from "./ModeToggle.tsx";
 import { Settings2, LayoutDashboard, Logs, Divide } from "lucide-react";
-import { SearchInput } from "./search";
-import { Info } from "./info";
-import { SidebarButton } from "./sidebar-button";
-import { Button } from "./ui/button.tsx";
+import { SearchInput } from "./SearchInput.tsx";
+import { ContactButton } from "./ContactButton.tsx";
+import { SidebarButton } from "./SidebarButton.tsx";
+import { Button } from "../ui/button.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
 
 export function Sidebar() {
@@ -66,7 +66,7 @@ export function Sidebar() {
           </Button>
         </Link>
         <ModeToggle />
-        <Info />
+        <ContactButton />
 
       </div>
     </aside>

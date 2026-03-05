@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, Minus, Square, X, Github, Bell } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openPath, openUrl } from '@tauri-apps/plugin-opener';
-import SidebarNotifications from "./sidebar-notifications";
+import NotificationPanel from "./NotificationPanel";
 
 
 function TitleBar() {
@@ -71,15 +71,13 @@ function TitleBar() {
       <div className="pl-2 font-bold">Griffon</div>
       <div className="flex-1"></div>
       {/* link to github */}
-      <SidebarNotifications />
+      <NotificationPanel />
       <Button
         className="cursor-pointer text-muted-foreground"
         variant={"ghost"}
       >
 
         <Bell />
-        {/* // stars number secondary text */}
-
       </Button>
       <a target="_blank" rel="noopener noreferrer" onClick={openGitHub}>
         <Button
@@ -87,7 +85,6 @@ function TitleBar() {
           variant={"ghost"}
         >
           <Github />
-          {/* // stars number secondary text */}
           7
         </Button>
       </a>

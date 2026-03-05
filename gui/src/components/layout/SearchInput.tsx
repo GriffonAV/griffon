@@ -7,7 +7,7 @@ import {
     CommandItem,
     CommandList,
 } from "@/components/ui/command";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import { Search } from "lucide-react";
 import clsx from "clsx";
 

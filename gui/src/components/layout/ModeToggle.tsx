@@ -7,9 +7,9 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useTheme } from "@/components/theme-provider";
-import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
-import ThemesList from "./themes";
+import { useTheme } from "@/providers/ThemeProvider";
+import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
+import ThemesList from "./ThemesList";
 import { useState } from "react";
 
 export function ModeToggle() {

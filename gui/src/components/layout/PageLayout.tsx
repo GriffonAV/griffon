@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import { Separator } from "@/components/ui/separator"
 import { PanelLeft } from "lucide-react";
 

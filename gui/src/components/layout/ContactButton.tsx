@@ -2,7 +2,7 @@ import { MessageCircleQuestionMark } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-export function Info() {
+export function ContactButton() {
 
     return (
 
@@ -10,6 +10,5 @@ export function Info() {
             <MessageCircleQuestionMark ></MessageCircleQuestionMark>
             <span className="sr-only">Toggle theme</span>
         </Button>
-
     );
 }
