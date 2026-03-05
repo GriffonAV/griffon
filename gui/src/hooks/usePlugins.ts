@@ -8,13 +8,17 @@ export interface Plugin {
 
 export function usePlugins() {
   const [plugins, setPlugins] = useState<Plugin[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   async function refreshPlugins() {
+    setIsLoading(true);
     try {
       const result = await invoke<Plugin[]>("list_plugins_cmd");
       setPlugins(result);
     } catch (err) {
       console.error("Failed to load plugins:", err);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -22,5 +26,5 @@ export function usePlugins() {
     refreshPlugins();
   }, []);
 
-  return { plugins, refreshPlugins };
+  return { plugins, refreshPlugins, isLoading };
 }
