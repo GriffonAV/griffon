@@ -1,13 +1,11 @@
-import { ChangeThemeButtonTest, ModeToggle, ModeToggleGroup } from "@/components/layout/ModeToggle";
+import { ChangeThemeButtonTest, ModeToggleGroup } from "@/components/layout/ModeToggle";
 import { PageWrapper } from "@/components/layout/PageLayout";
 
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 
