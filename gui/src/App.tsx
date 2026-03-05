@@ -32,9 +32,8 @@ export default function App() {
               <Route path="/plugin/:pid" element={<PluginPage />} />
             </Routes>
           </PluginsProvider>
-
         </div>
-      </div >
-    </ThemeProvider >
+      </div>
+    </ThemeProvider>
   );
 }

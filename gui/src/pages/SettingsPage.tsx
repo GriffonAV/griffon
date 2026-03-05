@@ -9,7 +9,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu"
+} from "@/components/ui/navigation-menu";
 
 export default function SettingsPage() {
   return (
@@ -42,8 +42,7 @@ export default function SettingsPage() {
       <div>
         <h2 className="text-xl font-bold p-2">Notifications</h2>
         <p></p>
-
       </div>
-    </PageWrapper >
+    </PageWrapper>
   );
 }

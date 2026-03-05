@@ -3,9 +3,8 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Copy, Minus, Square, X, Github, Bell } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { openPath, openUrl } from '@tauri-apps/plugin-opener';
+import { openUrl } from "@tauri-apps/plugin-opener";
 import NotificationPanel from "./NotificationPanel";
-
 
 function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -14,7 +13,7 @@ function TitleBar() {
   useEffect(() => {
     const detectTauri = async () => {
       try {
-        await getCurrentWindow();  // If this doesn't throw, you're in Tauri
+        await getCurrentWindow(); // If this doesn't throw, you're in Tauri
         setIsTauri(true);
       } catch {
         setIsTauri(false);
@@ -25,9 +24,8 @@ function TitleBar() {
   }, []);
 
   const openGitHub = () => {
-    openUrl('https://github.com/GriffonAV/GriffonAV');
+    openUrl("https://github.com/GriffonAV/GriffonAV");
   };
-
 
   useEffect(() => {
     if (!isTauri) return; // Skip Tauri-specific code in web
@@ -72,20 +70,12 @@ function TitleBar() {
       <div className="flex-1"></div>
       {/* link to github */}
       <NotificationPanel />
-      <Button
-        className="cursor-pointer text-muted-foreground"
-        variant={"ghost"}
-      >
-
+      <Button className="cursor-pointer text-muted-foreground" variant={"ghost"}>
         <Bell />
       </Button>
       <a target="_blank" rel="noopener noreferrer" onClick={openGitHub}>
-        <Button
-          className="cursor-pointer text-muted-foreground"
-          variant={"ghost"}
-        >
-          <Github />
-          7
+        <Button className="cursor-pointer text-muted-foreground" variant={"ghost"}>
+          <Github />7
         </Button>
       </a>
       {isTauri && (
@@ -106,12 +96,7 @@ function TitleBar() {
           >
             {isMaximized ? <Copy /> : <Square />}
           </Button>
-          <Button
-            className="cursor-pointer"
-            variant={"ghost"}
-            id="titlebar-close"
-            title="close"
-          >
+          <Button className="cursor-pointer" variant={"ghost"} id="titlebar-close" title="close">
             <X />
           </Button>
         </>

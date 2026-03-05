@@ -1,8 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { usePlugins } from "@/bindings/usePlugins.ts";
-import clsx from "clsx";
 import { ModeToggle } from "./ModeToggle.tsx";
-import { Settings2, LayoutDashboard, Logs, Divide } from "lucide-react";
+import { Settings2, LayoutDashboard, Logs } from "lucide-react";
 import { SearchInput } from "./SearchInput.tsx";
 import { ContactButton } from "./ContactButton.tsx";
 import { SidebarButton } from "./SidebarButton.tsx";
@@ -33,9 +32,7 @@ export function Sidebar() {
       </Link>
       <SearchInput />
       <Separator />
-      <span className="text-xs text-muted-foreground px-2 my-2 select-none">
-        Plugins
-      </span>
+      <span className="text-xs text-muted-foreground px-2 my-2 select-none">Plugins</span>
       {plugins.map((plugin) => (
         <Link key={plugin.pid} to={`/plugin/${plugin.pid}`}>
           <SidebarButton
@@ -47,27 +44,17 @@ export function Sidebar() {
         </Link>
       ))}
 
-      {/* <Link to="/settings">
-        <SidebarButton
-          to="/settings"
-          icon={<Settings2 />}
-          label="Settings"
-          isActive={location.pathname === "/settings"}
-        />
-      </Link> */}
-
       <div className="flex-1" />
 
       <div className="flex flex-row gap-2 justify-end">
         <Link to="/settings">
           <Button variant="outline" size="icon" className="cursor-pointer">
-            <Settings2 ></Settings2>
+            <Settings2></Settings2>
             <span className="sr-only">Settings</span>
           </Button>
         </Link>
         <ModeToggle />
         <ContactButton />
-
       </div>
     </aside>
   );

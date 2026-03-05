@@ -48,7 +48,9 @@ export default function PluginPage() {
 
         <div className="flex gap-2">
           {plugin.functions.map((fn) => (
-            <Button className="cursor-pointer" key={fn} onClick={() => send(fn)}>{fn}</Button>
+            <Button className="cursor-pointer" key={fn} onClick={() => send(fn)}>
+              {fn}
+            </Button>
           ))}
         </div>
 
@@ -57,7 +59,9 @@ export default function PluginPage() {
             <span className="opacity-50">No output yet…</span>
           ) : (
             logs.map((line, i) => (
-              <div key={i} className="whitespace-pre-wrap">$ {line}</div>
+              <div key={i} className="whitespace-pre-wrap">
+                $ {line}
+              </div>
             ))
           )}
         </Card>
