@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { usePlugins } from "@/bindings/usePlugins.ts";
+import { usePlugins } from "@/bindings/PluginContext.tsx";
 import { ModeToggle } from "./ModeToggle.tsx";
 import { Settings2, LayoutDashboard, Logs } from "lucide-react";
 import { SearchInput } from "./SearchInput.tsx";
