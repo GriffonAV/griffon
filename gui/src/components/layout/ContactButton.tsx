@@ -11,8 +11,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { useState } from "react";
 
 export function ContactButton() {
+  const [clickCounter, setClickCounter] = useState(0);
+
+  const handleButtonClick = () => {
+    setClickCounter((prevCount) => prevCount + 1);
+    if (clickCounter >= 10) {
+      // not open url but  href = https://chromedino.com/
+      window.location.href = "https://chromedino.com/";
+    }
+  };
+
+
   return (
     <Dialog>
       <DialogTrigger><Button variant="outline" size="icon" className="cursor-pointer">
@@ -34,7 +46,7 @@ export function ContactButton() {
           />
           <div className="pb-2 font-bold">Griffon</div>
           <Badge asChild>
-            <a href="#link">
+            <a onClick={handleButtonClick}>
               0.0.1
             </a>
           </Badge>
@@ -55,6 +67,6 @@ export function ContactButton() {
 
         </div>
       </DialogContent>
-    </Dialog>
+    </Dialog >
   )
 }
