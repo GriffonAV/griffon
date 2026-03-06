@@ -68,7 +68,6 @@ function TitleBar() {
       />
       <div className="pl-2 font-bold">Griffon</div>
       <div className="flex-1"></div>
-      {/* link to github */}
       <NotificationPanel />
       <Button className="cursor-pointer text-muted-foreground" variant={"ghost"}>
         <Bell />
