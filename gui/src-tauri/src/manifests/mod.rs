@@ -25,7 +25,7 @@ pub struct UI {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Section {
     pub id: String,
-    pub section: String,
+    pub tab: String,
 }
 
 pub fn load_plugin_manifest(path: &str) -> Result<PluginManifest, Box<dyn std::error::Error>> {

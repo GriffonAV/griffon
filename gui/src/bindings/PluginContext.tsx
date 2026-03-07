@@ -22,7 +22,7 @@ export interface PluginManifest {
     ui: {
         sections: Array<{
             id: string;
-            section: string;
+            tab: string;
         }>;
     };
 }

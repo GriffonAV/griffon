@@ -6,6 +6,7 @@ import {
   NavigationMenuItem,
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
+import { titleCase } from "@/lib/titleCase";
 
 interface PageProps {
   title?: string;
@@ -24,7 +25,7 @@ export const PageTabsLayout: React.FC<PageProps> = ({ title, children, navigatio
           <PanelLeft />
         </Button>
         <div className="border-r rounded-none w-0 h-6"></div>
-        {title && <h1>{title}</h1>}
+        {title && <h1>{titleCase(title)}</h1>}
       </div>
       {navigation && tabs && (
         <div className="flex p-2 shadow">
@@ -36,7 +37,7 @@ export const PageTabsLayout: React.FC<PageProps> = ({ title, children, navigatio
                     variant={activeTab === index ? "default" : "ghost"}
                     onClick={() => setActiveTab(index)}
                   >
-                    {tab}
+                    {titleCase(tab)}
                   </Button>
                 </NavigationMenuItem>
               ))}

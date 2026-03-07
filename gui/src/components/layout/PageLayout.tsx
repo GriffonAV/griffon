@@ -9,6 +9,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { Separator } from "@/components/ui/separator";
+import { titleCase } from "@/lib/titleCase";
 
 interface PageProps {
   title?: string;
@@ -57,7 +58,7 @@ export const PageWrapper: React.FC<PageProps> = ({ title, children, navigation, 
           <PanelLeft />
         </Button>
         <div className="border-r rounded-none w-0 h-6"></div>
-        {title && <h1>{title}</h1>}
+        {title && <h1>{titleCase(title)}</h1>}
       </div>
       {navigation && tabs && (
         <div className="flex p-2 shadow">
@@ -69,7 +70,7 @@ export const PageWrapper: React.FC<PageProps> = ({ title, children, navigation, 
                     variant={activeSection === tab ? "default" : "ghost"}
                     onClick={() => scrollToSection(index)}
                   >
-                    {tab}
+                    {titleCase(tab)}
                   </Button>
                 </NavigationMenuItem>
               ))}

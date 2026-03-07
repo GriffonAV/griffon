@@ -3,10 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import type { PluginManifest } from "@/bindings/PluginContext";
 import { debug } from "@tauri-apps/plugin-log";
 import { PageTabsLayout } from "@/components/layout/PageTabsLayout";
+import { titleCase } from "@/lib/titleCase";
 
 interface PluginInfo {
   pid: number;
@@ -59,7 +59,7 @@ export default function PluginPage() {
 
   return (
     <PageTabsLayout title={plugin.name} navigation={plugin.manifest?.plugin?.tabs ? true : false} tabs={plugin.manifest?.plugin?.tabs}>
-      <div className="flex flex-col h-full gap-4">
+      {/* <div className="flex flex-col h-full gap-4">
         <h1 className="text-lg font-semibold">
           {plugin.name} (PID {plugin.pid})
         </h1>
@@ -83,10 +83,24 @@ export default function PluginPage() {
             ))
           )}
         </Card>
-      </div>
-      <div className="flex flex-col h-full gap-4">
-
-      </div>
+      </div> */}
+      {plugin.manifest?.plugin?.tabs?.map((tab, index) =>
+        <div className="flex flex-col h-full gap-4">
+          {plugin.manifest?.ui?.sections?.map((section) => {
+            if (section.tab === tab) {
+              return <div>
+                <h2 className="text-xl font-bold">{titleCase(section.id)}</h2>
+                <div className="flex flex-col m-5">
+                  <p>      lorem ipsum, lorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsum
+                    lorem ipsum, lorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsum
+                    lorem ipsum, lorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsumlorem ipsum</p>
+                </div>
+              </div>
+            }
+          })}
+        </div>
+      )
+      }
     </PageTabsLayout>
   );
 }
