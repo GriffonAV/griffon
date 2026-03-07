@@ -4,6 +4,8 @@ use serde::Serialize;
 use std::sync::Mutex;
 use tauri::State;
 
+mod manifests;
+
 // static PLUGIN_DIR: &str = "../../plugins";
 static PLUGIN_DIR: &str = "../../target/debug";
 static PLUGIN_MANIFEST_DIR: &str = "../../target/debug";
