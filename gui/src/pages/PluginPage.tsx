@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { PluginManifest } from "@/bindings/PluginContext";
 import { debug } from "@tauri-apps/plugin-log";
-import { PageWrapper2 } from "@/components/layout/PageLayout2";
+import { PageTabsLayout } from "@/components/layout/PageTabsLayout";
 
 interface PluginInfo {
   pid: number;
@@ -58,7 +58,7 @@ export default function PluginPage() {
   if (!plugin) return <div>Plugin not found</div>;
 
   return (
-    <PageWrapper2 title={plugin.name} navigation={plugin.manifest?.plugin?.tabs ? true : false} tabs={plugin.manifest?.plugin?.tabs}>
+    <PageTabsLayout title={plugin.name} navigation={plugin.manifest?.plugin?.tabs ? true : false} tabs={plugin.manifest?.plugin?.tabs}>
       <div className="flex flex-col h-full gap-4">
         <h1 className="text-lg font-semibold">
           {plugin.name} (PID {plugin.pid})
@@ -87,6 +87,6 @@ export default function PluginPage() {
       <div className="flex flex-col h-full gap-4">
 
       </div>
-    </PageWrapper2>
+    </PageTabsLayout>
   );
 }

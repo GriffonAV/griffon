@@ -14,7 +14,7 @@ interface PageProps {
   tabs?: string[];
 }
 
-export const PageWrapper2: React.FC<PageProps> = ({ title, children, navigation, tabs }) => {
+export const PageTabsLayout: React.FC<PageProps> = ({ title, children, navigation, tabs }) => {
   const [activeTab, setActiveTab] = useState<number>(0);
 
   return (
