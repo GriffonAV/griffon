@@ -1,13 +1,13 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PluginManifest {
     pub plugin: Plugin,
     pub ui: UI,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Plugin {
     pub name: String,
     pub id: String,
@@ -17,18 +17,19 @@ pub struct Plugin {
     pub tabs: Vec<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UI {
     pub sections: Vec<Section>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Section {
     pub id: String,
     pub section: String,
 }
 
 pub fn load_plugin_manifest(path: &str) -> Result<PluginManifest, Box<dyn std::error::Error>> {
+    println!("{}", path);
     let toml_content = fs::read_to_string(path)?;
     let manifest: PluginManifest = toml::from_str(&toml_content)?;
     Ok(manifest)

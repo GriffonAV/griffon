@@ -5,11 +5,14 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageWrapper } from "@/components/layout/PageLayout";
+import type { PluginManifest } from "@/bindings/PluginContext";
+import { debug } from "@tauri-apps/plugin-log";
 
 interface PluginInfo {
   pid: number;
   name: string;
   functions: string[];
+  manifest?: PluginManifest; // Add manifest as optional
 }
 
 export default function PluginPage() {
@@ -18,11 +21,25 @@ export default function PluginPage() {
   const [logs, setLogs] = useState<string[]>([]);
 
   useEffect(() => {
+    // Load plugin info
     invoke<PluginInfo[]>("list_plugins_cmd").then((list) => {
       const found = list.find((p) => p.pid.toString() === pid);
-      if (found) setPlugin(found);
+      if (found) {
+        setPlugin(found);
+        // Load manifest for this plugin
+        invoke<PluginManifest>("get_plugin_manifest", { pid: Number(pid) })
+          .then((manifest) => {
+            debug(JSON.stringify(manifest));
+            setPlugin((prev) => (prev ? { ...prev, manifest } : null));
+          })
+          .catch((err) => {
+            debug("Failed to load manifest:" + err);
+            console.error("Failed to load manifest:", err);
+          });
+      }
     });
 
+    // Listen for logs
     const unlisten = listen<string>("plugin-log", (event) => {
       setLogs((prev) => [...prev, event.payload]);
     });
@@ -32,6 +49,7 @@ export default function PluginPage() {
     };
   }, [pid]);
 
+
   function send(msg: string) {
     if (!plugin) return;
     invoke("message_plugin", { pid: plugin.pid, msg });
@@ -40,7 +58,7 @@ export default function PluginPage() {
   if (!plugin) return <div>Plugin not found</div>;
 
   return (
-    <PageWrapper title={plugin.name}>
+    <PageWrapper title={plugin.name} navigation={plugin.manifest?.plugin?.tabs ? true : false} tabs={plugin.manifest?.plugin?.tabs}>
       <div className="flex flex-col h-full gap-4">
         <h1 className="text-lg font-semibold">
           {plugin.name} (PID {plugin.pid})

@@ -5,10 +5,12 @@ use std::sync::Mutex;
 use tauri::State;
 
 mod manifests;
+use manifests::load_plugin_manifest;
+use manifests::PluginManifest;
 
 // static PLUGIN_DIR: &str = "../../plugins";
 static PLUGIN_DIR: &str = "../../target/debug";
-static PLUGIN_MANIFEST_DIR: &str = "../../target/debug";
+static PLUGIN_MANIFEST_DIR: &str = "../../.config/griffon";
 
 struct PMState(pub Mutex<PluginManager>);
 
@@ -62,11 +64,19 @@ fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
     };
 }
 
+//utils format name to folder name
+// Test Name2 -> test_name2
+fn format_name(name: &str) -> String {
+    name.replace(' ', "_").to_lowercase()
+}
+
 #[tauri::command]
-fn get_manifest(pid: u32, pm: State<PMState>) {
-    // TODO: Implement manifest fetching (found in ../../.config/griffon/pluginname/pluginname.toml) and send it to the app
+fn get_plugin_manifest(pid: u32, pm: State<PMState>) -> Result<PluginManifest, String> {
     let plugins = pm.0.lock().unwrap().list_plugins();
     let plugin_name = plugins.into_iter().find(|p| p.pid == pid).unwrap().name;
+    let plugin_name = format_name(&plugin_name);
+    let path = format!("{PLUGIN_MANIFEST_DIR}/{plugin_name}/{plugin_name}.toml");
+    load_plugin_manifest(&path).map_err(|e| e.to_string())
 }
 
 fn main() {
@@ -74,13 +84,24 @@ fn main() {
     pm.scan_dir();
 
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(tauri_plugin_log::log::LevelFilter::Info)
+                .build(),
+        )
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(tauri_plugin_log::log::LevelFilter::Info)
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .manage(PMState(Mutex::new(pm)))
         .invoke_handler(tauri::generate_handler![
             list_plugins,
             refresh_plugins,
             message_plugin,
-            list_plugins_cmd
+            list_plugins_cmd,
+            get_plugin_manifest
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");

@@ -4,7 +4,7 @@ import { PageWrapper } from "@/components/layout/PageLayout";
 
 export default function SettingsPage() {
   return (
-    <PageWrapper title="Settings" navigation={true} sections={["Appearance", "Notifications"]}>
+    <PageWrapper title="Settings" navigation={true} tabs={["Appearance", "Notifications"]}>
       <div>
         <h2 className="text-xl font-bold">Appearance</h2>
         <div className="flex flex-col m-5">

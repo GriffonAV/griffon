@@ -15,10 +15,10 @@ interface PageProps {
   title?: string;
   children?: React.ReactNode;
   navigation?: Boolean;
-  sections?: string[];
+  tabs?: string[];
 }
 
-export const PageWrapper: React.FC<PageProps> = ({ title, children, navigation, sections }) => {
+export const PageWrapper: React.FC<PageProps> = ({ title, children, navigation, tabs }) => {
   return (
     <div className="bg-background text-foreground flex-1 flex-col m-2 rounded-md overflow-hidden flex">
       <div className="flex items-center border-b rounded-none p-2 gap-4">
@@ -43,10 +43,10 @@ export const PageWrapper: React.FC<PageProps> = ({ title, children, navigation, 
                   <span>Appearance</span>
                 </NavigationMenuLink>
               </NavigationMenuItem> */}
-              {sections?.map((section) => (
-                <NavigationMenuItem >
+              {tabs?.map((tab) => (
+                <NavigationMenuItem className="cursor-pointer">
                   <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                    <span>{section} </span>
+                    <span>{tab} </span>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
               ))
