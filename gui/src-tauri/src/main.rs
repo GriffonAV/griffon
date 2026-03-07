@@ -6,6 +6,7 @@ use tauri::State;
 
 // static PLUGIN_DIR: &str = "../../plugins";
 static PLUGIN_DIR: &str = "../../target/debug";
+static PLUGIN_MANIFEST_DIR: &str = "../../target/debug";
 
 struct PMState(pub Mutex<PluginManager>);
 
@@ -57,6 +58,13 @@ fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
         }
         Err(e) => println!("[GUI](ERROR) Failed to send CALL: {e}"),
     };
+}
+
+#[tauri::command]
+fn get_manifest(pid: u32, pm: State<PMState>) {
+    // TODO: Implement manifest fetching (found in ../../.config/griffon/pluginname/pluginname.toml) and send it to the app
+    let plugins = pm.0.lock().unwrap().list_plugins();
+    let plugin_name = plugins.into_iter().find(|p| p.pid == pid).unwrap().name;
 }
 
 fn main() {
