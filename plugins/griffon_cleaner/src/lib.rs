@@ -4,12 +4,14 @@ pub mod reports;
 pub mod runner;
 pub mod modules;
 pub mod cache_paths;
+pub mod analysis;
 
 pub use config::*;
 pub use context::*;
 pub use reports::*;
 pub use runner::*;
 pub use cache_paths::*;
+pub use analysis::*;
 pub use modules::CleanerModule;
 use abi_stable::{
     export_root_module,
@@ -70,7 +72,7 @@ fn human_readable(bytes: u64) -> String {
     format!("{:.2} {}", size, UNITS[unit_index])
 }
 
-fn print_cache_report(global: &GlobalReport) {
+pub fn print_cache_report(global: &GlobalReport) {
     // On récupère le report du module cache
     let cache_report = match global.per_module.get("cache") {
         Some(r) => r,
@@ -84,6 +86,8 @@ fn print_cache_report(global: &GlobalReport) {
     println!("Dry-run : {}", global.dry_run);
     println!("Total fichiers : {}", cache_report.files_touched);
     println!("Total libéré : {}", human_readable(cache_report.bytes_freed));
+
+
 
     // Par dossier racine
     if !cache_report.per_root_path.is_empty() {
@@ -140,11 +144,14 @@ fn print_cache_report(global: &GlobalReport) {
         }
     }
 
+    println!("Durée totale : {} ms", global.total_duration_ms);
+    println!("Durée module cache : {} ms", cache_report.duration_ms);
+
     println!("===========================");
     println!("Module Used:");
 }
 
-fn whats_enabled_modules(cfg: &CleanerConfig) -> Vec<&'static str> {
+pub fn whats_enabled_modules(cfg: &CleanerConfig) -> Vec<&'static str> {
     let mut res = Vec::new();
 
     if cfg.enable_system_cache {
@@ -191,7 +198,7 @@ fn run() -> RResult<GlobalReport, RString> {
 
     match run_modules(&ctx, &modules) {
         Ok(report) => {
-            // print_cache_report(&report);
+            print_cache_report(&report);
             RResult::ROk(report)
         }
         Err(e) => RResult::RErr(RString::from(format!(

@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "cli", "daemon", "plugin_manager/interface", "plugins/plugin_test", "plugins/plugin_test_2", "plugin_manager/runner", "plugin_manager/plugin_manager"
-, "plugin_manager/ipc_protocol", "gui/src-tauri" ]
+, "plugin_manager/ipc_protocol", "gui/src-tauri", "plugins/griffon_cleaner"]
 exclude = ["static_analysis"]
 resolver = "2"
 
