@@ -3,8 +3,10 @@ use griffon_cleaner::{
     run_modules, default_modules,
     print_cache_report, whats_enabled_modules,
     build_analysis_report, print_analysis_report,
+    CleanerExportPayload,
 };
-
+use chrono::Utc;
+use uuid::Uuid;
 
 fn main() {
     let config = CleanerConfig {
@@ -38,6 +40,28 @@ fn main() {
 
             let enabled = whats_enabled_modules(&ctx.config);
             println!("Enabled Cache Modules: {:?}", enabled);
+
+            let payload = CleanerExportPayload {
+                generated_at: Utc::now().to_rfc3339(),
+                plugin_name: env!("CARGO_PKG_NAME").to_string(),
+                plugin_version: env!("CARGO_PKG_VERSION").to_string(),
+                run_id: Uuid::new_v4().to_string(),
+                report,
+                analysis,
+            };
+
+            let json = serde_json::to_string_pretty(&payload);
+
+            match json {
+                Ok(json_str) => {
+                    std::fs::write("griffon_cleaner_report.json", json_str)
+                        .expect("Failed to write report to file");
+                    println!("Report exporté dans griffon_cleaner_report.json");
+                }
+                Err(e) => {
+                    eprintln!("Erreur lors de la sérialisation du rapport : {:?}", e);
+                }
+            }
         }
         Err(e) => {
             eprintln!("Erreur lors de l'exécution du cleaner : {:?}", e);

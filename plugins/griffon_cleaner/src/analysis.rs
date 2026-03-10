@@ -1,5 +1,18 @@
 use serde::Serialize;
 use crate::{GlobalReport, ModuleReport};
+use std::fs;
+use std::path::Path;
+
+
+#[derive(Debug, Serialize)]
+pub struct CleanerExportPayload {
+    pub report: GlobalReport,
+    pub analysis: AnalysisReport,
+    pub generated_at: String,
+    pub plugin_name: String,
+    pub plugin_version: String,
+    pub run_id: String,
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub enum CleanerEventLevel {
@@ -50,7 +63,7 @@ pub struct ModuleMetrics {
     pub permission_denied_total: u64,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ModuleAnalysisSummary {
     pub module_id: String,
     pub duration_ms: u128,
@@ -67,6 +80,9 @@ pub struct ModuleAnalysisSummary {
     pub existing_paths_count: u64,
 
     pub delete_success_rate: f64,
+    pub warning_rate: f64,
+    pub avg_bytes_per_file: f64,
+    pub bytes_per_second: f64,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -85,6 +101,8 @@ pub struct AnalysisReport {
     pub modules_by_bytes_freed: Vec<ModuleAnalysisSummary>,
     pub modules_by_duration: Vec<ModuleAnalysisSummary>,
     pub modules_by_warnings: Vec<ModuleAnalysisSummary>,
+    pub modules_by_efficiency: Vec<ModuleAnalysisSummary>,
+    pub modules_by_delete_success_rate: Vec<ModuleAnalysisSummary>,
 }
 
 fn module_summary(module: &ModuleReport) -> ModuleAnalysisSummary {
@@ -92,6 +110,24 @@ fn module_summary(module: &ModuleReport) -> ModuleAnalysisSummary {
         0.0
     } else {
         (module.deleted_files_count as f64 / module.candidate_files_count as f64) * 100.0
+    };
+
+    let warning_rate = if module.files_touched == 0 {
+        0.0
+    } else {
+        (module.warnings.len() as f64 / module.files_touched as f64) * 100.0
+    };
+
+    let avg_bytes_per_file = if module.files_touched == 0 {
+        0.0
+    } else {
+        module.bytes_freed as f64 / module.files_touched as f64
+    };
+
+    let bytes_per_second = if module.duration_ms == 0 {
+        0.0
+    } else {
+        module.bytes_freed as f64 / (module.duration_ms as f64 / 1000.0)
     };
 
     ModuleAnalysisSummary {
@@ -110,7 +146,53 @@ fn module_summary(module: &ModuleReport) -> ModuleAnalysisSummary {
         existing_paths_count: module.existing_paths_count,
 
         delete_success_rate,
+        warning_rate,
+        avg_bytes_per_file,
+        bytes_per_second,
     }
+}
+
+pub fn analysis_report_to_json(report: &AnalysisReport) -> Result<String, serde_json::Error> {
+    serde_json::to_string_pretty(report)
+}
+
+pub fn write_analysis_report_to_file(
+    report: &AnalysisReport,
+    output_path: &Path,
+) -> Result<(), crate::CleanerError> {
+    let json = serde_json::to_string_pretty(report)
+        .map_err(|e| crate::CleanerError::Internal(format!("JSON serialize error: {e}")))?;
+
+    fs::write(output_path, json)?;
+    Ok(())
+}
+
+fn human_bytes(bytes: u64) -> String {
+    const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
+
+    let mut size = bytes as f64;
+    let mut unit_idx = 0;
+
+    while size >= 1024.0 && unit_idx < UNITS.len() - 1 {
+        size /= 1024.0;
+        unit_idx += 1;
+    }
+
+    format!("{size:.2} {}", UNITS[unit_idx])
+}
+
+fn human_bytes_f64(bytes: f64) -> String {
+    const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
+
+    let mut size = bytes;
+    let mut unit_idx = 0;
+
+    while size >= 1024.0 && unit_idx < UNITS.len() - 1 {
+        size /= 1024.0;
+        unit_idx += 1;
+    }
+
+    format!("{size:.2} {}", UNITS[unit_idx])
 }
 
 pub fn build_analysis_report(global: &GlobalReport) -> AnalysisReport {
@@ -130,6 +212,20 @@ pub fn build_analysis_report(global: &GlobalReport) -> AnalysisReport {
     let mut modules_by_warnings = summaries.clone();
     modules_by_warnings.sort_by(|a, b| b.warnings_count.cmp(&a.warnings_count));
 
+    let mut modules_by_efficiency = summaries.clone();
+    modules_by_efficiency.sort_by(|a, b| {
+        b.bytes_per_second
+            .partial_cmp(&a.bytes_per_second)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    let mut modules_by_delete_success_rate = summaries.clone();
+    modules_by_delete_success_rate.sort_by(|a, b| {
+        b.delete_success_rate
+            .partial_cmp(&a.delete_success_rate)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
     AnalysisReport {
         events: vec![],
         per_module_metrics: Default::default(),
@@ -143,39 +239,91 @@ pub fn build_analysis_report(global: &GlobalReport) -> AnalysisReport {
         modules_by_bytes_freed,
         modules_by_duration,
         modules_by_warnings,
+        modules_by_efficiency,
+        modules_by_delete_success_rate,
     }
 }
 
 pub fn print_analysis_report(report: &AnalysisReport) {
-    println!("=== Cleaner Analysis Report ===");
-    println!("Dry-run: {}", report.dry_run);
-    println!("Total duration: {} ms", report.total_duration_ms);
-    println!("Total files touched: {}", report.total_files_touched);
-    println!("Total bytes freed: {}", report.total_bytes_freed);
-    println!("Total warnings: {}", report.total_warnings);
-    println!("Total errors: {}", report.total_errors);
-    println!("Total permission denied: {}", report.total_permission_denied);
+    const TOP_LIMIT: usize = 10;
 
-    println!("\nTop modules by bytes freed:");
-    for module in report.modules_by_bytes_freed.iter().take(5) {
+    println!("\n=== Cleaner Analysis Report ===");
+    println!("Dry-run: {}", report.dry_run);
+    println!("Durée totale: {} ms", report.total_duration_ms);
+    println!("Fichiers touchés: {}", report.total_files_touched);
+    println!("Octets libérés: {}", human_bytes(report.total_bytes_freed));
+    println!("Warnings: {}", report.total_warnings);
+    println!("Erreurs: {}", report.total_errors);
+    println!("Permission denied: {}", report.total_permission_denied);
+
+    println!("\nTop modules par octets libérés:");
+    for module in report
+        .modules_by_bytes_freed
+        .iter()
+        .filter(|m| m.bytes_freed > 0)
+        .take(TOP_LIMIT)
+    {
         println!(
-            "- {}: {} bytes, {} files, {} ms",
+            "- {} => {}, {} fichiers, {} ms, débit {} /s",
             module.module_id,
-            module.bytes_freed,
+            human_bytes(module.bytes_freed),
             module.files_touched,
-            module.duration_ms
+            module.duration_ms,
+            human_bytes_f64(module.bytes_per_second),
         );
     }
 
-    println!("\nTop modules by duration:");
-    for module in report.modules_by_duration.iter().take(5) {
+    println!("\nTop modules par durée:");
+    for module in report
+        .modules_by_duration
+        .iter()
+        .filter(|m| m.duration_ms > 0)
+        .take(TOP_LIMIT)
+    {
         println!(
-            "- {}: {} ms, {} bytes, {} warnings",
+            "- {} => {} ms, {}, warnings {}, succès {:.2}%",
             module.module_id,
             module.duration_ms,
-            module.bytes_freed,
-            module.warnings_count
+            human_bytes(module.bytes_freed),
+            module.warnings_count,
+            module.delete_success_rate,
         );
+    }
+
+    println!("\nDétails par module:");
+    for module in report.modules_by_duration.iter().take(TOP_LIMIT) {
+        if module.files_touched == 0
+            && module.bytes_freed == 0
+            && module.warnings_count == 0
+            && module.errors_count == 0
+        {
+            continue;
+        }
+
+        println!(
+            "- {} | candidats: {} | supprimés: {} | ignorés: {} | taille moyenne: {} | warning rate: {:.2}%",
+            module.module_id,
+            module.candidate_files_count,
+            module.deleted_files_count,
+            module.skipped_files_count,
+            human_bytes_f64(module.avg_bytes_per_file),
+            module.warning_rate,
+        );
+
+        println!("\nTop modules par efficacité:");
+        for module in report
+            .modules_by_efficiency
+            .iter()
+            .filter(|m| m.bytes_per_second > 0.0)
+            .take(TOP_LIMIT)
+        {
+            println!(
+                "- {} => {} /s, succès {:.2}%",
+                module.module_id,
+                human_bytes_f64(module.bytes_per_second),
+                module.delete_success_rate,
+            );
+        }
     }
 
     println!("===============================");
