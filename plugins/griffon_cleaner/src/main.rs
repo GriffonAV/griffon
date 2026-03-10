@@ -1,9 +1,8 @@
 use griffon_cleaner::{
     ExecutionContext, CleanerConfig, Profile,
-    run_modules, default_modules, GlobalReport,
-};
-use abi_stable::{
-    std_types::{RResult, RString},
+    run_modules, default_modules,
+    print_cache_report, whats_enabled_modules,
+    build_analysis_report, print_analysis_report,
 };
 
 fn main() {
@@ -32,6 +31,10 @@ fn main() {
     match run_modules(&ctx, &modules) {
         Ok(report) => {
             print_cache_report(&report);
+
+            let analysis = build_analysis_report(&report);
+            print_analysis_report(&analysis);
+
             let enabled = whats_enabled_modules(&ctx.config);
             println!("Enabled Cache Modules: {:?}", enabled);
         }

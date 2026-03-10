@@ -4,6 +4,7 @@ members = [
     "shared/plugin_interface",
     "plugins/plugin_test",
     "plugins/plugin_test_2",
+    "plugins/griffon_cleaner",
     "daemon/runner",
     "daemon/plugin_manager",
     "shared/ipc_protocol",

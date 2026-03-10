@@ -2,7 +2,7 @@
 
 use crate::{CleanerModule, CleanerResult, ExecutionContext, ModuleReport};
 use crate::cache_paths::{KNOWN_CACHE_PATHS, expand_home, CacheCategory};
-use std::{fs};
+use std::{fs, io::ErrorKind};
 use std::path::{Path};
 use walkdir::WalkDir;
 use std::collections::hash_map::Entry;
@@ -42,6 +42,14 @@ impl CacheCleaner {
         }
     }
 
+    fn bump_permission_denied_from_walkdir(report: &mut ModuleReport, e: &walkdir::Error) {
+        if let Some(io_err) = e.io_error() {
+            if io_err.kind() == ErrorKind::PermissionDenied {
+                report.permission_denied += 1;
+            }
+        }
+    }
+
     fn clean_cache_dir(
         &self,
         root_label: &str,
@@ -50,11 +58,12 @@ impl CacheCleaner {
         report: &mut ModuleReport,
     ) -> CleanerResult<()> {
         if !path.exists() {
-            // Rien à faire si le chemin n'existe pas
+            report.missing_paths_count += 1;
             return Ok(());
         }
 
-        // On parcourt récursivement le dossier
+        report.existing_paths_count += 1;
+
         for entry_res in WalkDir::new(path).into_iter() {
             let entry = match entry_res {
                 Ok(e) => e,
@@ -63,73 +72,100 @@ impl CacheCleaner {
                         "Erreur walkdir dans {}: {e}",
                         path.display()
                     ));
+                    report.warning_count += 1;
                     continue;
                 }
             };
 
-            // On ne touche qu'aux fichiers, pas aux dossiers ici
             if entry.file_type().is_file() {
                 let file_path = entry.path();
+                report.candidate_files_count += 1;
 
                 let metadata = match entry.metadata() {
                     Ok(m) => m,
                     Err(e) => {
+                        Self::bump_permission_denied_from_walkdir(report, &e);
+
                         report.warnings.push(format!(
                             "Impossible de lire les métadonnées de {}: {e}",
                             file_path.display()
                         ));
+                        report.warning_count += 1;
                         continue;
                     }
                 };
 
                 let size = metadata.len();
 
-                if !dry_run {
-                    if let Err(e) = fs::remove_file(file_path) {
+                if dry_run {
+                    report.skipped_files_count += 1;
+                    report.files_touched += 1;
+                    report.bytes_freed += size;
+
+                    Self::bump_type_stats(report, file_path, size);
+                    Self::bump_root_stats(report, root_label, size);
+                    continue;
+                }
+
+                match fs::remove_file(file_path) {
+                    Ok(_) => {
+                        report.deleted_files_count += 1;
+                        report.files_touched += 1;
+                        report.bytes_freed += size;
+
+                        Self::bump_type_stats(report, file_path, size);
+                        Self::bump_root_stats(report, root_label, size);
+                    }
+                    Err(e) => {
+                        if e.kind() == ErrorKind::PermissionDenied {
+                            report.permission_denied += 1;
+                        }
+
                         report.warnings.push(format!(
                             "Impossible de supprimer {}: {e}",
                             file_path.display()
                         ));
-                        continue;
-                    }
-                }
-
-                report.files_touched += 1;
-                report.bytes_freed += size;
-
-                let type_key = Self::file_type_key(file_path);
-
-                match report.per_file_type.entry(type_key) {
-                    Entry::Occupied(mut e) => {
-                        let stats = e.get_mut();
-                        stats.files_touched += 1;
-                        stats.bytes_freed += size;
-                    }
-                    Entry::Vacant(e) => {
-                        e.insert(TypeStats {
-                            files_touched: 1,
-                            bytes_freed: size,
-                        });
-                    }
-                }
-
-                match report.per_root_path.entry(root_label.to_string()) {
-                    Entry::Occupied(mut e) => {
-                        let stats = e.get_mut();
-                        stats.files_touched += 1;
-                        stats.bytes_freed += size;
-                    }
-                    Entry::Vacant(e) => {
-                        e.insert(PathStats {
-                            files_touched: 1,
-                            bytes_freed: size,
-                        });
+                        report.warning_count += 1;
                     }
                 }
             }
         }
 
         Ok(())
+    }
+
+    fn bump_root_stats(report: &mut ModuleReport, root_label: &str, size: u64) {
+        match report.per_root_path.entry(root_label.to_string()) {
+            Entry::Occupied(mut e) => {
+                let stats = e.get_mut();
+                stats.files_touched += 1;
+                stats.bytes_freed += size;
+            }
+            Entry::Vacant(e) => {
+                e.insert(PathStats {
+                    files_touched: 1,
+                    bytes_freed: size,
+                });
+            }
+        }
+    }
+
+    fn bump_type_stats(report: &mut ModuleReport, file_path: &Path, size: u64) {
+        let type_key = Self::file_type_key(file_path);
+
+        match report.per_file_type.entry(type_key) {
+            Entry::Occupied(mut e) => {
+                let stats = e.get_mut();
+                stats.files_touched += 1;
+                stats.bytes_freed += size;
+            }
+            Entry::Vacant(e) => {
+                e.insert(TypeStats {
+                    files_touched: 1,
+                    bytes_freed: size,
+                });
+            }
+        }
     }
 }
 
