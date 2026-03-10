@@ -19,7 +19,11 @@ use abi_stable::{
     sabi_extern_fn,
     std_types::{RResult, RString, RVec, Tuple2},
 };
-use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
+use interface::{PluginI, PluginRoot, PluginRoot_Ref};
+use std::path::Path;
+use chrono::Utc;
+use uuid::Uuid;
+
 
 pub type CleanerResult<T> = Result<T, CleanerError>;
 
@@ -41,9 +45,9 @@ pub enum CleanerError {
 pub fn default_modules() -> Vec<Box<dyn CleanerModule>> {
     vec![
         Box::new(modules::cache::CacheCleaner::new()),
-        Box::new(modules::logs::LogsCleaner::new()),
-        Box::new(modules::packages::PackagesCleaner::new()),
-        Box::new(modules::bigfiles::BigfilesScanner::new()),
+        //Box::new(modules::logs::LogsCleaner::new()),
+        //Box::new(modules::packages::PackagesCleaner::new()),
+        //Box::new(modules::bigfiles::BigfilesScanner::new()),
     ]
 }
 
@@ -108,13 +112,18 @@ pub fn print_cache_report(global: &GlobalReport) {
     // Par type de fichier
     if !cache_report.per_file_type.is_empty() {
         println!("\nPar type :");
-        let mut entries: Vec<_> = cache_report.per_file_type.iter().collect();
-        entries.sort_by_key(|(typ, _)| *typ);
 
-        for (typ, stats) in entries {
+        let mut file_types: Vec<_> = cache_report.per_file_type.iter().collect();
+        file_types.sort_by(|a, b| b.1.bytes_freed.cmp(&a.1.bytes_freed));
+
+        for (file_type, stats) in file_types
+            .into_iter()
+            .filter(|(_, stats)| stats.files_touched >= 3 || stats.bytes_freed >= 1024 * 1024)
+            .take(10)
+        {
             println!(
                 "- {} : {} fichiers, {}",
-                typ,
+                file_type,
                 stats.files_touched,
                 human_readable(stats.bytes_freed),
             );
@@ -199,6 +208,21 @@ fn run() -> RResult<GlobalReport, RString> {
     match run_modules(&ctx, &modules) {
         Ok(report) => {
             print_cache_report(&report);
+
+            let analysis = build_analysis_report(&report);
+            print_analysis_report(&analysis);
+
+            if let Err(e) = write_analysis_report_to_file(
+                &analysis,
+                Path::new("griffon_cleaner_analysis.json"),
+            ) {
+                eprintln!("Erreur lors de l'export JSON de l'analyse : {:?}", e);
+            } else {
+                println!("Analysis report exporté dans griffon_cleaner_analysis.json");
+            }
+
+            let enabled = whats_enabled_modules(&ctx.config);
+            println!("Enabled Cache Modules: {:?}", enabled);
             RResult::ROk(report)
         }
         Err(e) => RResult::RErr(RString::from(format!(
@@ -242,6 +266,31 @@ extern "C" fn handle_message(msg: RString) -> RString {
             }
             RResult::RErr(err) => RString::from(format!("ERR cleaner: {}", err)),
         },
+
+        "fn:run_analysis" => {
+            let ctx = make_ctx();
+            let modules = make_modules();
+
+            match run_modules(&ctx, &modules) {
+                Ok(report) => {
+                    let analysis = build_analysis_report(&report);
+                    let payload = CleanerExportPayload {
+                        generated_at: Utc::now().to_rfc3339(),
+                        plugin_name: env!("CARGO_PKG_NAME").to_string(),
+                        plugin_version: env!("CARGO_PKG_VERSION").to_string(),
+                        run_id: Uuid::new_v4().to_string(),
+                        report,
+                        analysis,
+                    };
+                    match serde_json::to_string(&payload) {
+                        Ok(json) => RString::from(json),
+                        Err(e) => RString::from(format!("ERR json serialize analysis: {e}")),
+                    }
+                }
+                Err(e) => RString::from(format!("ERR cleaner: {:?}", e)),
+            }
+        }
+
         _ => RString::from(format!("ACK LIBCLEAN {}\n", msg.as_str())),
     }
 }

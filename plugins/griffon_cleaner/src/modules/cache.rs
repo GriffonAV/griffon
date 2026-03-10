@@ -36,17 +36,28 @@ impl CacheCleaner {
     }
 
     fn file_type_key(path: &Path) -> String {
-        match path.extension().and_then(|e| e.to_str()) {
-            Some(ext) if !ext.is_empty() => ext.to_string(),
-            _ => "no_ext".to_string(),
+        let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+        if file_name.contains("Packages") || file_name.contains("InRelease") || file_name.contains("Translation-") {
+            return "apt_index".to_string();
+        }
+
+        match path.extension().and_then(|ext| ext.to_str()) {
+            Some(ext) if !ext.trim().is_empty() => ext.to_lowercase(),
+            None => "no_ext".to_string(),
+            _ => "unknown".to_string(),
         }
     }
 
     fn bump_permission_denied_from_walkdir(report: &mut ModuleReport, e: &walkdir::Error) {
-        if let Some(io_err) = e.io_error() {
-            if io_err.kind() == ErrorKind::PermissionDenied {
-                report.permission_denied += 1;
-            }
+        let is_permission_denied = e
+            .io_error()
+            .map(|io_err| io_err.kind() == std::io::ErrorKind::PermissionDenied)
+            .unwrap_or(false)
+            || e.to_string().to_lowercase().contains("permission denied");
+
+        if is_permission_denied {
+            report.permission_denied += 1;
         }
     }
 
@@ -68,6 +79,8 @@ impl CacheCleaner {
             let entry = match entry_res {
                 Ok(e) => e,
                 Err(e) => {
+                    Self::bump_permission_denied_from_walkdir(report, &e);
+
                     report.warnings.push(format!(
                         "Erreur walkdir dans {}: {e}",
                         path.display()

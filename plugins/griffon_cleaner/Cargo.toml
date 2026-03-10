@@ -10,3 +10,5 @@ plugin_interface = { workspace = true }
 abi_stable = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
