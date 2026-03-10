@@ -254,41 +254,29 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 #[sabi_extern_fn]
 extern "C" fn handle_message(msg: RString) -> RString {
     println!("[LIBCLEAN](msg) Received message: {}", msg.as_str());
+    let ctx = make_ctx();
+    let modules = make_modules();
 
     match msg.as_str() {
         "fn:run" => match run() {
+
             RResult::ROk(report) => {
-                match serde_json::to_string(&report) {
+                let analysis = build_analysis_report(&report);
+                let payload = CleanerExportPayload {
+                    generated_at: Utc::now().to_rfc3339(),
+                    plugin_name: env!("CARGO_PKG_NAME").to_string(),
+                    plugin_version: env!("CARGO_PKG_VERSION").to_string(),
+                    run_id: Uuid::new_v4().to_string(),
+                    report,
+                    analysis,
+                };
+                match serde_json::to_string(&payload) {
                     Ok(json) => RString::from(json),
-                    Err(e) => RString::from(format!("ERR json serialize: {e}")),
+                    Err(e) => RString::from(format!("ERR json serialize analysis: {e}")),
                 }
             }
             RResult::RErr(err) => RString::from(format!("ERR cleaner: {}", err)),
         },
-
-        "fn:run_analysis" => {
-            let ctx = make_ctx();
-            let modules = make_modules();
-
-            match run_modules(&ctx, &modules) {
-                Ok(report) => {
-                    let analysis = build_analysis_report(&report);
-                    let payload = CleanerExportPayload {
-                        generated_at: Utc::now().to_rfc3339(),
-                        plugin_name: env!("CARGO_PKG_NAME").to_string(),
-                        plugin_version: env!("CARGO_PKG_VERSION").to_string(),
-                        run_id: Uuid::new_v4().to_string(),
-                        report,
-                        analysis,
-                    };
-                    match serde_json::to_string(&payload) {
-                        Ok(json) => RString::from(json),
-                        Err(e) => RString::from(format!("ERR json serialize analysis: {e}")),
-                    }
-                }
-                Err(e) => RString::from(format!("ERR cleaner: {:?}", e)),
-            }
-        }
 
         _ => RString::from(format!("ACK LIBCLEAN {}\n", msg.as_str())),
     }
