@@ -107,7 +107,7 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-interface = { workspace = true }
+plugin_interface = { workspace = true }
 abi_stable = { workspace = true }
 ```
 

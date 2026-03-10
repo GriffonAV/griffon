@@ -1,0 +1,11 @@
+[package]
+name = "daemon_core"
+version = "0.1.0"
+edition = "2024"
+default-run = "daemon_core"
+
+[dependencies]
+plugin_manager = {workspace = true}
+ipc_protocol = { workspace = true }
+logger = { workspace =  true }
+serde = { version = "1.0.228", features = ["derive"] }

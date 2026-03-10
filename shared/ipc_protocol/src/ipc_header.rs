@@ -16,6 +16,10 @@ pub enum MsgType {
     Log = 5,
     Heartbeat = 6,
     Error = 7,
+
+    InterfaceRequest = 8,
+    InterfaceResponse = 9,
+    InterfaceEvent = 10
 }
 
 impl MsgType {
@@ -28,6 +32,11 @@ impl MsgType {
             5 => MsgType::Log,
             6 => MsgType::Heartbeat,
             7 => MsgType::Error,
+
+            8 => MsgType::InterfaceRequest,
+            9 => MsgType::InterfaceResponse,
+            10 => MsgType::InterfaceEvent,
+
             _ => return None,
         })
     }

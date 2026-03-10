@@ -9,7 +9,7 @@ use std::process::{Child, Command};
 use std::collections::VecDeque;
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 
-use ipc_protocol::ipc_payload::{CallPayload, Message, recv_message, send_message};
+use ipc_protocol::ipc_payload_runner::{CallPayload, Message, recv_message, send_message};
 
 
 #[derive(Debug, Clone)]
@@ -80,7 +80,7 @@ fn resolve_runner_binary() -> Result<PathBuf, String> {
     let exe_dir = exe.parent().ok_or("exe has no parent")?;
 
     let profile = if cfg!(debug_assertions) { "debug" } else { "release" };
-    let candidate = exe_dir.join("../..").join("target").join(profile).join("runner");
+    let candidate = exe_dir.join("../").join(profile).join("runner");
 
     if candidate.exists() { Ok(candidate) }
     else { Err(format!("runner not found at {:?}", candidate)) }

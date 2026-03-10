@@ -6,3 +6,5 @@ license = "Apache-2.0"
 edition = "2024"
 
 [dependencies]
+ipc_protocol = { workspace = true }
+logger = { workspace = true }

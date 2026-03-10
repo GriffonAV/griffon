@@ -1,8 +1,8 @@
 use abi_stable::library::lib_header_from_path;
 use abi_stable::std_types::{RResult, RString, Tuple2};
-use interface::{PluginRef, PluginRoot_Ref};
+use plugin_interface::{PluginRef, PluginRoot_Ref};
 
-use ipc_protocol::ipc_payload::{
+use ipc_protocol::ipc_payload_runner::{
     recv_message, send_message, CallPayload, ErrorPayload, HelloOkPayload, Message, ResultPayload,
 };
 
