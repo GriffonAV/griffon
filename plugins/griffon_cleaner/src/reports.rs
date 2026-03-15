@@ -1,18 +1,19 @@
 use std::collections::HashMap;
+use serde::Serialize;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct PathStats {
     pub files_touched: u64,
     pub bytes_freed: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct TypeStats {
     pub files_touched: u64,
     pub bytes_freed: u64,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ModuleReport {
     pub module_id: String,
     pub files_touched: u64,
@@ -41,7 +42,7 @@ impl ModuleReport {
 }
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct GlobalReport {
     pub dry_run: bool,
     pub total_files_touched: u64,

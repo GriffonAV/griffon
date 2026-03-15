@@ -2,8 +2,9 @@ use plugin_manager::{PluginManager, LogLevel};
 use std::sync::Mutex;
 use tauri::State;
 use serde::Serialize;
+use ipc_protocol;
 
-static PLUGIN_DIR: &str = "../../target/release";
+static PLUGIN_DIR: &str = "../../plugins";
 
 struct PMState(pub Mutex<PluginManager>);
 
@@ -44,7 +45,18 @@ fn refresh_plugins(pm: State<PMState>) {
 
 #[tauri::command]
 fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
-    pm.0.lock().unwrap().send_msg(pid, &msg);
+    let args = Vec::new(); // TODO: Handle param
+    let call_payload = ipc_protocol::ipc_payload::CallPayload { fn_name : msg , args };
+    match pm.0.lock().unwrap().send_call(pid, call_payload) {
+        Ok(req_id) => {
+            println!("[GUI] CALL sent (request_id={req_id})");
+            match pm.0.lock().unwrap().wait_for_response(req_id) {
+                Ok(ev) => println!("[GUI] RESPONSE: {:?}", ev),
+                Err(e) => eprintln!("[GUI](ERROR) wait_for_response failed: {e}"),
+            }
+        },
+        Err(e) => println!("[GUI](ERROR) Failed to send CALL: {e}"),
+    };
 }
 
 fn main() {
