@@ -1,4 +1,5 @@
 use anyhow::Result;
+use log::debug;
 use std::path::Path;
 use std::time::Instant;
 use walkdir::WalkDir;
@@ -69,10 +70,9 @@ impl MultiThreadScanner {
 
         for entry in WalkDir::new("samples").into_iter().filter_map(|e| e.ok()) {
             if entry.path().is_file() {
-                // simulate scanning
                 let hits = self.scan_file(Rules, entry.path());
                 if hits > 0 {
-                    println!("[ALERT] {:?} matched {} rules", entry.path(), hits);
+                    debug!("[ALERT] {:?} matched {} rules", entry.path(), hits);
                     scanReport.infected_files += 1;
                 } else {
                     scanReport.clean_files += 1;

@@ -246,37 +246,37 @@ fn arg_value(args: &[String], name: &str) -> Option<String> {
 }
 
 fn print_help() {
-    println!("GriffonAV Test Data Preparation Tool");
-    println!();
-    println!("USAGE:");
-    println!("    cargo run --bin prepare [OPTIONS]");
-    println!();
-    println!("OPTIONS:");
-    println!("    --eicar-dir <DIR>      Directory for EICAR files (default: eicar_files)");
-    println!("    --rules-dir <DIR>      Directory for YARA rules (default: rules)");
-    println!(
+    debug!("GriffonAV Test Data Preparation Tool");
+    debug!();
+    debug!("USAGE:");
+    debug!("    cargo run --bin prepare [OPTIONS]");
+    debug!();
+    debug!("OPTIONS:");
+    debug!("    --eicar-dir <DIR>      Directory for EICAR files (default: eicar_files)");
+    debug!("    --rules-dir <DIR>      Directory for YARA rules (default: rules)");
+    debug!(
         "    --ruleset <SET>        YARA Forge ruleset: core, extended, or full (default: core)"
     );
-    println!("    --skip-eicar           Skip downloading EICAR files");
-    println!("    --skip-rules           Skip downloading YARA rules");
-    println!("    --force                Remove existing directories before downloading");
-    println!("    --help, -h             Show this help message");
-    println!();
-    println!("EXAMPLES:");
-    println!("    # Download everything with defaults");
-    println!("    cargo run --bin prepare");
-    println!();
-    println!("    # Download extended ruleset");
-    println!("    cargo run --bin prepare --ruleset extended");
-    println!();
-    println!("    # Only download EICAR files");
-    println!("    cargo run --bin prepare --skip-rules");
-    println!();
-    println!("    # Force re-download everything");
-    println!("    cargo run --bin prepare --force");
-    println!();
-    println!("RULESETS:");
-    println!("    core      - Core detection rules (recommended for testing)");
-    println!("    extended  - Core + additional rules");
-    println!("    full      - Complete ruleset (large download)");
+    debug!("    --skip-eicar           Skip downloading EICAR files");
+    debug!("    --skip-rules           Skip downloading YARA rules");
+    debug!("    --force                Remove existing directories before downloading");
+    debug!("    --help, -h             Show this help message");
+    debug!();
+    debug!("EXAMPLES:");
+    debug!("    # Download everything with defaults");
+    debug!("    cargo run --bin prepare");
+    debug!();
+    debug!("    # Download extended ruleset");
+    debug!("    cargo run --bin prepare --ruleset extended");
+    debug!();
+    debug!("    # Only download EICAR files");
+    debug!("    cargo run --bin prepare --skip-rules");
+    debug!();
+    debug!("    # Force re-download everything");
+    debug!("    cargo run --bin prepare --force");
+    debug!();
+    debug!("RULESETS:");
+    debug!("    core      - Core detection rules (recommended for testing)");
+    debug!("    extended  - Core + additional rules");
+    debug!("    full      - Complete ruleset (large download)");
 }

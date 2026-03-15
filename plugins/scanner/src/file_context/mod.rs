@@ -2,6 +2,8 @@ use std::fs;
 use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 
+use log::debug;
+
 #[derive(Hash, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FileType {
     Executable(ExecutableType),
@@ -74,7 +76,7 @@ static MAGIC_SIG: &[MagicSig] = &[
 ];
 
 pub fn get(path: &Path) -> io::Result<FileContext> {
-    println!("Finding file class for: {}", path.display());
+    debug!("Finding file class for: {}", path.display());
     if !path.exists() || !path.is_file() {
         return Ok(FileContext {
             path: path.to_path_buf(),

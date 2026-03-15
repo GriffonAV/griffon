@@ -56,7 +56,7 @@ pub fn load_rule_index<P: AsRef<Path>>(dir: P) -> Result<RuleIndex> {
                 "archive" => FileType::Archive(file_context::ArchiveType::Unknown),
                 "generic" | "genericbinary" => FileType::GenericBinary,
                 other => {
-                    eprintln!(
+                    debug!(
                         "Unrecognized file_type metadata '{}' in {} - assigning Generic",
                         other,
                         path.display()
@@ -73,7 +73,7 @@ pub fn load_rule_index<P: AsRef<Path>>(dir: P) -> Result<RuleIndex> {
                 "pre" => ScanStage::Pre,
                 "post" => ScanStage::Post,
                 other => {
-                    eprintln!(
+                    debug!(
                         "Unrecognized stage '{}' in {} - defaulting to Pre",
                         other,
                         path.display()
@@ -100,11 +100,11 @@ pub fn load_rule_index<P: AsRef<Path>>(dir: P) -> Result<RuleIndex> {
             if compiler.add_source(src.as_str()).is_ok() {
                 added += 1;
             } else {
-                eprintln!("Failed to add source to compiler for bucket {:?}", key);
+                debug!("Failed to add source to compiler for bucket {:?}", key);
             }
         }
         let rules = compiler.build();
-        println!("Compiled bucket {:?} with {} sources", key, added);
+        debug!("Compiled bucket {:?} with {} sources", key, added);
         index.rules.insert(key, rules);
     }
     Ok(index)

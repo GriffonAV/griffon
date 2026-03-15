@@ -4,7 +4,10 @@ prepare:
     cargo run --bin prepare
 
 run:
-    cargo run --release
+    cargo run
+
+run-debug:
+    RUST_LOG=debug cargo run
 
 bench:
     cargo bench

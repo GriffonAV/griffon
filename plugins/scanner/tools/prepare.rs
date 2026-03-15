@@ -16,8 +16,8 @@ use std::process::Command;
 
 use anyhow::{Context, Result};
 
-use rand::seq::SliceRandom;
 use rand::Rng;
+use rand::seq::SliceRandom;
 use regex::Regex;
 use std::fs;
 use std::io::Write;
@@ -242,7 +242,7 @@ fn download_eicar_files() -> Result<()> {
 
         let dest_path = eicar_dir.join(filename);
 
-        println!("Downloading {} -> {:?}", url, dest_path);
+        debug!("Downloading {} -> {:?}", url, dest_path);
 
         let mut response = client.get(url).send()?.error_for_status()?;
         let mut file = fs::File::create(dest_path)?;

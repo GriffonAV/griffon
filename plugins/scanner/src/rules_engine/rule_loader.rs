@@ -95,7 +95,7 @@ impl RuleLoader {
         }
 
         let rules = compiler.build();
-        println!("Compiled bucket {:?} with {} sources", key, added);
+        debug!("Compiled bucket {:?} with {} sources", key, added);
         Some(rules)
     }
 }
