@@ -1,3 +1,9 @@
+# run
+
+```
+npx tauri dev
+```
+
 # tech
 
 Vite (React) + Tauri + Tailwind + Shadcn
