@@ -112,6 +112,26 @@ fn ensure_rules_cloned(repo: &str, dir: &str) -> Result<()> {
     if !status.success() {
         return Err(anyhow::anyhow!("git clone returned non-zero status"));
     }
+
+    debug!("Cleaning up cloned rules directory: keeping only 'malware/' and 'email/'");
+    for entry in fs::read_dir(p)? {
+        let entry = entry?;
+        let path = entry.path();
+        if let Some(file_name) = path.file_name().and_then(|s| s.to_str())
+            && file_name != "malware"
+            && file_name != "email"
+        {
+            if path.is_dir() {
+                fs::remove_dir_all(&path)
+                    .with_context(|| format!("Failed to remove directory: {}", path.display()))?;
+                debug!("Removed directory: {}", path.display());
+            } else {
+                fs::remove_file(&path)
+                    .with_context(|| format!("Failed to remove file: {}", path.display()))?;
+                debug!("Removed file: {}", path.display());
+            }
+        }
+    }
     Ok(())
 }
 
@@ -120,16 +140,15 @@ fn extract_patterns_from_rules(rules_dir: &str) -> Result<Vec<String>> {
     let q_re = Regex::new(r#""([^"]+)""#).unwrap();
 
     for entry in walk_files(rules_dir)? {
-        if let Some(ext) = entry.extension().and_then(|s| s.to_str()) {
-            if ext.eq_ignore_ascii_case("yar") || ext.eq_ignore_ascii_case("yara") {
-                if let Ok(text) = fs::read_to_string(&entry) {
-                    for cap in q_re.captures_iter(&text) {
-                        if let Some(m) = cap.get(1) {
-                            let s = m.as_str().trim().to_string();
-                            if (4..=200).contains(&s.len()) {
-                                patterns.push(s);
-                            }
-                        }
+        if let Some(ext) = entry.extension().and_then(|s| s.to_str())
+            && (ext.eq_ignore_ascii_case("yar") || ext.eq_ignore_ascii_case("yara"))
+            && let Ok(text) = fs::read_to_string(&entry)
+        {
+            for cap in q_re.captures_iter(&text) {
+                if let Some(m) = cap.get(1) {
+                    let s = m.as_str().trim().to_string();
+                    if (4..=200).contains(&s.len()) {
+                        patterns.push(s);
                     }
                 }
             }
@@ -238,7 +257,10 @@ fn download_eicar_files() -> Result<()> {
     let client = reqwest::blocking::Client::new();
 
     for url in eicar_urls {
-        let filename = url.split('/').last().expect("URL should have a filename");
+        let filename = url
+            .split('/')
+            .next_back()
+            .expect("URL should have a filename");
 
         let dest_path = eicar_dir.join(filename);
 
