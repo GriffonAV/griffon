@@ -100,7 +100,7 @@ pub fn load_rule_index<P: AsRef<Path>>(dir: P) -> Result<RuleIndex> {
             if compiler.add_source(src.as_str()).is_ok() {
                 added += 1;
             } else {
-                debug!("Failed to add source to compiler for bucket {:?}", key);
+                error!("Failed to add source to compiler for bucket {:?}", key);
             }
         }
         let rules = compiler.build();

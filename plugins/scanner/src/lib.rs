@@ -30,20 +30,19 @@ pub fn load_yara_rules<P: AsRef<Path>>(dir: P) -> Rules {
     for entry in WalkDir::new(dir).into_iter().filter_map(|e| e.ok()) {
         let path = entry.path();
 
-        if path.is_file() {
-            if let Some(ext) = path.extension() {
-                if ext == "yar" || ext == "yara" {
-                    match fs::read_to_string(path) {
-                        Ok(contents) => {
-                            if compiler.add_source(contents.as_str()).is_ok() {
-                                loaded_count += 1;
-                            } else {
-                                error_count += 1;
-                            }
-                        }
-                        Err(_) => error_count += 1,
+        if path.is_file()
+            && let Some(ext) = path.extension()
+            && (ext == "yar" || ext == "yara")
+        {
+            match fs::read_to_string(path) {
+                Ok(contents) => {
+                    if compiler.add_source(contents.as_str()).is_ok() {
+                        loaded_count += 1;
+                    } else {
+                        error_count += 1;
                     }
                 }
+                Err(_) => error_count += 1,
             }
         }
     }
