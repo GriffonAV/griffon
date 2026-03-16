@@ -8,3 +8,4 @@ edition = "2024"
 [dependencies]
 ipc_protocol = { workspace = true }
 logger = { workspace = true }
+uuid = { version = "1.22.0", features = ["v4"] }

@@ -11,6 +11,7 @@ use logger::Logger;
 static PLUGIN_DIR_PATH: &str = "./plugins";
 
 static LOGGER_NETWORK: Logger = Logger::new("DAEMON-NETWORK", logger::LogLevel::Debug);
+static LOGGER: Logger = Logger::new("DAEMON", logger::LogLevel::Debug);
 
 const DAEMON_SOCK_PATH: &str = "/run/griffon/daemon.sock";
 
@@ -80,11 +81,18 @@ fn handle_client(mut stream: UnixStream) -> io::Result<()> {
         let resp = match req {
             InterfaceRequest::Ping => InterfaceResponse::Pong,
 
+            InterfaceRequest::CallPlugin {
+                plugin_uuid,
+                fn_name,
+                args,
+            } => {
+                LOGGER.debug(format!("Fn {} to execute for plugin {:?} with args {:?}", fn_name, plugin_uuid, args));
+                InterfaceResponse::CallAccepted { request_id: 1 }
+            }
             _ => InterfaceResponse::Error {
                 message: "Request not implemented yet".to_string(),
             },
         };
-
         send_interface_response(&mut stream, &resp)?;
         LOGGER_NETWORK.debug(format!("Response sent: {:?}", resp));
     }

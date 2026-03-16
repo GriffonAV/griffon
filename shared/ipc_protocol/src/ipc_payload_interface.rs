@@ -1,5 +1,6 @@
 use std::io;
 use std::io::{Read, Write};
+use uuid::Uuid;
 
 use serde::{Deserialize, Serialize};
 
@@ -8,6 +9,7 @@ use crate::ipc_header::{Frame, MsgType};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginInfoDto {
     pub pid: u32,
+    pub plugin_uuid: [u8; 16],
     pub name: String,
     pub path: String,
     pub functions: Vec<String>,
@@ -16,12 +18,11 @@ pub struct PluginInfoDto {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum InterfaceRequest {
     Ping,
-    ListPlugins,
     RefreshPlugins,
-    RestartPlugin { pid: u32 },
-    KillPlugin { pid: u32 },
+    RestartPlugin { plugin_uuid: [u8; 16] },
+    KillPlugin { plugin_uuid: [u8; 16] },
     CallPlugin {
-        pid: u32,
+        plugin_uuid: [u8; 16] , // Actually use plugin_name as a [u8; 16] ( Simulate UUID ) we don't need the crate for now.
         fn_name: String,
         args: Vec<String>,
     },

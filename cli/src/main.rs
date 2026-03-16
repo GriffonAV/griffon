@@ -1,5 +1,7 @@
 use std::io;
+use std::io::Write;
 use std::os::unix::net::UnixStream;
+use uuid::Uuid;
 
 use ipc_protocol::ipc_payload_interface::{
     InterfaceRequest,
@@ -7,7 +9,6 @@ use ipc_protocol::ipc_payload_interface::{
     send_interface_request,
     recv_interface_response,
 };
-
 use logger::{LogLevel, Logger};
 
 static LOGGER: Logger = Logger::new("CLI", LogLevel::Debug);
@@ -17,8 +18,7 @@ const DAEMON_SOCK_PATH: &str = "/run/griffon/daemon.sock";
 fn main() -> io::Result<()> {
     LOGGER_NETWORK.debug("Client try connected");
     let mut sock = UnixStream::connect(DAEMON_SOCK_PATH)?;
-    LOGGER_NETWORK.debug("Client connected");
-
+    LOGGER_NETWORK.info("Client connected");
 
     send_interface_request(&mut sock, &InterfaceRequest::Ping)?;
     LOGGER_NETWORK.debug("Ping sent");
@@ -28,16 +28,14 @@ fn main() -> io::Result<()> {
 
     match resp {
         InterfaceResponse::Pong => {
-            println!("Daemon answered Pong");
+            LOGGER_NETWORK.info("Pong received");
         }
         other => {
-            println!("Unexpected response: {:?}", other);
+            LOGGER_NETWORK.error(format!("Unexpected response: {:?}", other));
         }
     }
 
-    Ok(())
-
-    /*loop {
+    loop {
         print!("$> ");
         io::stdout().flush()?;
         let mut input = String::new();
@@ -56,8 +54,8 @@ fn main() -> io::Result<()> {
             "info" => {
                 //TODO
                 LOGGER.debug("INFO");
-                let plugins = [""];
-                for plugin in plugins {
+                let _plugins = [""];
+                for _plugin in _plugins {
                     // println!("- PID: {} | NAME: {} | PATH: {} | FUNCTIONS: {:?}", plugin.pid, plugin.name, plugin.path.display(), plugin.functions);
                 }
             }
@@ -67,6 +65,7 @@ fn main() -> io::Result<()> {
             }
             "exit" | "quit" => {
                 LOGGER.debug("QUIT");
+                return Ok(());
             }
             "restart" => {
                 LOGGER.debug("RESTART");
@@ -108,18 +107,18 @@ fn main() -> io::Result<()> {
 
             "call" => {
                 LOGGER.debug("CALL");
-                let pid_str = parts.next();
+                let plugin_uuid_str = parts.next();
                 let rest = parts.next();
 
-                if pid_str.is_none() || rest.is_none() {
-                    LOGGER.error("Usage: call <pid> <fn_name> <arg1|arg2|...>");
+                if plugin_uuid_str.is_none() || rest.is_none() {
+                    LOGGER.error("Usage: call <plugin_uuid> <fn_name> <arg1|arg2|...>");
                     continue;
                 }
 
-                let pid: u32 = match pid_str.unwrap().parse() {
-                    Ok(p) => p,
+                let plugin_uuid: [u8; 16] = match Uuid::parse_str(plugin_uuid_str.unwrap()) {
+                    Ok(uuid) => *uuid.as_bytes(),
                     Err(_) => {
-                        LOGGER.error("Invalid PID");
+                        LOGGER.error("Invalid UUID format");
                         continue;
                     }
                 };
@@ -129,7 +128,7 @@ fn main() -> io::Result<()> {
                 let fn_name = match rest_parts.next() {
                     Some(f) if !f.is_empty() => f.to_string(),
                     _ => {
-                        LOGGER.error("Usage: call <pid> <fn_name> <arg1|arg2|...>");
+                        LOGGER.error("Usage: call <plugin_uuid> <fn_name> <arg1|arg2|...>");
                         continue;
                     }
                 };
@@ -146,8 +145,10 @@ fn main() -> io::Result<()> {
                         .collect()
                 };
 
-                let call_payload = ipc_protocol::ipc_payload_runner::CallPayload { fn_name, args };
-                // TODO : Send call to the daemon_core
+
+                send_interface_request(&mut sock, &InterfaceRequest::CallPlugin {plugin_uuid, fn_name, args})?;
+                // TODO : Send call to the daemon_core    Ok(())
+
 
               /*  match pm.send_call(pid, call_payload) {
                     Ok(req_id) => {
@@ -166,5 +167,5 @@ fn main() -> io::Result<()> {
                 LOGGER.error("Invalid command");
             }
         }
-    }*/
+    }
 }
