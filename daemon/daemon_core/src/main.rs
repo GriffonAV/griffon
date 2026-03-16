@@ -68,13 +68,18 @@ fn handle_client(mut stream: UnixStream) -> io::Result<()> {
     LOGGER_NETWORK.debug("Client handler started");
 
     loop {
-        let req = match recv_interface_request(&mut stream) {
-            Ok(req) => req,
+        let (frame, req) = match recv_interface_request(&mut stream) {
+            Ok(v) => v,
             Err(e) => {
                 LOGGER_NETWORK.warn(format!("Client disconnected or invalid request: {e}"));
                 return Ok(());
             }
         };
+
+        LOGGER_NETWORK.debug(format!(
+            "Header: version={}, mtype={:?}, request_id={}",
+            frame.version, frame.mtype, frame.request_id
+        ));
 
         LOGGER_NETWORK.debug(format!("Request received: {:?}", req));
 
@@ -86,18 +91,25 @@ fn handle_client(mut stream: UnixStream) -> io::Result<()> {
                 fn_name,
                 args,
             } => {
-                LOGGER.debug(format!("Fn {} to execute for plugin {:?} with args {:?}", fn_name, plugin_uuid, args));
-                InterfaceResponse::CallAccepted { request_id: 1 }
+                LOGGER.debug(format!(
+                    "Fn {} to execute for plugin {:?} with args {:?}",
+                    fn_name, plugin_uuid, args
+                ));
+
+                InterfaceResponse::CallAccepted {
+                    request_id: frame.request_id,
+                }
             }
+
             _ => InterfaceResponse::Error {
                 message: "Request not implemented yet".to_string(),
             },
         };
+
         send_interface_response(&mut stream, &resp)?;
         LOGGER_NETWORK.debug(format!("Response sent: {:?}", resp));
     }
 }
-
 fn main() -> io::Result<()> {
     LOGGER_NETWORK.debug("TESTS");
     let listener = setup_listener()?;

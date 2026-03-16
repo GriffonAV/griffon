@@ -42,22 +42,28 @@ pub enum InterfaceResponse {
     },
 }
 
-pub fn send_interface_request<W: Write>(w: &mut W, req: &InterfaceRequest) -> io::Result<()> {
+pub fn send_interface_request<W: Write>(w: &mut W, req: &InterfaceRequest, request_id: u32) -> io::Result<()> {
     let payload = to_cbor(req)?;
-    let frame = Frame::new(MsgType::InterfaceRequest, 0, payload);
+    let frame = Frame::new(MsgType::InterfaceRequest, request_id, payload);
     frame.write_to(w)
 }
 
-pub fn recv_interface_request<R: Read>(r: &mut R) -> io::Result<InterfaceRequest> {
+pub fn recv_interface_request<R: Read>(
+    r: &mut R,
+) -> io::Result<(Frame, InterfaceRequest)> {
     let frame = Frame::read_from(r)?;
 
-    match frame.mtype {
-        MsgType::InterfaceRequest => from_cbor(&frame.payload),
-        _ => Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "expected InterfaceRequest",
-        )),
-    }
+    let req = match frame.mtype {
+        MsgType::InterfaceRequest => from_cbor(&frame.payload)?,
+        _ => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "expected InterfaceRequest",
+            ))
+        }
+    };
+
+    Ok((frame, req))
 }
 
 pub fn send_interface_response<W: Write>(w: &mut W, resp: &InterfaceResponse) -> io::Result<()> {

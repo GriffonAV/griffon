@@ -15,12 +15,22 @@ static LOGGER: Logger = Logger::new("CLI", LogLevel::Debug);
 static LOGGER_NETWORK: Logger = Logger::new("CLI-NETWORK", LogLevel::Debug);
 const DAEMON_SOCK_PATH: &str = "/run/griffon/daemon.sock";
 
+fn alloc_request_id(mut id_request: u32) -> u32 {
+    id_request = id_request.wrapping_add(1);
+    if id_request == 0 {
+        id_request = 1;
+    }
+    id_request
+}
+
 fn main() -> io::Result<()> {
+    let mut id_request: u32 = 0;
+
     LOGGER_NETWORK.debug("Client try connected");
     let mut sock = UnixStream::connect(DAEMON_SOCK_PATH)?;
     LOGGER_NETWORK.info("Client connected");
 
-    send_interface_request(&mut sock, &InterfaceRequest::Ping)?;
+    send_interface_request(&mut sock, &InterfaceRequest::Ping, 0)?;
     LOGGER_NETWORK.debug("Ping sent");
 
     let resp = recv_interface_response(&mut sock)?;
@@ -145,10 +155,10 @@ fn main() -> io::Result<()> {
                         .collect()
                 };
 
-
-                send_interface_request(&mut sock, &InterfaceRequest::CallPlugin {plugin_uuid, fn_name, args})?;
+                let id_request_to_use = alloc_request_id(id_request);
+                send_interface_request(&mut sock, &InterfaceRequest::CallPlugin {plugin_uuid, fn_name, args}, id_request_to_use)?;
+                id_request = id_request_to_use;
                 // TODO : Send call to the daemon_core    Ok(())
-
 
               /*  match pm.send_call(pid, call_payload) {
                     Ok(req_id) => {
