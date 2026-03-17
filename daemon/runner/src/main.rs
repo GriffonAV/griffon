@@ -1,19 +1,23 @@
 use abi_stable::library::lib_header_from_path;
 use abi_stable::std_types::{RResult, RString, Tuple2};
-use plugin_interface::{PluginRef, PluginRoot_Ref};
-
-use ipc_protocol::ipc_payload_runner::{
-    recv_message, send_message, CallPayload, ErrorPayload, HelloOkPayload, Message, ResultPayload,
-};
-
 use std::io;
 use std::os::fd::FromRawFd;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
+use plugin_interface::{PluginRef, PluginRoot_Ref};
+use ipc_protocol::ipc_payload_runner::{
+    recv_message, send_message, CallPayload, ErrorPayload, HelloOkPayload, Message, ResultPayload,
+};
+use logger::{LogLevel, Logger};
+
+static LOGGER_RUNNER: Logger = Logger::new("RUNNER", logger::LogLevel::Debug);
+static LOGGER_RUNNER_NETWORK: Logger = Logger::new("RUNNER-NETWORK", logger::LogLevel::Debug);
+
 struct LoadedPlugin {
     root: PluginRoot_Ref,
     path: PathBuf,
+    uuid: RString,
     functions: RString,
     name: RString,
 }
@@ -34,10 +38,7 @@ fn spawn_start_if_exists(plugin: &mut LoadedPlugin) {
 
     match init_result {
         RResult::ROk(vec) => {
-            println!(
-                "[RUNNER {file_name}] init() returned OK with {} entries:",
-                vec.len()
-            );
+            LOGGER_RUNNER.info(format!("init() returned ok with {} entries", vec.len()));
 
             for Tuple2(key, value) in vec {
                 if key == "function" {
@@ -46,7 +47,12 @@ fn spawn_start_if_exists(plugin: &mut LoadedPlugin) {
                 if key == "name" {
                     plugin.name = value.clone();
                 }
-                println!("    {} => {}", key.as_str(), value.as_str());
+                if key == "UUID" {
+                    plugin.uuid = value.clone();
+                }
+                if (LOGGER_RUNNER.level() == LogLevel::Debug) {
+                    println!("    {} => {}", key.as_str(), value.as_str());
+                }
             }
         }
         RResult::RErr(err_msg) => {
@@ -68,6 +74,7 @@ fn load_plugin(path: &Path) -> Result<LoadedPlugin, String> {
     Ok(LoadedPlugin {
         root,
         path: path.to_path_buf(),
+        uuid: "".into(),
         functions: "".into(),
         name: "".into(),
     })
@@ -91,9 +98,12 @@ fn build_hello_ok(plugin: &LoadedPlugin, fallback_name: &str) -> HelloOkPayload 
         plugin.name.as_str().to_string()
     };
 
+    let uuid = plugin.uuid.as_str().to_string();
+
     let functions = parse_functions(plugin.functions.as_str());
 
-    HelloOkPayload { name, functions }
+    LOGGER_RUNNER_NETWORK.debug(format!("name: {name}, uuid: {uuid}, functions: {:?}", functions));
+    HelloOkPayload { name, uuid, functions }
 }
 
 

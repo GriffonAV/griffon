@@ -4,14 +4,14 @@ use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 use serde::{Deserialize, Serialize};
 use ipc_protocol;
-use plugin_manager::PluginManager;
+use plugin_manager::{LogLevel, PluginManager};
 use logger;
 
 use logger::Logger;
 static PLUGIN_DIR_PATH: &str = "./plugins";
 
-static LOGGER_NETWORK: Logger = Logger::new("DAEMON-NETWORK", logger::LogLevel::Debug);
-static LOGGER: Logger = Logger::new("DAEMON", logger::LogLevel::Debug);
+static LOGGER_NETWORK: Logger = Logger::new("DAEMON-INTERFACE-NETWORK", logger::LogLevel::Debug);
+static LOGGER_CORE: Logger = Logger::new("DAEMON-CORE", logger::LogLevel::Debug);
 
 const DAEMON_SOCK_PATH: &str = "/run/griffon/daemon.sock";
 
@@ -63,6 +63,7 @@ use ipc_protocol::ipc_payload_interface::{
     recv_interface_request,
     send_interface_response,
 };
+use uuid::Uuid;
 
 fn handle_client(mut stream: UnixStream) -> io::Result<()> {
     LOGGER_NETWORK.debug("Client handler started");
@@ -77,11 +78,9 @@ fn handle_client(mut stream: UnixStream) -> io::Result<()> {
         };
 
         LOGGER_NETWORK.debug(format!(
-            "Header: version={}, mtype={:?}, request_id={}",
-            frame.version, frame.mtype, frame.request_id
+            "Header: version={}, mtype={:?}, request_id={} BODY: data={:?}",
+            frame.version, frame.mtype, frame.request_id, req
         ));
-
-        LOGGER_NETWORK.debug(format!("Request received: {:?}", req));
 
         let resp = match req {
             InterfaceRequest::Ping => InterfaceResponse::Pong,
@@ -91,11 +90,11 @@ fn handle_client(mut stream: UnixStream) -> io::Result<()> {
                 fn_name,
                 args,
             } => {
-                LOGGER.debug(format!(
+                let plugin_uuid_str = Uuid::from_bytes(plugin_uuid).to_string();
+                LOGGER_CORE.debug(format!(
                     "Fn {} to execute for plugin {:?} with args {:?}",
-                    fn_name, plugin_uuid, args
+                    fn_name, plugin_uuid_str, args
                 ));
-
                 InterfaceResponse::CallAccepted {
                     request_id: frame.request_id,
                 }
@@ -110,11 +109,15 @@ fn handle_client(mut stream: UnixStream) -> io::Result<()> {
         LOGGER_NETWORK.debug(format!("Response sent: {:?}", resp));
     }
 }
+
 fn main() -> io::Result<()> {
+    let mut pm = plugin_manager::PluginManager::new(PLUGIN_DIR_PATH);
     LOGGER_NETWORK.debug("TESTS");
     let listener = setup_listener()?;
     LOGGER_NETWORK.debug("Setup listener finish");
 
+    pm.scan_dir();
+    pm.list_plugins();
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {

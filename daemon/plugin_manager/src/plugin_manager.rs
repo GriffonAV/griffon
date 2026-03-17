@@ -10,7 +10,10 @@ use std::collections::VecDeque;
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 
 use ipc_protocol::ipc_payload_runner::{CallPayload, Message, recv_message, send_message};
+use logger::Logger;
 
+static LOGGER_PM: Logger = Logger::new("DAEMON-PLUGIN_MANAGER", logger::LogLevel::Debug);
+static LOGGER_PM_NETWORK: Logger = Logger::new("PLUGIN_MANAGER-RUNNER-NETWORK", logger::LogLevel::Debug);
 
 #[derive(Debug, Clone)]
 pub enum PluginEvent {
@@ -44,6 +47,7 @@ struct RunningPlugin {
 #[derive(Debug, Clone)]
 pub struct PluginInfo {
     pub pid: u32,
+    pub uuid: String,
     pub name: String,
     pub path: PathBuf,
     pub functions: Vec<String>,
@@ -61,7 +65,6 @@ pub struct PluginManager {
     pub plugins_dir: PathBuf,
     runner_binary: PathBuf,
     plugins_list: Vec<RunningPlugin>,
-    pub log_level: LogLevel,
     next_request_id: u32,
 
     events_tx: Sender<PluginEvent>,
@@ -87,29 +90,17 @@ fn resolve_runner_binary() -> Result<PathBuf, String> {
 }
 
 impl PluginManager {
-    pub fn new<P: AsRef<Path>>(dir: P, log_level: LogLevel) -> Self {
+    pub fn new<P: AsRef<Path>>(dir: P) -> Self {
         let runner_binary = resolve_runner_binary().expect("runner binary not found");
         let (events_tx, events_rx) = mpsc::channel();
         Self {
             plugins_dir: dir.as_ref().to_path_buf(),
             runner_binary,
             plugins_list: Vec::new(),
-            log_level,
             next_request_id: 0,
             events_tx,
             events_rx,
             pending_events: VecDeque::new(),
-        }
-    }
-
-    fn log(&self, level: LogLevel, msg: &str) {
-        if level >= self.log_level {
-            match level {
-                LogLevel::Debug => println!("[PLUGIN_MANAGER](DEBUG) {msg}"),
-                LogLevel::Info => println!("[PLUGIN_MANAGER](INFO) {msg}"),
-                LogLevel::Warn => println!("[PLUGIN_MANAGER](WARN) {msg}"),
-                LogLevel::Error => eprintln!("[PLUGIN_MANAGER](ERROR) {msg}"),
-            }
         }
     }
 
@@ -132,9 +123,8 @@ impl PluginManager {
         let mut current_paths = Vec::new();
         use std::env;
 
-        println!("[debug] cwd = {:?}", env::current_dir().unwrap());
-        println!("[debug] plugins_dir = {:?}", self.plugins_dir);
-        println!("[debug] plugins_dir exists = {}", self.plugins_dir.exists());
+        LOGGER_PM.debug(format!("Scanning dir {:?}", env::current_dir().unwrap()));
+        LOGGER_PM.debug(format!("Plugin dir {:?} | Exists {}", self.plugins_dir, self.plugins_dir.exists()));
 
         for entry in read_dir(&self.plugins_dir).expect("Bad plugin directory") {
             let path = entry.unwrap().path();
@@ -159,9 +149,9 @@ impl PluginManager {
             let path = plugin.plugin_info.path.clone();
             self.kill_plugin(pid);
             self.check_plugin(&path);
-            self.log(LogLevel::Debug, &format!("Plugin PID {pid} restarted"));
+            LOGGER_PM.info(format!("Plugin PID {pid} restarted"));
         } else {
-            self.log(LogLevel::Error, &format!("No plugin found with PID {pid}"));
+            LOGGER_PM.error(format!("Plugin PID {pid} restarted"));
         }
     }
 
@@ -169,14 +159,11 @@ impl PluginManager {
         if let Some(pos) = self.plugins_list.iter().position(|p| p.process.id() == pid) {
             let mut plugin = self.plugins_list.remove(pos);
             match plugin.process.kill() {
-                Ok(_) => self.log(LogLevel::Debug, &format!("Plugin PID {pid} killed")),
-                Err(e) => self.log(
-                    LogLevel::Error,
-                    &format!("Failed to kill plugin PID {pid}: {e}"),
-                ),
+                Ok(_) => LOGGER_PM.info(format!("Plugin PID {pid} was killed")),
+                Err(e) => LOGGER_PM.info(format!("Plugin PID {pid} failed to kill: {e}")),
             }
         } else {
-            self.log(LogLevel::Warn, &format!("No plugin found with PID {pid}"));
+            LOGGER_PM.error(format!("No plugin found with PID {pid}"));
         }
     }
 
@@ -245,60 +232,39 @@ impl PluginManager {
     fn check_plugin(&mut self, path: &Path) {
         let already_running = self.plugins_list.iter().any(|p| p.plugin_info.path == path);
         if already_running {
-            self.log(
-                LogLevel::Debug,
-                &format!("Plugin already running {}", path.display()),
-            );
+            LOGGER_PM.debug(format!("Plugin already running {}", path.display()));
             return;
         }
 
         let running = match Self::launch_runner(self, path) {
             Ok(r) => r,
             Err(msg) => {
-                self.log(
-                    LogLevel::Error,
-                    &format!(
-                        "Failed to launch runner for plugin {}: {msg}",
-                        path.display()
-                    ),
-                );
+                LOGGER_PM.error(format!("Failed to launch runner: {}: {msg}", path.display()));
                 return;
             }
         };
 
-        self.log(
-            LogLevel::Debug,
-            &format!("New plugin found {}", path.display()),
-        );
+        LOGGER_PM.info(format!("New plugin found {}", path.display()));
 
         self.plugins_list.push(running);
 
         let handshake_res = {
             let last = self.plugins_list.last_mut().unwrap();
-            read_plugin_messages(last, self.log_level, self.events_tx.clone())
+            read_plugin_messages(last, self.events_tx.clone())
         };
 
         if let Err(e) = handshake_res {
             let mut bad = self.plugins_list.pop().unwrap();
-            self.log(
-                LogLevel::Error,
-                &format!(
-                    "Handshake failed for plugin {} (pid={}): {e}",
-                    bad.plugin_info.name, bad.plugin_info.pid
-                ),
-            );
+            LOGGER_PM_NETWORK.error(format!("Plugin {} {} ({}) handshake failed {e}", bad.plugin_info.name, bad.plugin_info.uuid, bad.plugin_info.pid));
             let _ = bad.process.kill();
         }
     }
 
     fn remove_plugin_at(&mut self, index: usize) {
         let mut plugin = self.plugins_list.remove(index);
-        self.log(
-            LogLevel::Debug,
-            &format!("Plugin removed {}", plugin.plugin_info.name),
-        );
+        LOGGER_PM.info(format!("Plugin {} removed", plugin.plugin_info.name));
         if let Err(e) = plugin.process.kill() {
-            self.log(LogLevel::Error, &format!("Failed to kill plugin PID : {e}"));
+            LOGGER_PM.error(format!("Failed to kill plugin {}: {}", plugin.plugin_info.name, e));
         }
     }
 
@@ -317,7 +283,7 @@ impl PluginManager {
             None,
             SockFlag::empty(),
         )
-        .map_err(|e| format!("socketpair failed: {e}"))?;
+        .map_err(|e| LOGGER_PM_NETWORK.error(format!("socketpair failed: {e}"))).unwrap();
 
         let mut cmd = Command::new(&self.runner_binary);
         cmd.arg(path);
@@ -340,17 +306,12 @@ impl PluginManager {
         let plugininfo = PluginInfo {
             pid: child.id(),
             name,
+            uuid : "".to_string(),
             path: plugin_path.to_path_buf(),
             functions: Vec::new(),
         };
 
-        self.log(
-            LogLevel::Info,
-            &format!(
-                "Plugin {} ({}) has been started.",
-                plugininfo.name, plugininfo.pid
-            ),
-        );
+        LOGGER_PM.info(format!("Plugin {} ({}) has been started.", plugininfo.name, plugininfo.pid));
 
         Ok(RunningPlugin {
             process: child,
@@ -360,7 +321,7 @@ impl PluginManager {
     }
 }
 
-fn read_plugin_messages(plugin: &mut RunningPlugin, log_level: LogLevel, events_tx: Sender<PluginEvent>) -> io::Result<()> {
+fn read_plugin_messages(plugin: &mut RunningPlugin, events_tx: Sender<PluginEvent>) -> io::Result<()> {
     let mut fd_clone = plugin
         .fd
         .try_clone()
@@ -370,44 +331,43 @@ fn read_plugin_messages(plugin: &mut RunningPlugin, log_level: LogLevel, events_
 
     send_message(&mut fd_clone, Message::Hello)?;
 
-    let hello_ok = match recv_message(&mut fd_clone)? {
-        Message::HelloOk(p) => p,
-        other => {
-            if log_level >= LogLevel::Error {
-                eprintln!(
-                    "[PLUGIN_MANAGER](ERROR) Plugin ({pid}) Expected HelloOk, got: {:?}",
-                    other
-                );
+    LOGGER_PM_NETWORK.debug("Send Hello done");
+    let hello_ok = match recv_message(&mut fd_clone) {
+        Ok(message) => match message {
+            Message::HelloOk(p) => {
+                LOGGER_PM_NETWORK.debug(format!("HelloOk received {:?} ", p));
+                p
             }
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "expected HelloOk",
-            ));
+            other => {
+                LOGGER_PM_NETWORK.error(format!("received unexpected message for hello: {:?}", other));
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "expected HelloOk",
+                ));
+            }
+        },
+        Err(e) => {
+            LOGGER_PM_NETWORK.error(format!("recv_message failed: {}", e));
+            return Err(e);
         }
     };
 
+    LOGGER_PM_NETWORK.debug("TEST");
     plugin.plugin_info.name = hello_ok.name;
     plugin.plugin_info.functions = hello_ok.functions;
+    plugin.plugin_info.uuid = hello_ok.uuid;
 
     let name = plugin.plugin_info.name.clone();
+    let uuid = plugin.plugin_info.uuid.clone();
 
-    if log_level >= LogLevel::Info {
-        println!(
-            "[PLUGIN_MANAGER](INFO) Plugin {name} ({pid}) handshake OK, functions={:?}",
-            plugin.plugin_info.functions
-        );
-    }
+    LOGGER_PM_NETWORK.info(format!("Plugin {name} {uuid} ({pid}) handshake OK, functions={:?}", plugin.plugin_info.functions));
 
     std::thread::spawn(move || {
         loop {
             let msg = match recv_message(&mut fd_clone) {
                 Ok(m) => m,
                 Err(e) => {
-                    if log_level >= LogLevel::Info {
-                        println!(
-                            "[PLUGIN_MANAGER](INFO) Plugin {name} ({pid}) closed / recv error: {e}"
-                        );
-                    }
+                    LOGGER_PM_NETWORK.info(format!("{name} ({pid}) closed / recv error: {e}"));
                     let _ = events_tx.send(PluginEvent::Closed {
                         pid,
                         reason: e.to_string(),
@@ -418,12 +378,7 @@ fn read_plugin_messages(plugin: &mut RunningPlugin, log_level: LogLevel, events_
 
             match msg {
                 Message::Result { request_id, data } => {
-                    if log_level >= LogLevel::Info {
-                        println!(
-                            "[PLUGIN_MANAGER](INFO) Plugin {name} ({pid}) RESULT id={request_id} ok={} output={}",
-                            data.ok, data.output
-                        );
-                    }
+                    LOGGER_PM_NETWORK.error(format!("Plugin {name} ({pid}) RESULT id={request_id} ok={} output={}", data.ok, data.output));
                     let _ = events_tx.send(PluginEvent::Result {
                         pid,
                         request_id,
@@ -432,12 +387,7 @@ fn read_plugin_messages(plugin: &mut RunningPlugin, log_level: LogLevel, events_
                     });
                 }
                 Message::Error { request_id, data } => {
-                    if log_level >= LogLevel::Error {
-                        eprintln!(
-                            "[PLUGIN_MANAGER](ERROR) Plugin {name} ({pid}) ERROR id={request_id} code={} message={}",
-                            data.code, data.message
-                        );
-                    }
+                    LOGGER_PM_NETWORK.error(format!("Plugin {name} ({pid}) ERROR id={request_id} code={} message={}",data.code, data.message));
                     let _ = events_tx.send(PluginEvent::Error {
                         pid,
                         request_id,
@@ -445,17 +395,10 @@ fn read_plugin_messages(plugin: &mut RunningPlugin, log_level: LogLevel, events_
                     });
                 }
                 Message::Heartbeat => {
-                    if log_level >= LogLevel::Debug {
-                        println!("[PLUGIN_MANAGER](DEBUG) Plugin {name} ({pid}) HEARTBEAT");
-                    }
+                    LOGGER_PM_NETWORK.debug(format!("Plugin {name} ({pid}) HEARTBEAT OK"));
                 }
                 other => {
-                    if log_level >= LogLevel::Debug {
-                        println!(
-                            "[PLUGIN_MANAGER](DEBUG) Plugin {name} ({pid}) MSG: {:?}",
-                            other
-                        );
-                    }
+                    LOGGER_PM_NETWORK.info(format!("Plugin {name} ({pid}) UNKNOWN message received : {:?} ", other));
                 }
             }
         }
