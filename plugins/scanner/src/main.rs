@@ -1,15 +1,16 @@
 use anyhow::Result;
 use log::debug;
 use scanner::{
-    load_yara_rules, scan_file,
-    scanner_engine::{self, MultiThreadScanner},
+    load_yara_rules,
+    scan::{self, MultiThreadScanner},
+    scan_file,
 };
 use std::time::Instant;
 use walkdir::WalkDir;
 
+use scanner::database::RulesEngine;
 use scanner::file_context::{FileType, ScanStage};
-use scanner::rules_engine::RulesEngine;
-use scanner::scanner_engine::ScanReport;
+use scanner::scan::ScanReport;
 
 use std::sync::Arc;
 

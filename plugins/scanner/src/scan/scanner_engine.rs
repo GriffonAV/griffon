@@ -4,13 +4,13 @@ use std::path::Path;
 use std::time::Instant;
 use walkdir::WalkDir;
 
-use super::scan_report::ScanReport;
 use std::sync::Arc;
 
 use std::fs;
 use yara_x::{Rules, Scanner};
 
-use crate::rules_engine::RulesEngine;
+use crate::{database::RulesEngine, scan::scan_report::ScanReport};
+// use crate::scan::ScanReport;
 
 pub struct MultiThreadScanner {
     engine: Arc<RulesEngine>,

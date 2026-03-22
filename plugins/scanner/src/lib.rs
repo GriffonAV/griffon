@@ -5,9 +5,9 @@ use yara_x::{Compiler, Rules, Scanner};
 
 use log::debug;
 
+pub mod database;
 pub mod file_context;
-pub mod rules_engine;
-pub mod scanner_engine;
+pub mod scan;
 
 pub fn load_yara_rules<P: AsRef<Path>>(dir: P) -> Rules {
     let mut compiler = Compiler::new();
