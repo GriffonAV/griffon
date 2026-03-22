@@ -5,7 +5,7 @@ use abi_stable::{
     sabi_extern_fn,
     std_types::{RResult, RString},
 };
-use interface::{PluginI, PluginRoot, PluginRoot_Ref};
+use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 
 #[sabi_extern_fn]
 pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {

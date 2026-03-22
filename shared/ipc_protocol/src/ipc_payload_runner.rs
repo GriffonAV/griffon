@@ -7,6 +7,7 @@ use crate::ipc_header::{Frame, MsgType};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HelloOkPayload {
     pub name: String,
+    pub uuid: String,
     pub functions: Vec<String>,
 }
 
