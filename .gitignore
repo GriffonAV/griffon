@@ -38,3 +38,5 @@ target
 *.so
 
 .config/**
+*.config/debugging/
+*.config/griffon/
