@@ -1,11 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
-use serde::{Deserialize, Serialize};
-use ipc_protocol;
-use plugin_manager::{LogLevel, PluginManager};
-use logger;
 
 use logger::Logger;
 static PLUGIN_DIR_PATH: &str = "./plugins";
@@ -37,7 +34,7 @@ fn setup_listener() -> io::Result<UnixListener> {
 
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
-        LOGGER_NETWORK.debug(&format!(
+        LOGGER_NETWORK.debug(format!(
             "Socket parent directory ready: {}",
             parent.display()
         ));
@@ -52,16 +49,13 @@ fn setup_listener() -> io::Result<UnixListener> {
     }
 
     let listener = UnixListener::bind(path)?;
-    LOGGER_NETWORK.debug(&format!("Socket bound on {}", path.display()));
+    LOGGER_NETWORK.debug(format!("Socket bound on {}", path.display()));
 
     Ok(listener)
 }
 
 use ipc_protocol::ipc_payload_interface::{
-    InterfaceRequest,
-    InterfaceResponse,
-    recv_interface_request,
-    send_interface_response,
+    InterfaceRequest, InterfaceResponse, recv_interface_request, send_interface_response,
 };
 use uuid::Uuid;
 

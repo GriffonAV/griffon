@@ -18,7 +18,8 @@ lazy_static::lazy_static! {
 }
 
 #[sabi_extern_fn]
-pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> { // GET ALL INFO FROM TOML
+pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
+    // GET ALL INFO FROM TOML
     let mut info = RVec::new();
 
     info.push(Tuple2(
@@ -46,7 +47,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> { /
 extern "C" fn handle_message(msg: RString) -> RString {
     print!("[LIB1](msg) Received message: {}", msg.as_str());
 
-    let res = match msg.as_str() {
+    match msg.as_str() {
         "fn:start" => {
             start_thread();
             RString::from(format!("ACK LIB1 {}\n", msg.as_str()))
@@ -56,8 +57,7 @@ extern "C" fn handle_message(msg: RString) -> RString {
             RString::from(format!("ACK LIB1 {}\n", msg.as_str()))
         }
         _ => RString::from(format!("ACK LIB1 {}\n", msg.as_str())),
-    };
-    res
+    }
 }
 
 #[export_root_module]

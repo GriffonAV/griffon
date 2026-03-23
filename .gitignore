@@ -37,5 +37,6 @@ target
 *.lock
 *.so
 
+.config/**
 *.config/debugging/
 *.config/griffon/

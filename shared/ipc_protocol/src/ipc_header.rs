@@ -19,7 +19,7 @@ pub enum MsgType {
 
     InterfaceRequest = 8,
     InterfaceResponse = 9,
-    InterfaceEvent = 10
+    InterfaceEvent = 10,
 }
 
 impl MsgType {
@@ -62,7 +62,10 @@ impl Frame {
 
     pub fn write_to<W: Write>(&self, w: &mut W) -> io::Result<()> {
         if self.payload.len() as u32 > MAX_PAYLOAD {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "payload too large"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "payload too large",
+            ));
         }
 
         let mut header = [0u8; HEADER_LEN];
@@ -98,7 +101,10 @@ impl Frame {
         let len = u32::from_be_bytes(header[8..12].try_into().unwrap());
 
         if len > MAX_PAYLOAD {
-            return Err(io::Error::new(io::ErrorKind::InvalidData, "payload too large"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "payload too large",
+            ));
         }
 
         let mut payload = vec![0u8; len as usize];

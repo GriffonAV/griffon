@@ -5,11 +5,11 @@ use std::os::fd::FromRawFd;
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
-use plugin_interface::{PluginRef, PluginRoot_Ref};
 use ipc_protocol::ipc_payload_runner::{
-    recv_message, send_message, CallPayload, ErrorPayload, HelloOkPayload, Message, ResultPayload,
+    CallPayload, ErrorPayload, HelloOkPayload, Message, ResultPayload, recv_message, send_message,
 };
 use logger::{LogLevel, Logger};
+use plugin_interface::{PluginRef, PluginRoot_Ref};
 
 static LOGGER_RUNNER: Logger = Logger::new("RUNNER", logger::LogLevel::Debug);
 static LOGGER_RUNNER_NETWORK: Logger = Logger::new("RUNNER-NETWORK", logger::LogLevel::Debug);
@@ -50,16 +50,13 @@ fn spawn_start_if_exists(plugin: &mut LoadedPlugin) {
                 if key == "UUID" {
                     plugin.uuid = value.clone();
                 }
-                if (LOGGER_RUNNER.level() == LogLevel::Debug) {
+                if LOGGER_RUNNER.level() == LogLevel::Debug {
                     println!("    {} => {}", key.as_str(), value.as_str());
                 }
             }
         }
         RResult::RErr(err_msg) => {
-            eprintln!(
-                "[RUNNER {file_name}] init() ERROR: {}",
-                err_msg.as_str()
-            );
+            eprintln!("[RUNNER {file_name}] init() ERROR: {}", err_msg.as_str());
         }
     }
 }
@@ -81,11 +78,11 @@ fn load_plugin(path: &Path) -> Result<LoadedPlugin, String> {
 }
 
 fn is_shared_library(path: &Path) -> bool {
-    path.is_file() && path.extension().map_or(false, |ext| ext == "so")
+    path.is_file() && path.extension().is_some_and(|ext| ext == "so")
 }
 
 fn parse_functions(s: &str) -> Vec<String> {
-    s.split(|c| c == '/' || c == ',')
+    s.split(['/', ','])
         .map(|x| x.trim().to_string())
         .filter(|x| !x.is_empty())
         .collect()
@@ -102,15 +99,22 @@ fn build_hello_ok(plugin: &LoadedPlugin, fallback_name: &str) -> HelloOkPayload 
 
     let functions = parse_functions(plugin.functions.as_str());
 
-    LOGGER_RUNNER_NETWORK.debug(format!("name: {name}, uuid: {uuid}, functions: {:?}", functions));
-    HelloOkPayload { name, uuid, functions }
+    LOGGER_RUNNER_NETWORK.debug(format!(
+        "name: {name}, uuid: {uuid}, functions: {:?}",
+        functions
+    ));
+    HelloOkPayload {
+        name,
+        uuid,
+        functions,
+    }
 }
-
 
 /// - args vide  => "fn:ping"
 /// - args [2]   => "fn:ping 2"
 /// - args [a,b] => "fn:scan_file a b"
-fn call_to_wire(call: &CallPayload) -> String {  // this part will change in the v2
+fn call_to_wire(call: &CallPayload) -> String {
+    // this part will change in the v2
     if call.args.is_empty() {
         format!("fn:{}", call.fn_name)
     } else {
@@ -121,7 +125,10 @@ fn call_to_wire(call: &CallPayload) -> String {  // this part will change in the
 fn handle_call(plugin: &LoadedPlugin, call: CallPayload) -> io::Result<String> {
     let plugin_ref: &PluginRef = &plugin.root.plugin();
     let handle_fn = plugin_ref.handle_message().ok_or_else(|| {
-        io::Error::new(io::ErrorKind::InvalidData, "plugin handle_message() is None")
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            "plugin handle_message() is None",
+        )
     })?;
 
     let wire = call_to_wire(&call);
@@ -181,9 +188,13 @@ fn main() {
             Message::Call { request_id, data } => match handle_call(&plugin, data) {
                 Ok(output) => {
                     let res = ResultPayload { ok: true, output };
-                    if let Err(e) =
-                        send_message(&mut sock, Message::Result { request_id, data: res })
-                    {
+                    if let Err(e) = send_message(
+                        &mut sock,
+                        Message::Result {
+                            request_id,
+                            data: res,
+                        },
+                    ) {
                         eprintln!(
                             "[RUNNER {fallback_name}](ERROR) failed to send Result (id={request_id}): {e}"
                         );

@@ -1,5 +1,19 @@
 # justfile
 
+setup-dev-env:
+    git config core.hooksPath .githooks
+
+# gui
+
+setup-gui:
+    cd gui && npm install
+
+
+run-gui:
+    cd gui && npx tauri dev
+
+#old
+
 build-core:
     cargo build -p griffon_core
 
@@ -9,17 +23,6 @@ build-cli:
 build-daemon:
     cargo build -p daemon
 
-setup-gui:
-    cd gui && npm install
-
-build-gui:
-    cd gui && npm run build
-
-dev-gui:
-    cd gui && npm run dev
-
-tauri-dev:
-    cd gui && npx tauri dev
 
 lint:
     cargo fmt -- --check

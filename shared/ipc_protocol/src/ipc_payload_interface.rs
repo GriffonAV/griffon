@@ -1,6 +1,5 @@
 use std::io;
 use std::io::{Read, Write};
-use uuid::Uuid;
 
 use serde::{Deserialize, Serialize};
 
@@ -19,10 +18,14 @@ pub struct PluginInfoDto {
 pub enum InterfaceRequest {
     Ping,
     RefreshPlugins,
-    RestartPlugin { plugin_uuid: [u8; 16] },
-    KillPlugin { plugin_uuid: [u8; 16] },
+    RestartPlugin {
+        plugin_uuid: [u8; 16],
+    },
+    KillPlugin {
+        plugin_uuid: [u8; 16],
+    },
     CallPlugin {
-        plugin_uuid: [u8; 16] , // Actually use plugin_name as a [u8; 16] ( Simulate UUID ) we don't need the crate for now.
+        plugin_uuid: [u8; 16], // Actually use plugin_name as a [u8; 16] ( Simulate UUID ) we don't need the crate for now.
         fn_name: String,
         args: Vec<String>,
     },
@@ -32,9 +35,13 @@ pub enum InterfaceRequest {
 pub enum InterfaceResponse {
     Pong,
     Ok,
-    Error { message: String },
+    Error {
+        message: String,
+    },
     Plugins(Vec<PluginInfoDto>),
-    CallAccepted { request_id: u32 },
+    CallAccepted {
+        request_id: u32,
+    },
     CallResult {
         request_id: u32,
         ok: bool,
@@ -42,15 +49,17 @@ pub enum InterfaceResponse {
     },
 }
 
-pub fn send_interface_request<W: Write>(w: &mut W, req: &InterfaceRequest, request_id: u32) -> io::Result<()> {
+pub fn send_interface_request<W: Write>(
+    w: &mut W,
+    req: &InterfaceRequest,
+    request_id: u32,
+) -> io::Result<()> {
     let payload = to_cbor(req)?;
     let frame = Frame::new(MsgType::InterfaceRequest, request_id, payload);
     frame.write_to(w)
 }
 
-pub fn recv_interface_request<R: Read>(
-    r: &mut R,
-) -> io::Result<(Frame, InterfaceRequest)> {
+pub fn recv_interface_request<R: Read>(r: &mut R) -> io::Result<(Frame, InterfaceRequest)> {
     let frame = Frame::read_from(r)?;
 
     let req = match frame.mtype {
@@ -59,7 +68,7 @@ pub fn recv_interface_request<R: Read>(
             return Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 "expected InterfaceRequest",
-            ))
+            ));
         }
     };
 

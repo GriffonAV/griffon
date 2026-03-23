@@ -23,8 +23,6 @@ ipc_protocol = { path = "shared/ipc_protocol" }
 logger = { path = "shared/logger" }
 abi_stable = "0.11.3"
 
-# Testing dependencies
-mockall = "0.12"
 
 [profile.dev]
 opt-level = 0

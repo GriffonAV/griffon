@@ -5,8 +5,8 @@ edition = "2024"
 default-run = "daemon_core"
 
 [dependencies]
-plugin_manager = {workspace = true}
+plugin_manager = { workspace = true }
 ipc_protocol = { workspace = true }
-logger = { workspace =  true }
+logger = { workspace = true }
 serde = { version = "1.0.228", features = ["derive"] }
 uuid = { version = "1.22.0", features = ["v4"] }
