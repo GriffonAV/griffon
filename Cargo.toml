@@ -1,7 +1,16 @@
 [workspace]
 members = [
-    "cli", "daemon/daemon_core", "shared/plugin_interface", "plugins/plugin_test", "plugins/plugin_test_2", "daemon/runner", "daemon/plugin_manager"
-, "shared/ipc_protocol", "gui/src-tauri", "cli", "shared/logger"]
+    "daemon/daemon_core",
+    "shared/plugin_interface",
+    "plugins/plugin_test",
+    "plugins/plugin_test_2",
+    "daemon/runner",
+    "daemon/plugin_manager",
+    "shared/ipc_protocol",
+    "gui/src-tauri",
+    "cli",
+    "shared/logger",
+]
 exclude = ["static_analysis"]
 resolver = "2"
 
@@ -11,7 +20,7 @@ resolver = "2"
 plugin_manager = { path = "daemon/plugin_manager" }
 plugin_interface = { path = "shared/plugin_interface" }
 ipc_protocol = { path = "shared/ipc_protocol" }
-logger = { path = "shared/logger"}
+logger = { path = "shared/logger" }
 abi_stable = "0.11.3"
 
 # Testing dependencies
