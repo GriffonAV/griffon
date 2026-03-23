@@ -51,7 +51,7 @@ fn refresh_plugins(pm: State<PMState>) {
 #[tauri::command]
 fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
     let args = Vec::new(); // TODO: Handle param
-    let call_payload = ipc_protocol::ipc_payload::CallPayload { fn_name: msg, args };
+    let call_payload = ipc_protocol::ipc_payload_runner::CallPayload { fn_name : msg , args };
     match pm.0.lock().unwrap().send_call(pid, call_payload) {
         Ok(req_id) => {
             println!("[GUI] CALL sent (request_id={req_id})");

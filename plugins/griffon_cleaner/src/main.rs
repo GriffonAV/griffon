@@ -6,8 +6,6 @@ use abi_stable::{
     std_types::{RResult, RString},
 };
 
-
-
 fn main() {
     let config = CleanerConfig {
         profile: Profile::Safe,
