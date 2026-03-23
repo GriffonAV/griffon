@@ -1,24 +1,26 @@
 [workspace]
 members = [
-    "cli",
-    "daemon",
-    "plugin_manager/interface",
+    "daemon/daemon_core",
+    "shared/plugin_interface",
     "plugins/plugin_test",
     "plugins/plugin_test_2",
-    "plugin_manager/runner",
-    "plugin_manager/plugin_manager",
-    "plugin_manager/ipc_protocol",
-] #"gui/src-tauri" as been remove for test and work
-exclude = ["plugins/scanner"]
+    "daemon/runner",
+    "daemon/plugin_manager",
+    "shared/ipc_protocol",
+    "gui/src-tauri",
+    "cli",
+    "shared/logger",
+]
+exclude = ["static_analysis"]
 resolver = "2"
 
 
 [workspace.dependencies]
 # Shared dependencies across the workspace
-# No one yet
-plugin_manager = { path = "plugin_manager/plugin_manager" }
-interface = { path = "plugin_manager/interface" }
-ipc_protocol = { path = "plugin_manager/ipc_protocol" }
+plugin_manager = { path = "daemon/plugin_manager" }
+plugin_interface = { path = "shared/plugin_interface" }
+ipc_protocol = { path = "shared/ipc_protocol" }
+logger = { path = "shared/logger" }
 abi_stable = "0.11.3"
 
 # Testing dependencies

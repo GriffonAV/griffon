@@ -1,13 +1,12 @@
 [package]
-name = "daemon"
+name = "plugin_manager"
 version = "0.1.0"
 edition = "2024"
-default-run = "daemon"
+
+[lib]
+path = "src/plugin_manager.rs"
 
 [dependencies]
-interface = { workspace = true }
-abi_stable = "0.11.3"
-anyhow = "1.0.100"
 nix = { version = "0.30.1", features = ["socket"] }
-plugin_manager = {workspace = true}
 ipc_protocol = { workspace = true }
+logger = { workspace = true}
