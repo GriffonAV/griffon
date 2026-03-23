@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: ["**"]
   pull_request:
     branches: [main, develop]
 
@@ -34,33 +34,19 @@ jobs:
 
   # JOB 2: Heavy Lifting (Tests & Coverage)
   test:
-    name: Test Suite & Coverage
+    name: Test Suite
     runs-on: ubuntu-latest
-    needs: lints
+    needs: lints # Don't waste energy/time if lints fail
     steps:
       - uses: actions/checkout@v4
-      
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
-
+      
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
-      # Install Tarpaulin (only takes ~30s with caching)
-      - name: Install Tarpaulin
-        run: cargo install cargo-tarpaulin
-
-      # Run tests and generate coverage report
-      - name: Run Coverage
-        run: cargo tarpaulin --workspace --all-features --out Xml --output-dir ./coverage
-
-      # Upload to Codecov to see the nice UI/Graphs
-      - name: Upload to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }} # You get this from codecov.io
-          files: ./coverage/cobertura.xml
-          fail_ci_if_error: true
+      - name: Run All Tests
+        run: cargo test --workspace --all-features
 
   # JOB 3: Security Audit
   audit:
