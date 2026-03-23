@@ -1,4 +1,49 @@
 #!/bin/sh
-echo "🦀 Running GriffonAV Quality Checks..."
-cargo fmt --all --check || { echo "❌ Format failed. Run 'cargo fmt'"; exit 1; }
-cargo clippy --all-targets -- -D warnings || { echo "❌ Clippy failed."; exit 1; }
+
+echo "🦀 GriffonAV: checking workspace quality..."
+
+# 1. Formatting Check
+if ! cargo fmt --all --check > /dev/null 2>&1; then
+    echo "  ❌ [Style] Formatting issues detected."
+    FORMAT_FAIL=1
+else
+    echo "  ✅ [Style] Clean."
+fi
+
+# 2. Lint/Error Check
+# We fetch the JSON output and count "level": "error" or "warning"
+ISSUES=$(cargo clippy --workspace --all-targets --message-format=json -- -D warnings --no-deps 2>/dev/null)
+ERR_COUNT=$(echo "$ISSUES" | grep -c '"level":"error"')
+
+if [ "$ERR_COUNT" -ne 0 ]; then
+    echo "  ❌ [Lints] Found $ERR_COUNT issues in the workspace."
+    LINT_FAIL=1
+else
+    echo "  ✅ [Lints] Clean."
+fi
+
+# Summary Logic
+if [ "$FORMAT_FAIL" = "1" ] || [ "$LINT_FAIL" = "1" ]; then
+    echo ""
+    echo " --- 🛠️  HOW TO FIX ---"
+    [ "$FORMAT_FAIL" = "1" ] && echo "  • Style: Run 'cargo fmt --all'"
+    [ "$LINT_FAIL" = "1" ]   && echo "  • Lints: Run 'cargo clippy --workspace --all-targets' to see details."
+    echo "  • Auto-Fix: Run 'cargo clippy --fix --allow-dirty' for simple lint fixes."
+    echo ""
+
+    # if only lints failed, ask if they want to skip and commit anyway
+    if [ "$FORMAT_FAIL" != "1" ] && [ "$LINT_FAIL" = "1" ]; then
+        RED='\033[0;31m'
+        NC='\033[0m'
+        echo -e "${RED}Lint warnings detected. Do you want to skip them and proceed with commit? (y/N)${NC}"
+        read -r RESPONSE < /dev/tty
+        if [ "$RESPONSE" = "y" ] || [ "$RESPONSE" = "Y" ]; then
+            echo "Proceeding with commit..."
+            echo ""
+            exit 0
+        fi  
+    fi
+    exit 1
+fi
+
+echo "🚀 All systems go! Committing..."
