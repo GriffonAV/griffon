@@ -3,8 +3,8 @@ name: GriffonAV CI
 on:
   push:
     branches: [ "feat/*", "fix/*", "main", "develop" ]
-  pull_request:
-    branches: [ "main", "develop" ]
+  # pull_request:
+  #   branches: [ "main", "develop" ]
 
 env:
   CARGO_TERM_COLOR: always

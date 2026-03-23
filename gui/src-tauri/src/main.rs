@@ -1,4 +1,3 @@
-use ipc_protocol;
 use plugin_manager::PluginManager;
 use serde::Serialize;
 use std::sync::Mutex;

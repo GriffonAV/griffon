@@ -290,7 +290,7 @@ impl PluginManager {
     }
 
     fn is_shared_library(path: &Path) -> bool {
-        path.is_file() && path.extension().map_or(false, |ext| ext == "so")
+        path.is_file() && path.extension().is_some_and(|ext| ext == "so")
     }
 
     fn launch_runner(&self, plugin_path: &Path) -> Result<RunningPlugin, String> {
@@ -353,7 +353,7 @@ fn read_plugin_messages(
     let mut fd_clone = plugin
         .fd
         .try_clone()
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, format!("Failed to clone fd: {e}")))?;
+        .map_err(|e| io::Error::other(format!("Failed to clone fd: {e}")))?;
 
     let pid = plugin.process.id();
 

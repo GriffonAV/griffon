@@ -1,6 +1,3 @@
-use ipc_protocol;
-use logger;
-use plugin_manager::{LogLevel, PluginManager};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io;
@@ -37,7 +34,7 @@ fn setup_listener() -> io::Result<UnixListener> {
 
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
-        LOGGER_NETWORK.debug(&format!(
+        LOGGER_NETWORK.debug(format!(
             "Socket parent directory ready: {}",
             parent.display()
         ));
@@ -52,7 +49,7 @@ fn setup_listener() -> io::Result<UnixListener> {
     }
 
     let listener = UnixListener::bind(path)?;
-    LOGGER_NETWORK.debug(&format!("Socket bound on {}", path.display()));
+    LOGGER_NETWORK.debug(format!("Socket bound on {}", path.display()));
 
     Ok(listener)
 }

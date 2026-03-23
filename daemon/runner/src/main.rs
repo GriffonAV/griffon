@@ -50,7 +50,7 @@ fn spawn_start_if_exists(plugin: &mut LoadedPlugin) {
                 if key == "UUID" {
                     plugin.uuid = value.clone();
                 }
-                if (LOGGER_RUNNER.level() == LogLevel::Debug) {
+                if LOGGER_RUNNER.level() == LogLevel::Debug {
                     println!("    {} => {}", key.as_str(), value.as_str());
                 }
             }
@@ -78,11 +78,11 @@ fn load_plugin(path: &Path) -> Result<LoadedPlugin, String> {
 }
 
 fn is_shared_library(path: &Path) -> bool {
-    path.is_file() && path.extension().map_or(false, |ext| ext == "so")
+    path.is_file() && path.extension().is_some_and(|ext| ext == "so")
 }
 
 fn parse_functions(s: &str) -> Vec<String> {
-    s.split(|c| c == '/' || c == ',')
+    s.split(['/', ','])
         .map(|x| x.trim().to_string())
         .filter(|x| !x.is_empty())
         .collect()

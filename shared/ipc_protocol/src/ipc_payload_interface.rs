@@ -1,6 +1,5 @@
 use std::io;
 use std::io::{Read, Write};
-use uuid::Uuid;
 
 use serde::{Deserialize, Serialize};
 
