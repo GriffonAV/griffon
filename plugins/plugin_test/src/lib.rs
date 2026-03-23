@@ -18,7 +18,8 @@ lazy_static::lazy_static! {
 }
 
 #[sabi_extern_fn]
-pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> { // GET ALL INFO FROM TOML
+pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
+    // GET ALL INFO FROM TOML
     let mut info = RVec::new();
 
     info.push(Tuple2(
