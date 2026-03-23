@@ -1,0 +1,4 @@
+#!/bin/sh
+echo "🦀 Running GriffonAV Quality Checks..."
+cargo fmt --all --check || { echo "❌ Format failed. Run 'cargo fmt'"; exit 1; }
+cargo clippy --all-targets -- -D warnings || { echo "❌ Clippy failed."; exit 1; }
