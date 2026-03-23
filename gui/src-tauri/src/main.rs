@@ -1,13 +1,12 @@
-use plugin_manager::{PluginManager, LogLevel};
+use ipc_protocol;
+use plugin_manager::PluginManager;
+use serde::Serialize;
 use std::sync::Mutex;
 use tauri::State;
-use serde::Serialize;
-use ipc_protocol;
 
 static PLUGIN_DIR: &str = "../../plugins";
 
 struct PMState(pub Mutex<PluginManager>);
-
 
 #[derive(Serialize)]
 struct PluginInfo {
@@ -46,7 +45,7 @@ fn refresh_plugins(pm: State<PMState>) {
 #[tauri::command]
 fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
     let args = Vec::new(); // TODO: Handle param
-    let call_payload = ipc_protocol::ipc_payload_runner::CallPayload { fn_name : msg , args };
+    let call_payload = ipc_protocol::ipc_payload_runner::CallPayload { fn_name: msg, args };
     match pm.0.lock().unwrap().send_call(pid, call_payload) {
         Ok(req_id) => {
             println!("[GUI] CALL sent (request_id={req_id})");
@@ -54,13 +53,13 @@ fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
                 Ok(ev) => println!("[GUI] RESPONSE: {:?}", ev),
                 Err(e) => eprintln!("[GUI](ERROR) wait_for_response failed: {e}"),
             }
-        },
+        }
         Err(e) => println!("[GUI](ERROR) Failed to send CALL: {e}"),
     };
 }
 
 fn main() {
-    let mut pm = PluginManager::new(PLUGIN_DIR, LogLevel::Info);
+    let mut pm = PluginManager::new(PLUGIN_DIR);
     pm.scan_dir();
 
     tauri::Builder::default()
@@ -69,8 +68,8 @@ fn main() {
             list_plugins,
             refresh_plugins,
             message_plugin,
-            list_plugins_cmd       
-            ])
+            list_plugins_cmd
+        ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");
 }

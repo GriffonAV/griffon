@@ -1,15 +1,10 @@
 [workspace]
-members = [
-    "core", "cli", "daemon",
-]
+members = ["core", "cli", "daemon"]
 resolver = "2"
 
 [workspace.dependencies]
 # Shared dependencies across the workspace
 # No one yet
-
-# Testing dependencies
-mockall = "0.12"
 
 [profile.dev]
 opt-level = 0

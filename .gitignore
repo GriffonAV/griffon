@@ -36,3 +36,5 @@ target
 **/mutants.out*/
 *.lock
 *.so
+
+.config/**

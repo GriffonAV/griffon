@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::io;
 use std::io::{Read, Write};
-use serde::{Deserialize, Serialize};
 
 use crate::ipc_header::{Frame, MsgType};
 
@@ -127,7 +127,6 @@ pub fn decode_frame(frame: Frame) -> io::Result<Message> {
         )),
     }
 }
-
 
 fn to_cbor<T: Serialize>(v: &T) -> io::Result<Vec<u8>> {
     serde_cbor::to_vec(v).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))

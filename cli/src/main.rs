@@ -4,10 +4,7 @@ use std::os::unix::net::UnixStream;
 use uuid::Uuid;
 
 use ipc_protocol::ipc_payload_interface::{
-    InterfaceRequest,
-    InterfaceResponse,
-    send_interface_request,
-    recv_interface_response,
+    InterfaceRequest, InterfaceResponse, recv_interface_response, send_interface_request,
 };
 use logger::{LogLevel, Logger};
 
@@ -114,7 +111,6 @@ fn main() -> io::Result<()> {
                 // TODO : KILL
             }
 
-
             "call" => {
                 LOGGER.debug("CALL");
                 let plugin_uuid_str = parts.next();
@@ -156,11 +152,19 @@ fn main() -> io::Result<()> {
                 };
 
                 let id_request_to_use = alloc_request_id(id_request);
-                send_interface_request(&mut sock, &InterfaceRequest::CallPlugin {plugin_uuid, fn_name, args}, id_request_to_use)?;
+                send_interface_request(
+                    &mut sock,
+                    &InterfaceRequest::CallPlugin {
+                        plugin_uuid,
+                        fn_name,
+                        args,
+                    },
+                    id_request_to_use,
+                )?;
                 id_request = id_request_to_use;
                 // TODO : Send call to the daemon_core    Ok(())
 
-              /*  match pm.send_call(pid, call_payload) {
+                /*  match pm.send_call(pid, call_payload) {
                     Ok(req_id) => {
                         println!("[CORE] CALL sent (request_id={req_id})");
                         match pm.wait_for_response(req_id) {
