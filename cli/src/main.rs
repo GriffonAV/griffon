@@ -83,7 +83,7 @@ fn main() -> io::Result<()> {
                     continue;
                 }
 
-                let pid: u32 = match pid_str.unwrap().parse() {
+                let _pid: u32 = match pid_str.unwrap().parse() {
                     Ok(p) => p,
                     Err(_) => {
                         LOGGER.error("Invalid PID");
@@ -101,7 +101,7 @@ fn main() -> io::Result<()> {
                     continue;
                 }
 
-                let pid: u32 = match pid_str.unwrap().parse() {
+                let _pid: u32 = match pid_str.unwrap().parse() {
                     Ok(p) => p,
                     Err(_) => {
                         LOGGER.error("Invalid PID");
@@ -177,7 +177,7 @@ fn main() -> io::Result<()> {
             }
 
             "" => {}
-            other => {
+            _other => {
                 LOGGER.error("Invalid command");
             }
         }

@@ -28,7 +28,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 #[sabi_extern_fn]
 extern "C" fn handle_message(msg: RString) -> RString {
     print!("[LIB2](msg) Received message: {}", msg.as_str());
-    
+
     match msg.as_str() {
         "fn:ping" => ping(),
         _ => RString::from(format!("ACK LIB2 {}\n", msg.as_str())),

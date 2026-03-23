@@ -47,7 +47,6 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 extern "C" fn handle_message(msg: RString) -> RString {
     print!("[LIB1](msg) Received message: {}", msg.as_str());
 
-    
     match msg.as_str() {
         "fn:start" => {
             start_thread();
