@@ -5,6 +5,21 @@
   "windows": [
     "main"
   ],
-  "permissions": ["core:window:default", "core:window:allow-start-dragging", "core:window:allow-close", "core:window:allow-minimize", "core:window:allow-toggle-maximize"]
-
+  "permissions": [
+    "core:window:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "opener:default",
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [
+        {
+          "path": "~/Downloads"
+        }
+      ]
+    },
+    "log:default"
+  ]
 }

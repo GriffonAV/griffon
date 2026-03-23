@@ -1,29 +1,37 @@
-import { ThemeProvider } from "@/components/theme-provider";
-import { TitleBar } from "@/components/title-bar";
-import { Sidebar } from "@/components/sidebar";
+import { ThemeProvider } from "@/providers/ThemeProvider";
+import { TitleBar } from "@/components/layout/TitleBar";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { Routes, Route } from "react-router-dom";
 
-import HomePage from "@/pages/home/HomePage";
-import PluginPage from "@/pages/plugins/PluginPage";
-import SettingsPage from "@/pages/settings/SettingsPage";
+import HomePage from "@/pages/HomePage";
+import PluginPage from "@/pages/PluginPage";
+import SettingsPage from "@/pages/SettingsPage";
+import LogsPage from "./pages/LogsPage";
+import { ThemeInitializer } from "./components/layout/ModeToggle";
+import { PluginProvider } from "@/bindings/PluginContext";
 
 export default function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <div className="flex h-screen flex-col">
-        <TitleBar />
-        <div className="flex flex-1">
-          <Sidebar />
+    <PluginProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <ThemeInitializer />
+        <div className="bg-sidebar flex h-screen flex-col">
+          <TitleBar />
+          <div className="flex flex-1 overflow-hidden">
+            <Sidebar />
 
-          <div className="flex-1 border-l p-4">
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/plugin/:pid" element={<PluginPage />} />
+              <Route path="/dashboard" element={<HomePage />} />
+
+              <Route path="/log" element={<LogsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+
+              <Route path="/plugin/:pid" element={<PluginPage />} />
             </Routes>
           </div>
         </div>
-      </div>
-    </ThemeProvider>
+      </ThemeProvider>
+    </PluginProvider>
   );
 }

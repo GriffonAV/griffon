@@ -36,3 +36,6 @@ target
 **/mutants.out*/
 *.lock
 *.so
+
+*.config/debugging/
+*.config/griffon/
