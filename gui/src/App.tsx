@@ -9,29 +9,33 @@ import SettingsPage from "@/pages/SettingsPage";
 import LogsPage from "./pages/LogsPage";
 import { ThemeInitializer } from "./components/layout/ModeToggle";
 import { PluginProvider } from "@/bindings/PluginContext";
+import { TooltipProvider } from "@/components/ui/tooltip"
 
 export default function App() {
   return (
     <PluginProvider>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <ThemeInitializer />
-        <div className="bg-sidebar flex h-screen flex-col">
-          <TitleBar />
-          <div className="flex flex-1 overflow-hidden">
-            <Sidebar />
+      <TooltipProvider>
 
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/dashboard" element={<HomePage />} />
+        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+          <ThemeInitializer />
+          <div className="bg-sidebar flex h-screen flex-col">
+            <TitleBar />
+            <div className="flex flex-1 overflow-hidden">
+              <Sidebar />
 
-              <Route path="/log" element={<LogsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/dashboard" element={<HomePage />} />
 
-              <Route path="/plugin/:pid" element={<PluginPage />} />
-            </Routes>
+                <Route path="/log" element={<LogsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+
+                <Route path="/plugin/:pid" element={<PluginPage />} />
+              </Routes>
+            </div>
           </div>
-        </div>
-      </ThemeProvider>
+        </ThemeProvider>
+      </TooltipProvider>
     </PluginProvider>
   );
 }
