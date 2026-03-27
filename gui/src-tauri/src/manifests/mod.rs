@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use toml::Value;
+use std::collections::HashMap;
 use std::fs;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -26,6 +28,15 @@ pub struct UI {
 pub struct Section {
     pub id: String,
     pub tab: String,
+    pub contents: Vec<Content>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Content {
+    pub r#type: String,
+    pub id: String,
+    #[serde(flatten)]
+    pub unknown: HashMap<String, Value>,
 }
 
 pub fn load_plugin_manifest(path: &str) -> Result<PluginManifest, Box<dyn std::error::Error>> {

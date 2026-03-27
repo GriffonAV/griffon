@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
     debug,
@@ -23,6 +24,11 @@ export interface PluginManifest {
         sections: Array<{
             id: string;
             tab: string;
+            contents: Array<{
+                type: string;
+                id: string;
+                [key: string]: any;
+            }>;
         }>;
     };
 }
