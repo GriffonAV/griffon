@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import { MonitorUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { invoke } from '@tauri-apps/api/core';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 function DaemonConnection() {
     const [isConnected, setIsConnected] = useState<boolean>(false);
@@ -27,12 +28,18 @@ function DaemonConnection() {
     }, []);
 
     return (
-        <Button
-            className={`cursor-pointer ${isConnected ? 'text-green-500' : 'text-muted-foreground opacity-50'}`}
-            variant="ghost"
-        >
-            <MonitorUp />
-        </Button>
+        <Tooltip>
+            <TooltipTrigger><Button
+                className={`cursor-pointer ${isConnected ? 'text-green-500' : 'text-muted-foreground opacity-50'}`}
+                variant="ghost"
+            >
+                <MonitorUp />
+            </Button></TooltipTrigger>
+            <TooltipContent>
+                <p>{isConnected ? 'Daemon is connected' : 'Daemon is not connected'}</p>
+            </TooltipContent>
+        </Tooltip>
+
     );
 }
 

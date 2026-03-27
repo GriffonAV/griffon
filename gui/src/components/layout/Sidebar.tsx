@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { usePlugins } from "@/bindings/PluginContext.tsx";
 import { ModeToggle } from "./ModeToggle.tsx";
-import { Settings2, LayoutDashboard, Logs } from "lucide-react";
+import { Settings2, LayoutDashboard, Clock10 } from "lucide-react";
 import { SearchInput } from "./SearchInput.tsx";
 import { ContactButton } from "./ContactButton.tsx";
 import { SidebarButton } from "./SidebarButton.tsx";
@@ -25,7 +25,7 @@ export function Sidebar() {
       <Link to="/log">
         <SidebarButton
           to="/log"
-          icon={<Logs />}
+          icon={<Clock10 />}
           label="Logs"
           isActive={location.pathname === "/log"}
         />

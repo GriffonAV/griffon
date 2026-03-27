@@ -15,7 +15,7 @@ export function SidebarButton({ to, icon, label, isActive }: SidebarButtonProps)
       <Button
         variant="ghost"
         className={clsx(
-          "w-full justify-start cursor-pointer mb-2",
+          "w-full justify-start cursor-pointer mb-2 font-bold",
           isActive && "bg-sidebar-primary text-sidebar-primary-foreground"
         )}
       >
