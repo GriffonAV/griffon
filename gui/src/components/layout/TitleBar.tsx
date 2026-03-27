@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Copy, Minus, Square, X, Github, Bell } from "lucide-react";
+import { Copy, Minus, Square, X, Github, Bell, MonitorUp } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import NotificationPanel from "./NotificationPanel";
+import DaemonConnection from "@/bindings/component/layout/DaemonConnection";
 
 function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -68,7 +69,7 @@ function TitleBar() {
       />
       <div className="pl-2 font-bold">Griffon</div>
       <div className="flex-1"></div>
-      <NotificationPanel />
+      <DaemonConnection />
       <Button className="cursor-pointer text-muted-foreground" variant={"ghost"}>
         <Bell />
       </Button>

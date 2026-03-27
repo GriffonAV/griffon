@@ -1,7 +1,15 @@
 use plugin_manager::PluginManager;
+use serde::de;
 use serde::Serialize;
+use std::io::Read;
+use std::os::unix::net::UnixStream;
 use std::sync::Mutex;
+use tauri::Manager;
 use tauri::State;
+use tauri::{AppHandle, Emitter};
+
+mod daemon;
+use crate::daemon::{get_daemon_status, DaemonConnection};
 
 mod manifests;
 use manifests::load_plugin_manifest;
@@ -10,6 +18,8 @@ use manifests::PluginManifest;
 // static PLUGIN_DIR: &str = "../../plugins";
 static PLUGIN_DIR: &str = "../../target/debug";
 static PLUGIN_MANIFEST_DIR: &str = "../../.config/griffon";
+
+const DAEMON_SOCK_PATH: &str = "/tmp/griffon.sock";
 
 struct PMState(pub Mutex<PluginManager>);
 
@@ -95,7 +105,36 @@ fn main() {
         )
         .plugin(tauri_plugin_opener::init())
         .manage(PMState(Mutex::new(pm)))
+        .manage(DaemonConnection(Mutex::new(None)))
+        .setup(|app| {
+            let app_handle = app.handle().clone();
+
+            std::thread::spawn({
+                let app_handle = app_handle.clone();
+                move || {
+                    // Give the frontend time to set up listeners
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+
+                    match UnixStream::connect(DAEMON_SOCK_PATH) {
+                        Ok(stream) => {
+                            println!("Successfully connected to Griffon Daemon");
+
+                            if let Ok(mut guard) = app_handle.state::<DaemonConnection>().0.lock() {
+                                *guard = Some(stream.try_clone().expect("Failed to clone socket"));
+                            }
+                        }
+                        Err(e) => {
+                            println!("Failed to connect: {}", e);
+                            let _ = app_handle.emit("daemon-status", "Disconnected");
+                        }
+                    }
+                }
+            });
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
+            get_daemon_status,
             list_plugins,
             refresh_plugins,
             message_plugin,

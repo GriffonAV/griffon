@@ -12,17 +12,15 @@ setup-gui:
 run-gui:
     cd gui && npx tauri dev
 
+# cli
+
+run-daemon:
+    sudo target/debug/daemon_core
+
+run-cli:
+    sudo target/debug/cli
+
 #old
-
-build-core:
-    cargo build -p griffon_core
-
-build-cli:
-    cargo build -p cli
-
-build-daemon:
-    cargo build -p daemon
-
 
 lint:
     cargo fmt -- --check

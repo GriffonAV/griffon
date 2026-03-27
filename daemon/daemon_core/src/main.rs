@@ -10,7 +10,7 @@ static PLUGIN_DIR_PATH: &str = "./plugins";
 static LOGGER_NETWORK: Logger = Logger::new("DAEMON-INTERFACE-NETWORK", logger::LogLevel::Debug);
 static LOGGER_CORE: Logger = Logger::new("DAEMON-CORE", logger::LogLevel::Debug);
 
-const DAEMON_SOCK_PATH: &str = "/run/griffon/daemon.sock";
+const DAEMON_SOCK_PATH: &str = "/tmp/griffon.sock";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginInfoDto {
