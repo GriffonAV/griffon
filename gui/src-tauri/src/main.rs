@@ -1,12 +1,10 @@
 use plugin_manager::PluginManager;
-use serde::de;
 use serde::Serialize;
-use std::io::Read;
 use std::os::unix::net::UnixStream;
 use std::sync::Mutex;
+use tauri::Emitter;
 use tauri::Manager;
 use tauri::State;
-use tauri::{AppHandle, Emitter};
 
 mod daemon;
 use crate::daemon::{get_daemon_status, DaemonConnection};
