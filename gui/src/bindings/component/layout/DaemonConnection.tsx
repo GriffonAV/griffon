@@ -29,12 +29,14 @@ function DaemonConnection() {
 
     return (
         <Tooltip>
-            <TooltipTrigger><Button
-                className={`cursor-pointer ${isConnected ? 'text-green-500' : 'text-muted-foreground opacity-50'}`}
-                variant="ghost"
-            >
-                <MonitorUp />
-            </Button></TooltipTrigger>
+            <TooltipTrigger asChild>
+                <Button
+                    className={`cursor-pointer ${isConnected ? 'text-green-500' : 'text-muted-foreground opacity-50'}`}
+                    variant="ghost"
+                >
+                    <MonitorUp />
+                </Button>
+            </TooltipTrigger>
             <TooltipContent>
                 <p>{isConnected ? 'Daemon is connected' : 'Daemon is not connected'}</p>
             </TooltipContent>
