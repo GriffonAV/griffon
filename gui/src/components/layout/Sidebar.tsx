@@ -16,7 +16,6 @@ export function Sidebar() {
     <aside className="flex flex-col w-48 m-2">
       <Link to="/dashboard">
         <SidebarButton
-          to="/dashboard"
           icon={<LayoutDashboard />}
           label="Dashboard"
           isActive={location.pathname === "/dashboard" || location.pathname === "/"}
@@ -24,7 +23,6 @@ export function Sidebar() {
       </Link>
       <Link to="/log">
         <SidebarButton
-          to="/log"
           icon={<Clock10 />}
           label="Logs"
           isActive={location.pathname === "/log"}
@@ -36,7 +34,6 @@ export function Sidebar() {
       {plugins.map((plugin) => (
         <Link key={plugin.pid} to={`/plugin/${plugin.pid}`}>
           <SidebarButton
-            to={`/plugin/${plugin.pid}`}
             icon={null}
             label={plugin.name}
             isActive={location.pathname === `/plugin/${plugin.pid}`}
