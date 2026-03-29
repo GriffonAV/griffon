@@ -7,6 +7,12 @@ use std::fs;
 pub struct PluginManifest {
     pub plugin: Plugin,
     pub ui: UI,
+
+    #[serde(default)]
+    pub store: HashMap<String, Value>,
+
+    #[serde(default)]
+    pub interactions: Vec<Interaction>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -16,6 +22,8 @@ pub struct Plugin {
     pub version: String,
     pub author: String,
     pub description: String,
+
+    #[serde(default)]
     pub tabs: Vec<String>,
 }
 
@@ -35,6 +43,36 @@ pub struct Section {
 pub struct Content {
     pub r#type: String,
     pub id: String,
+
+    #[serde(flatten)]
+    pub unknown: HashMap<String, Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Interaction {
+    pub id: String,
+    pub on: String,
+
+    #[serde(default)]
+    pub steps: Vec<InteractionStep>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InteractionStep {
+    pub r#type: String,
+
+    #[serde(default)]
+    pub key: Option<String>,
+
+    #[serde(default)]
+    pub value: Option<Value>,
+
+    #[serde(default)]
+    pub from: Option<String>,
+
+    #[serde(default)]
+    pub amount: Option<f64>,
+
     #[serde(flatten)]
     pub unknown: HashMap<String, Value>,
 }
