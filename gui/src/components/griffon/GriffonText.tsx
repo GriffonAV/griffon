@@ -1,21 +1,44 @@
-import type { TextElement } from "@/components/types";
 import { textAlignClass, textVariantClass, toneTextClass } from "@/components/utils";
+import type { TextAlign, TextVariant, Tone } from "@/components/types";
 
-type Props = {
-  element: TextElement;
-};
+interface GriffonTextProps {
+  element: {
+    id: string;
+    name?: string;
+    variant?: TextVariant;
+    tone?: Tone;
+    align?: TextAlign;
+    [key: string]: any;
+  };
+  store?: Record<string, any>;
+}
 
-export default function Text({ element }: Props) {
+function resolveTemplate(value: string, store: Record<string, any>) {
+  return value.replace(/\{\{(.*?)\}\}/g, (_, rawKey) => {
+    const key = String(rawKey).trim();
+    const resolved = store[key];
+    return resolved !== undefined && resolved !== null ? String(resolved) : "";
+  });
+}
+
+export default function GriffonText({
+  element,
+  store = {},
+}: GriffonTextProps) {
+  const content =
+    typeof element.name === "string"
+      ? resolveTemplate(element.name, store)
+      : element.name ?? "";
+
   return (
     <div
-      id={element.id}
       className={[
         textVariantClass(element.variant),
         toneTextClass(element.tone),
         textAlignClass(element.align),
       ].join(" ")}
     >
-      {element.name}
+      {content}
     </div>
   );
 }
