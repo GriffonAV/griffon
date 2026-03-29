@@ -1,18 +1,26 @@
-import type { GriffonSection, GriffonActionHandler } from "@/components/types";
-import GriffonElementRenderer from "./GriffonElementRenderer";
+import GriffonElementRenderer from "@/renderer/GriffonElementRenderer";
 
-type Props = {
-  section: GriffonSection;
-  onAction?: GriffonActionHandler;
-};
+interface GriffonSectionRendererProps {
+  section: {
+    id: string;
+    contents: any[];
+  };
+  store?: Record<string, any>;
+  onAction?: (action: string, event?: any) => void;
+}
 
-export default function GriffonSectionRenderer({ section, onAction }: Props) {
+export default function GriffonSectionRenderer({
+  section,
+  store = {},
+  onAction,
+}: GriffonSectionRendererProps) {
   return (
     <div className="flex flex-col gap-4">
-      {section.contents?.map((element, index) => (
+      {section.contents?.map((element) => (
         <GriffonElementRenderer
-          key={element.id ?? `${section.id}-${index}`}
+          key={element.id}
           element={element}
+          store={store}
           onAction={onAction}
         />
       ))}

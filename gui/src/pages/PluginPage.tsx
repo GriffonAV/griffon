@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from "react";
+import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useParams } from "react-router-dom";
@@ -7,6 +7,7 @@ import { debug } from "@tauri-apps/plugin-log";
 import { PageTabsLayout } from "@/components/layout/PageTabsLayout";
 import GriffonSectionRenderer from "@/renderer/GriffonSectionRenderer";
 import type { GriffonSection } from "@/components/types";
+import { useGriffonStore } from "@/hooks/useGriffonStore";
 
 interface PluginInfo {
   pid: number;
@@ -19,6 +20,8 @@ export default function PluginPage() {
   const { pid } = useParams();
   const [plugin, setPlugin] = useState<PluginInfo | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
+  const manifest = plugin?.manifest ?? null;
+  const { store, handleAction } = useGriffonStore(manifest);
 
   useEffect(() => {
     // Load plugin info
@@ -30,7 +33,18 @@ export default function PluginPage() {
         invoke<PluginManifest>("get_plugin_manifest", { pid: Number(pid) })
           .then((manifest) => {
             debug(JSON.stringify(manifest));
-            setPlugin((prev) => (prev ? { ...prev, manifest } : null));
+            setPlugin((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    manifest: {
+                      ...manifest,
+                      store: manifest.store ?? {},
+                      interactions: manifest.interactions ?? [],
+                    },
+                  }
+                : null
+            );
           })
           .catch((err) => {
             debug("Failed to load manifest:" + err);
@@ -57,26 +71,30 @@ export default function PluginPage() {
 
   if (!plugin) return <div>Plugin not found</div>;
 
-    return (
+  return (
     <PageTabsLayout
-        title={plugin.name}
-        navigation={!!plugin.manifest?.plugin?.tabs?.length}
-        tabs={plugin.manifest?.plugin?.tabs}
+      title={plugin.name}
+      navigation={!!plugin.manifest?.plugin?.tabs?.length}
+      tabs={plugin.manifest?.plugin?.tabs}
     >
-        {plugin.manifest?.plugin?.tabs?.map((tab) => {
+      {plugin.manifest?.plugin?.tabs?.map((tab) => {
         const tabSections =
             plugin.manifest?.ui?.sections?.filter((section) => section.tab === tab) ?? [];
 
         return (
-            <div className="flex flex-col h-full gap-4" key={tab}>
+          <div className="flex flex-col h-full gap-4" key={tab}>
             {tabSections.map((section) => (
-                <div key={section.id} className="mx-5">
-                <GriffonSectionRenderer section={section as GriffonSection} />
-                </div>
+              <div key={section.id} className="mx-5">
+                <GriffonSectionRenderer
+                  section={section as GriffonSection}
+                  store={store}
+                  onAction={handleAction}
+                />
+              </div>
             ))}
-            </div>
+          </div>
         );
-        })}
+      })}
     </PageTabsLayout>
-    );
+  );
 }

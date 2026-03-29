@@ -1,5 +1,3 @@
-import type { GriffonElement, GriffonActionHandler } from "@/components/types";
-
 import GriffonText from "@/components/griffon/GriffonText";
 import GriffonButton from "@/components/griffon/GriffonButton";
 import GriffonInput from "@/components/griffon/GriffonInput";
@@ -15,64 +13,75 @@ import GriffonTable from "@/components/griffon/GriffonTable";
 import GriffonGroup from "@/components/griffon/GriffonGroup";
 import GriffonRow from "@/components/griffon/GriffonRow";
 import GriffonColumn from "@/components/griffon/GriffonColumn";
+import GriffonFileSelect from "@/components/griffon/GriffonFileSelect";
 
-type Props = {
-  element: GriffonElement;
-  onAction?: GriffonActionHandler;
-};
+interface GriffonElementRendererProps {
+  element: any;
+  store?: Record<string, any>;
+  onAction?: (action: string, event?: any) => void;
+}
 
-export default function GriffonElementRenderer({ element, onAction }: Props) {
+export default function GriffonElementRenderer({
+  element,
+  store = {},
+  onAction,
+}: GriffonElementRendererProps) {
+  const commonProps = {
+    element,
+    store,
+    onAction,
+  };
+
   switch (element.type) {
     case "text":
-      return <GriffonText element={element} />;
+      return <GriffonText {...commonProps} />;
 
     case "button":
-      return <GriffonButton element={element} onAction={onAction} />;
-
-    case "input":
-      return <GriffonInput element={element} onAction={onAction} />;
-
-    case "select":
-      return <GriffonSelect element={element} onAction={onAction} />;
-
-    case "switch":
-      return <GriffonSwitch element={element} onAction={onAction} />;
-
-    case "checkbox":
-      return <GriffonCheckbox element={element} onAction={onAction} />;
-
-    case "tabs":
-      return <GriffonTabs element={element} onAction={onAction} />;
-
-    case "badge":
-      return <GriffonBadge element={element} />;
-
-    case "progress":
-      return <GriffonProgress element={element} />;
-
-    case "card":
-      return <GriffonCard element={element} />;
-
-    case "divider":
-      return <GriffonDivider element={element} />;
-
-    case "table":
-      return <GriffonTable element={element} />;
+      return <GriffonButton {...commonProps} />;
 
     case "group":
-      return <GriffonGroup element={element} onAction={onAction} />;
+      return <GriffonGroup {...commonProps} />;
 
-    case "row":
-      return <GriffonRow element={element} onAction={onAction} />;
+    case "card":
+      return <GriffonCard {...commonProps} />;
 
     case "column":
-      return <GriffonColumn element={element} onAction={onAction} />;
+      return <GriffonColumn {...commonProps} />;
+
+    case "row":
+      return <GriffonRow {...commonProps} />;
+
+    case "divider":
+      return <GriffonDivider {...commonProps} />;
+
+    case "badge":
+      return <GriffonBadge {...commonProps} />;
+
+    case "checkbox":
+      return <GriffonCheckbox {...commonProps} />;
+
+    case "input":
+      return <GriffonInput {...commonProps} />;
+
+    case "progress":
+      return <GriffonProgress {...commonProps} />;
+
+    case "select":
+      return <GriffonSelect {...commonProps} />;
+
+    case "switch":
+      return <GriffonSwitch {...commonProps} />;
+
+    case "table":
+      return <GriffonTable {...commonProps} />;
+
+    case "tabs":
+      return <GriffonTabs {...commonProps} />;
+    
+    case "file_select":
+      return <GriffonFileSelect {...commonProps} />;
 
     default:
-      return (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-          Unsupported Griffon component type: <strong>{(element as GriffonElement).type}</strong>
-        </div>
-      );
+      return null;
   }
 }

@@ -15,6 +15,9 @@ export type BaseElement = {
   type: string;
   id?: string;
   name?: string;
+  bind?: string;
+  visible_if?: string;
+  disabled_if?: string;
 };
 
 export type TextElement = BaseElement & {
@@ -48,6 +51,7 @@ export type CardElement = BaseElement & {
   name: string;
   description?: string;
   tone?: Tone;
+  children?: GriffonElement[];
 };
 
 export type GroupElement = BaseElement & {
@@ -78,33 +82,6 @@ export type ColumnElement = BaseElement & {
   children?: GriffonElement[];
 };
 
-export type GriffonSection = {
-  id: string;
-  tab: string;
-  contents: GriffonElement[];
-};
-
-export type GriffonPlugin = {
-  name: string;
-  id: string;
-  version: string;
-  author: string;
-  description?: string;
-  tabs: string[];
-};
-
-export type GriffonManifest = {
-  plugin: GriffonPlugin;
-  ui: {
-    sections: GriffonSection[];
-  };
-};
-
-export type GriffonActionHandler = (
-  action: string,
-  element: GriffonElement
-) => void;
-
 export type InputElement = BaseElement & {
   type: "input";
   label?: string;
@@ -129,6 +106,18 @@ export type SelectElement = BaseElement & {
   value?: string;
   disabled?: boolean;
   options?: SelectOption[];
+  action?: string;
+};
+
+export type FileSelectElement = BaseElement & {
+  type: "file_select";
+  label?: string;
+  placeholder?: string;
+  description?: string;
+  value?: string;
+  button_label?: string;
+  accept?: string;
+  disabled?: boolean;
   action?: string;
 };
 
@@ -192,11 +181,69 @@ export type TableElement = BaseElement & {
   rows?: TableRowData[];
 };
 
+export type GriffonInteractionStep =
+  | {
+      type: "set";
+      key: string;
+      value?: string | number | boolean;
+      from?: string;
+    }
+  | {
+      type: "toggle";
+      key: string;
+    }
+  | {
+      type: "increment";
+      key: string;
+      by?: number;
+    }
+  | {
+      type: "decrement";
+      key: string;
+      by?: number;
+    };
+
+export type GriffonInteraction = {
+  id: string;
+  on: string;
+  steps: GriffonInteractionStep[];
+};
+
+export type GriffonSection = {
+  id: string;
+  tab: string;
+  contents: GriffonElement[];
+};
+
+export type GriffonPlugin = {
+  name: string;
+  id: string;
+  version: string;
+  author: string;
+  description?: string;
+  tabs: string[];
+};
+
+export type GriffonManifest = {
+  plugin: GriffonPlugin;
+  ui: {
+    sections: GriffonSection[];
+  };
+  store?: Record<string, string | number | boolean | null>;
+  interactions?: GriffonInteraction[];
+};
+
+export type GriffonActionHandler = (
+  action: string,
+  element: GriffonElement
+) => void;
+
 export type GriffonElement =
   | TextElement
   | ButtonElement
   | InputElement
   | SelectElement
+  | FileSelectElement
   | SwitchElement
   | CheckboxElement
   | TabsElement
