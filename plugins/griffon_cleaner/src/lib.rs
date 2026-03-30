@@ -19,7 +19,7 @@ use abi_stable::{
     sabi_extern_fn,
     std_types::{RResult, RString, RVec, Tuple2},
 };
-use interface::{PluginI, PluginRoot, PluginRoot_Ref};
+use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 use std::path::Path;
 use chrono::Utc;
 use uuid::Uuid;
