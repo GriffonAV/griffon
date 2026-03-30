@@ -7,7 +7,7 @@ use crate::ipc_header::{Frame, MsgType};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HelloOkPayload {
     pub name: String,
-    pub uuid: String,
+    pub uuid: [u8; 16],
     pub functions: Vec<String>,
 }
 
@@ -73,6 +73,17 @@ impl Message {
             }
         }
     }
+}
+
+pub fn format_uuid_bytes(uuid: &[u8; 16]) -> String {
+    format!(
+        "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+        uuid[0], uuid[1], uuid[2], uuid[3],
+        uuid[4], uuid[5],
+        uuid[6], uuid[7],
+        uuid[8], uuid[9],
+        uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15],
+    )
 }
 
 pub fn send_message<W: Write>(w: &mut W, msg: Message) -> io::Result<()> {

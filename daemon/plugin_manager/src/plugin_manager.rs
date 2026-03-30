@@ -8,11 +8,11 @@ use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
-
-use ipc_protocol::ipc_payload_runner::{CallPayload, Message, recv_message, send_message};
+use ipc_protocol::ipc_payload_interface::PluginInfoDto;
+use ipc_protocol::ipc_payload_runner::{CallPayload, Message, recv_message, send_message, format_uuid_bytes};
 use logger::Logger;
 
-static LOGGER_PM: Logger = Logger::new("DAEMON-PLUGIN_MANAGER", logger::LogLevel::Debug);
+static LOGGER_PM: Logger = Logger::new("PLUGIN_MANAGER", logger::LogLevel::Debug);
 static LOGGER_PM_NETWORK: Logger =
     Logger::new("PLUGIN_MANAGER-RUNNER-NETWORK", logger::LogLevel::Debug);
 
@@ -42,13 +42,13 @@ pub enum PluginEvent {
 struct RunningPlugin {
     process: Child,
     fd: std::os::unix::net::UnixStream,
-    pub plugin_info: PluginInfo,
+    pub plugin_info: PluginInfoDto,
 }
 
 #[derive(Debug, Clone)]
 pub struct PluginInfo {
     pub pid: u32,
-    pub uuid: String,
+    pub uuid: [u8; 16],
     pub name: String,
     pub path: PathBuf,
     pub functions: Vec<String>,
@@ -120,7 +120,7 @@ impl PluginManager {
         self.next_request_id
     }
 
-    pub fn list_plugins(&self) -> Vec<PluginInfo> {
+    pub fn list_plugins(&self) -> Vec<PluginInfoDto> {
         self.plugins_list
             .iter()
             .map(|p| p.plugin_info.clone())
@@ -148,7 +148,8 @@ impl PluginManager {
 
         let mut i = 0;
         while i < self.plugins_list.len() {
-            if !current_paths.contains(&self.plugins_list[i].plugin_info.path) {
+            let path: PathBuf = PathBuf::from(self.plugins_list[i].plugin_info.path.clone());
+            if !current_paths.contains(&path) {
                 self.remove_plugin_at(i);
             } else {
                 i += 1;
@@ -158,7 +159,7 @@ impl PluginManager {
 
     pub fn restart_plugin(&mut self, pid: u32) {
         if let Some(plugin) = self.plugins_list.iter().find(|p| p.process.id() == pid) {
-            let path = plugin.plugin_info.path.clone();
+            let path: PathBuf = PathBuf::from(&plugin.plugin_info.path);
             self.kill_plugin(pid);
             self.check_plugin(&path);
             LOGGER_PM.info(format!("Plugin PID {pid} restarted"));
@@ -179,7 +180,7 @@ impl PluginManager {
         }
     }
 
-    pub fn send_call(&mut self, pid: u32, call: CallPayload) -> io::Result<u32> {
+    pub fn send_call(&mut self, uuid: [u8; 16], call: CallPayload) -> io::Result<u32> {
         let request_id = self.alloc_request_id();
 
         let msg = Message::Call {
@@ -190,7 +191,7 @@ impl PluginManager {
         let plugin = self
             .plugins_list
             .iter_mut()
-            .find(|p| p.process.id() == pid)
+            .find(|p| p.plugin_info.plugin_uuid == uuid)
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "plugin pid not found"))?;
 
         send_message(&mut plugin.fd, msg)?;
@@ -242,7 +243,13 @@ impl PluginManager {
     }
 
     fn check_plugin(&mut self, path: &Path) {
-        let already_running = self.plugins_list.iter().any(|p| p.plugin_info.path == path);
+        let path_str = path.to_string_lossy();
+
+        let already_running = self
+            .plugins_list
+            .iter()
+            .any(|p| p.plugin_info.path == path_str);
+
         if already_running {
             LOGGER_PM.debug(format!("Plugin already running {}", path.display()));
             return;
@@ -271,8 +278,8 @@ impl PluginManager {
         if let Err(e) = handshake_res {
             let mut bad = self.plugins_list.pop().unwrap();
             LOGGER_PM_NETWORK.error(format!(
-                "Plugin {} {} ({}) handshake failed {e}",
-                bad.plugin_info.name, bad.plugin_info.uuid, bad.plugin_info.pid
+                "Plugin {} {:?} ({}) handshake failed {e}",
+                bad.plugin_info.name, format_uuid_bytes(&bad.plugin_info.plugin_uuid), bad.plugin_info.pid
             ));
             let _ = bad.process.kill();
         }
@@ -325,11 +332,11 @@ impl PluginManager {
         let core_stream =
             unsafe { std::os::unix::net::UnixStream::from_raw_fd(core_fd.into_raw_fd()) };
 
-        let plugininfo = PluginInfo {
+        let plugininfo = PluginInfoDto {
             pid: child.id(),
             name,
-            uuid: "".to_string(),
-            path: plugin_path.to_path_buf(),
+            plugin_uuid: [0; 16],
+            path: plugin_path.display().to_string(),
             functions: Vec::new(),
         };
 
@@ -363,7 +370,7 @@ fn read_plugin_messages(
     let hello_ok = match recv_message(&mut fd_clone) {
         Ok(message) => match message {
             Message::HelloOk(p) => {
-                LOGGER_PM_NETWORK.debug(format!("HelloOk received {:?} ", p));
+                LOGGER_PM_NETWORK.debug(format!("HelloOk received from {:?} ({}) function = {:?} ", format_uuid_bytes(&p.uuid), p.name, p.functions));
                 p
             }
             other => {
@@ -383,16 +390,14 @@ fn read_plugin_messages(
         }
     };
 
-    LOGGER_PM_NETWORK.debug("TEST");
     plugin.plugin_info.name = hello_ok.name;
     plugin.plugin_info.functions = hello_ok.functions;
-    plugin.plugin_info.uuid = hello_ok.uuid;
+    plugin.plugin_info.plugin_uuid = hello_ok.uuid;
 
     let name = plugin.plugin_info.name.clone();
-    let uuid = plugin.plugin_info.uuid.clone();
 
     LOGGER_PM_NETWORK.info(format!(
-        "Plugin {name} {uuid} ({pid}) handshake OK, functions={:?}",
+        "Plugin {name} {:?} ({pid}) handshake OK, functions={:?}", format_uuid_bytes(&plugin.plugin_info.plugin_uuid),
         plugin.plugin_info.functions
     ));
 
@@ -412,7 +417,7 @@ fn read_plugin_messages(
 
             match msg {
                 Message::Result { request_id, data } => {
-                    LOGGER_PM_NETWORK.error(format!(
+                    LOGGER_PM_NETWORK.info(format!(
                         "Plugin {name} ({pid}) RESULT id={request_id} ok={} output={}",
                         data.ok, data.output
                     ));

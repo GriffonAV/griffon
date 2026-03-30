@@ -208,10 +208,14 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
         RString::from("author"),
         RString::from("Ewen Emeraud"),
     ));
-    info.push(Tuple2(RString::from("name"), RString::from("Test Name1")));
+    info.push(Tuple2(RString::from("name"), RString::from("Griffon Cleaner")));
     info.push(Tuple2(
         RString::from("description"),
         RString::from("Plugin Cleaner"),
+    ));
+    info.push(Tuple2(
+        RString::from("UUID"),
+        RString::from("f3999d52-7a7e-45f1-9dc9-456c91abd313"),
     ));
     info.push(Tuple2(
         RString::from("function"),
