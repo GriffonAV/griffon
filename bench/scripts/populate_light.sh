@@ -1,12 +1,15 @@
 #!/bin/bash
 
-echo "Generating LIGHT dataset..."
+set -e
 
-mkdir -p ~/.cache/griffon_light
+echo "Generating MEDIUM dataset..."
 
-for i in {1..100}
+mkdir -p /tmp/griffon_medium
+mkdir -p ~/.cache/griffon_medium
+
+for i in {1..500}
 do
-    head -c 1K </dev/urandom > /tmp/griffon_light/file_$i.tmp
+    head -c 10K </dev/urandom > /tmp/griffon_medium/file_$i.tmp
 done
 
-echo "Light dataset ready."
+echo "Medium dataset ready."

@@ -13,7 +13,12 @@ apt-get install -y \
     jq \
     htop \
     pkg-config \
-    libssl-dev
+    libssl-dev \
+    libglib2.0-dev \
+    libgtk-3-dev \
+    libsoup-3.0-dev \
+    libjavascriptcoregtk-4.1-dev \
+    libwebkit2gtk-4.1-dev
 
 echo "Installing Rust for vagrant user..."
 
@@ -34,5 +39,9 @@ echo "Creating benchmark directories..."
 mkdir -p /tmp/griffon_light
 mkdir -p /tmp/griffon_medium
 mkdir -p /tmp/griffon_stress
+
+chown -R vagrant:vagrant /tmp/griffon_light
+chown -R vagrant:vagrant /tmp/griffon_medium
+chown -R vagrant:vagrant /tmp/griffon_stress
 
 echo "Bootstrap complete."

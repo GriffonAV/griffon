@@ -1,7 +1,10 @@
 #!/bin/bash
 
+set -e
+
 echo "Generating STRESS dataset..."
 
+mkdir -p /tmp/griffon_stress
 mkdir -p ~/.cache/griffon_stress
 
 for i in {1..2000}
