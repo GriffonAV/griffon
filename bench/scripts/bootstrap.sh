@@ -15,11 +15,19 @@ apt-get install -y \
     pkg-config \
     libssl-dev
 
-echo "Installing Rust..."
+echo "Installing Rust for vagrant user..."
 
+sudo -u vagrant env HOME=/home/vagrant bash -c '
 curl https://sh.rustup.rs -sSf | sh -s -- -y
+'
 
-source /home/vagrant/.cargo/env
+echo "Loading cargo env..."
+
+sudo -u vagrant env HOME=/home/vagrant bash -c '
+source ~/.cargo/env
+rustc --version
+cargo --version
+'
 
 echo "Creating benchmark directories..."
 
