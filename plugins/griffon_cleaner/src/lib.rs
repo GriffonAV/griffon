@@ -195,7 +195,7 @@ fn make_config() -> CleanerConfig {
         enable_system_cache: true,
         enable_user_cache: true,
         enable_browser_cache: false,
-        enable_dev_cache: true,
+        enable_dev_cache: false,
         enable_package_cache: true,
         enable_desktop_cache: true,
     }
