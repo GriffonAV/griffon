@@ -1,34 +1,29 @@
 #!/bin/bash
-
 set -e
 
 SCENARIO="$1"
 
 if [ -z "$SCENARIO" ]; then
-    echo "Usage: ./scripts/run_benchmark.sh light|medium|stress"
+    echo "Usage: ./bench/scripts/run_benchmark.sh light|medium|stress"
     exit 1
 fi
 
+source /home/vagrant/.cargo/env
+
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 RESULT_DIR="/home/vagrant/GriffonAV/bench/results/${SCENARIO}_${TIMESTAMP}"
+CONFIG_PATH="/home/vagrant/GriffonAV/bench/configs/${SCENARIO}.json"
 
 mkdir -p "$RESULT_DIR"
 
-echo "Loading Rust environment..."
-source /home/vagrant/.cargo/env
-
-echo "Building griffon_cleaner..."
 cd /home/vagrant/GriffonAV
 
-cargo build --release
+cargo build --release -p griffon_cleaner
 
-echo "Running Griffon Cleaner benchmark..."
+sudo ./target/release/griffon_cleaner \
+  --config "$CONFIG_PATH" \
+  --output "$RESULT_DIR/report.json" \
+  > "$RESULT_DIR/stdout.log" \
+  2> "$RESULT_DIR/stderr.log"
 
-sudo time ./target/release/griffon_cleaner \
-    --scenario "$SCENARIO" \
-    --output "$RESULT_DIR/report.json" \
-    > "$RESULT_DIR/stdout.log" \
-    2> "$RESULT_DIR/stderr.log"
-
-echo "Benchmark complete."
-echo "Results stored in: $RESULT_DIR"
+echo "Benchmark complete: $RESULT_DIR"
