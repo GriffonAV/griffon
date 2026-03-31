@@ -20,7 +20,7 @@ use abi_stable::{
     std_types::{RResult, RString, RVec, Tuple2},
 };
 use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use chrono::Utc;
 use uuid::Uuid;
 
@@ -201,9 +201,38 @@ fn make_config() -> CleanerConfig {
     }
 }
 
+fn parse_arg(flag: &str) -> Option<String> {
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        if arg == flag {
+            return args.next();
+        }
+    }
+    None
+}
+
 fn run() -> RResult<GlobalReport, RString> {
-    let ctx = make_ctx();
-    let modules = make_modules();
+    let config_path = parse_arg("--config")
+        .unwrap_or_else(|| "bench/configs/light.json".to_string());
+
+    let output_path = parse_arg("--output")
+        .unwrap_or_else(|| "griffon_cleaner_report.json".to_string());
+
+    let file_cfg = match FileCleanerConfig::load_from_file(PathBuf::from(&config_path).as_path()) {
+        Ok(cfg) => cfg,
+        Err(e) => {
+            eprintln!("Erreur chargement config: {:?}", e);
+            std::process::exit(1);
+        }
+    };
+
+    let ctx = ExecutionContext {
+        config: file_cfg.to_runtime_config(),
+        dry_run: file_cfg.dry_run,
+        root_paths: file_cfg.root_paths.iter().map(PathBuf::from).collect(),
+    };
+
+    let modules = default_modules();
 
     match run_modules(&ctx, &modules) {
         Ok(report) => {
@@ -214,11 +243,11 @@ fn run() -> RResult<GlobalReport, RString> {
 
             if let Err(e) = write_analysis_report_to_file(
                 &analysis,
-                Path::new("griffon_cleaner_analysis.json"),
+                Path::new(&output_path),
             ) {
                 eprintln!("Erreur lors de l'export JSON de l'analyse : {:?}", e);
             } else {
-                println!("Analysis report exporté dans griffon_cleaner_analysis.json");
+                println!("Report exporté dans {}", output_path);
             }
 
             let enabled = whats_enabled_modules(&ctx.config);
