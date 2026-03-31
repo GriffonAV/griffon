@@ -69,11 +69,6 @@ pub const KNOWN_CACHE_PATHS: &[CachePath] = &[
         category: CacheCategory::PackageManager,
         pattern: "/var/cache/pacman/pkg",
     },
-    CachePath {
-        id: "snap_cache",
-        category: CacheCategory::PackageManager,
-        pattern: "/var/lib/snapd/snaps",
-    },
 
     // =======================
     // UTILISATEUR (HOME)
