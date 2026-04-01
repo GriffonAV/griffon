@@ -29,29 +29,6 @@ impl CacheCleaner {
         }
     }
 
-    fn default_cache_paths(ctx: &ExecutionContext) -> Vec<(String, std::path::PathBuf)> {
-        let cfg = &ctx.config;
-        let is_root = Self::is_root();
-
-        KNOWN_CACHE_PATHS
-            .iter()
-            .filter(|cache| match cache.category {
-                CacheCategory::System         => cfg.enable_system_cache,
-                CacheCategory::User           => cfg.enable_user_cache,
-                CacheCategory::Browser        => cfg.enable_browser_cache,
-                CacheCategory::DevTools       => cfg.enable_dev_cache,
-                CacheCategory::PackageManager => cfg.enable_package_cache,
-                CacheCategory::DesktopEnv     => cfg.enable_desktop_cache,
-            })
-            .filter(|cache| crate::cache_paths::path_allowed_in_profile(cache, &cfg.profile))
-            .filter(|cache| !cache.requires_root || is_root)
-            .filter(|cache| !cache.dangerous || matches!(cfg.profile, Profile::Full))
-            .filter_map(|cache| {
-                expand_home(cache.pattern).map(|p| (cache.pattern.to_string(), p))
-            })
-            .collect()
-    }
-
     fn default_cache_paths_with_logs(ctx: &ExecutionContext, report: &mut ModuleReport) -> Vec<(String, std::path::PathBuf)> {
         let cfg = &ctx.config;
         let is_root = Self::is_root();

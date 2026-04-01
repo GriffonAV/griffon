@@ -51,18 +51,6 @@ pub fn default_modules() -> Vec<Box<dyn CleanerModule>> {
     ]
 }
 
-fn make_ctx() -> ExecutionContext {
-    ExecutionContext {
-        config: make_config(),
-        dry_run: true,
-        root_paths: vec!["/".into()],
-    }
-}
-
-fn make_modules() -> Vec<Box<dyn crate::CleanerModule>> {
-    default_modules()
-}
-
 fn human_readable(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
     let mut size = bytes as f64;
@@ -185,22 +173,6 @@ pub fn whats_enabled_modules(cfg: &CleanerConfig) -> Vec<&'static str> {
     res
 }
 
-fn make_config() -> CleanerConfig {
-    CleanerConfig {
-        profile: Profile::Safe,
-        max_log_retention_days: 30,
-        max_log_size_gb: 2.0,
-        min_bigfile_size_mb: 100,
-
-        enable_system_cache: true,
-        enable_user_cache: true,
-        enable_browser_cache: false,
-        enable_dev_cache: false,
-        enable_package_cache: true,
-        enable_desktop_cache: true,
-    }
-}
-
 fn parse_arg(flag: &str) -> Option<String> {
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
@@ -284,8 +256,6 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 #[sabi_extern_fn]
 extern "C" fn handle_message(msg: RString) -> RString {
     println!("[LIBCLEAN](msg) Received message: {}", msg.as_str());
-    let ctx = make_ctx();
-    let modules = make_modules();
 
     match msg.as_str() {
         "fn:run" => match run() {
