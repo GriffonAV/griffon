@@ -69,13 +69,16 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                     }
                 }
                 DaemonTask::RefreshPlugins {
-                    request_id: _,
+                    request_id,
                     reply_tx,
                 } => {
                     LOGGER_DISPATCHER.debug("Refreshing plugins");
                     pm.scan_dir();
                     let plugins = pm.list_plugins();
-                    let response = InterfaceResponse::Plugins { plugins };
+                    let response = InterfaceResponse::Plugins {
+                        request_id,
+                        plugins,
+                    };
 
                     if let Err(e) = reply_tx.send(response) {
                         LOGGER_DISPATCHER.error(format!(

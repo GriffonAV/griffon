@@ -42,6 +42,7 @@ pub enum InterfaceResponse {
         message: String,
     },
     Plugins {
+        request_id: u32,
         plugins: Vec<PluginInfoDto>,
     },
     CallAccepted {
