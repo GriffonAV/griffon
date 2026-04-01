@@ -8,6 +8,7 @@ use walkdir::WalkDir;
 use std::collections::hash_map::Entry;
 use crate::TypeStats;
 use crate::PathStats;
+use crate::Profile;
 
 pub struct CacheCleaner;
 
@@ -16,23 +17,90 @@ impl CacheCleaner {
         Self
     }
 
+    fn is_root() -> bool {
+        #[cfg(target_family = "unix")]
+        {
+            unsafe { libc::geteuid() == 0 }
+        }
+
+        #[cfg(not(target_family = "unix"))]
+        {
+            false
+        }
+    }
+
     fn default_cache_paths(ctx: &ExecutionContext) -> Vec<(String, std::path::PathBuf)> {
         let cfg = &ctx.config;
+        let is_root = Self::is_root();
 
         KNOWN_CACHE_PATHS
             .iter()
             .filter(|cache| match cache.category {
-                CacheCategory::System       => cfg.enable_system_cache,
-                CacheCategory::User         => cfg.enable_user_cache,
-                CacheCategory::Browser      => cfg.enable_browser_cache,
-                CacheCategory::DevTools     => cfg.enable_dev_cache,
+                CacheCategory::System         => cfg.enable_system_cache,
+                CacheCategory::User           => cfg.enable_user_cache,
+                CacheCategory::Browser        => cfg.enable_browser_cache,
+                CacheCategory::DevTools       => cfg.enable_dev_cache,
                 CacheCategory::PackageManager => cfg.enable_package_cache,
-                CacheCategory::DesktopEnv   => cfg.enable_desktop_cache,
+                CacheCategory::DesktopEnv     => cfg.enable_desktop_cache,
             })
+            .filter(|cache| crate::cache_paths::path_allowed_in_profile(cache, &cfg.profile))
+            .filter(|cache| !cache.requires_root || is_root)
+            .filter(|cache| !cache.dangerous || matches!(cfg.profile, Profile::Full))
             .filter_map(|cache| {
                 expand_home(cache.pattern).map(|p| (cache.pattern.to_string(), p))
             })
             .collect()
+    }
+
+    fn default_cache_paths_with_logs(ctx: &ExecutionContext, report: &mut ModuleReport) -> Vec<(String, std::path::PathBuf)> {
+        let cfg = &ctx.config;
+        let is_root = Self::is_root();
+        let mut out = Vec::new();
+
+        for cache in KNOWN_CACHE_PATHS {
+            let category_enabled = match cache.category {
+                CacheCategory::System         => cfg.enable_system_cache,
+                CacheCategory::User           => cfg.enable_user_cache,
+                CacheCategory::Browser        => cfg.enable_browser_cache,
+                CacheCategory::DevTools       => cfg.enable_dev_cache,
+                CacheCategory::PackageManager => cfg.enable_package_cache,
+                CacheCategory::DesktopEnv     => cfg.enable_desktop_cache,
+            };
+
+            if !category_enabled {
+                continue;
+            }
+
+            if !crate::cache_paths::path_allowed_in_profile(cache, &cfg.profile) {
+                report.warnings.push(format!(
+                    "Path skipped by profile {:?}: {}",
+                    cfg.profile, cache.pattern
+                ));
+                continue;
+            }
+
+            if cache.requires_root && !is_root {
+                report.warnings.push(format!(
+                    "Path skipped (requires root): {}",
+                    cache.pattern
+                ));
+                continue;
+            }
+
+            if cache.dangerous && !matches!(cfg.profile, Profile::Full) {
+                report.warnings.push(format!(
+                    "Dangerous path skipped outside Full profile: {}",
+                    cache.pattern
+                ));
+                continue;
+            }
+
+            if let Some(path) = expand_home(cache.pattern) {
+                out.push((cache.pattern.to_string(), path));
+            }
+        }
+
+        out
     }
 
     fn file_type_key(path: &Path) -> String {
@@ -194,7 +262,7 @@ impl CleanerModule for CacheCleaner {
     fn run(&self, ctx: &ExecutionContext) -> CleanerResult<ModuleReport> {
         let mut report = ModuleReport::empty(self.id());
 
-        let cache_paths = Self::default_cache_paths(ctx);
+        let cache_paths = Self::default_cache_paths_with_logs(ctx, &mut report);
 
         for (label, path) in cache_paths {
             if let Err(e) = self.clean_cache_dir(&label, &path, ctx.dry_run, &mut report) {
