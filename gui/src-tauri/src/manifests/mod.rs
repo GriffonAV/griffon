@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use toml::Value;
 use std::collections::HashMap;
 use std::fs;
+use toml::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PluginManifest {
