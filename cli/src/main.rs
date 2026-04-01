@@ -36,7 +36,10 @@ fn start_reader_thread(mut read_sock: UnixStream) {
                             "Call accepted received for request_id={request_id}"
                         ));
                     }
-                    InterfaceResponse::Plugins { request_id, plugins } => {
+                    InterfaceResponse::Plugins {
+                        request_id,
+                        plugins,
+                    } => {
                         LOGGER_NETWORK.info(format!(
                             "Plugins list received: {} plugin(s) from request_id={request_id}",
                             plugins.len()
