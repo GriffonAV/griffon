@@ -45,7 +45,6 @@ pub const KNOWN_CACHE_PATHS: &[CachePath] = &[
         category: CacheCategory::System,
         pattern: "/var/log/journal",
     },
-
     // =======================
     // PACKAGE MANAGERS
     // =======================
@@ -74,7 +73,6 @@ pub const KNOWN_CACHE_PATHS: &[CachePath] = &[
         category: CacheCategory::PackageManager,
         pattern: "/var/lib/snapd/snaps",
     },
-
     // =======================
     // UTILISATEUR (HOME)
     // =======================
@@ -98,7 +96,6 @@ pub const KNOWN_CACHE_PATHS: &[CachePath] = &[
         category: CacheCategory::User,
         pattern: "~/Downloads",
     },
-
     // =======================
     // DEV TOOLS / LANGAGES
     // =======================
@@ -142,7 +139,6 @@ pub const KNOWN_CACHE_PATHS: &[CachePath] = &[
         category: CacheCategory::DevTools,
         pattern: "~/.cache/pipenv",
     },
-
     // =======================
     // NAVIGATEURS
     // =======================
@@ -176,7 +172,6 @@ pub const KNOWN_CACHE_PATHS: &[CachePath] = &[
         category: CacheCategory::Browser,
         pattern: "~/.cache/vivaldi",
     },
-
     // =======================
     // ENVIRONNEMENTS GRAPHIQUES / APPS
     // =======================

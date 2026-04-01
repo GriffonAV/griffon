@@ -1,23 +1,23 @@
+pub mod cache_paths;
 pub mod config;
 pub mod context;
+pub mod modules;
 pub mod reports;
 pub mod runner;
-pub mod modules;
-pub mod cache_paths;
 
-pub use config::*;
-pub use context::*;
-pub use reports::*;
-pub use runner::*;
-pub use cache_paths::*;
-pub use modules::CleanerModule;
 use abi_stable::{
     export_root_module,
     prefix_type::PrefixTypeTrait,
     sabi_extern_fn,
     std_types::{RResult, RString, RVec, Tuple2},
 };
+pub use cache_paths::*;
+pub use config::*;
+pub use context::*;
+pub use modules::CleanerModule;
 use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
+pub use reports::*;
+pub use runner::*;
 
 pub type CleanerResult<T> = Result<T, CleanerError>;
 
@@ -83,7 +83,10 @@ fn print_cache_report(global: &GlobalReport) {
     println!("=== CacheCleaner Report ===");
     println!("Dry-run : {}", global.dry_run);
     println!("Total fichiers : {}", cache_report.files_touched);
-    println!("Total libéré : {}", human_readable(cache_report.bytes_freed));
+    println!(
+        "Total libéré : {}",
+        human_readable(cache_report.bytes_freed)
+    );
 
     // Par dossier racine
     if !cache_report.per_root_path.is_empty() {
@@ -208,7 +211,10 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
         RString::from("author"),
         RString::from("Ewen Emeraud"),
     ));
-    info.push(Tuple2(RString::from("name"), RString::from("Griffon Cleaner")));
+    info.push(Tuple2(
+        RString::from("name"),
+        RString::from("Griffon Cleaner"),
+    ));
     info.push(Tuple2(
         RString::from("description"),
         RString::from("Plugin Cleaner"),
@@ -217,10 +223,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
         RString::from("UUID"),
         RString::from("f3999d52-7a7e-45f1-9dc9-456c91abd313"),
     ));
-    info.push(Tuple2(
-        RString::from("function"),
-        RString::from("run"),
-    ));
+    info.push(Tuple2(RString::from("function"), RString::from("run")));
 
     RResult::ROk(info)
 }
@@ -231,18 +234,15 @@ extern "C" fn handle_message(msg: RString) -> RString {
 
     match msg.as_str() {
         "fn:run" => match run() {
-            RResult::ROk(report) => {
-                match serde_json::to_string(&report) {
-                    Ok(json) => RString::from(json),
-                    Err(e) => RString::from(format!("ERR json serialize: {e}")),
-                }
-            }
+            RResult::ROk(report) => match serde_json::to_string(&report) {
+                Ok(json) => RString::from(json),
+                Err(e) => RString::from(format!("ERR json serialize: {e}")),
+            },
             RResult::RErr(err) => RString::from(format!("ERR cleaner: {}", err)),
         },
         _ => RString::from(format!("ACK LIBCLEAN {}\n", msg.as_str())),
     }
 }
-
 
 #[export_root_module]
 pub fn get_library() -> PluginRoot_Ref {
@@ -251,7 +251,7 @@ pub fn get_library() -> PluginRoot_Ref {
             init,
             handle_message,
         }
-            .leak_into_prefix(),
+        .leak_into_prefix(),
     }
-        .leak_into_prefix()
+    .leak_into_prefix()
 }

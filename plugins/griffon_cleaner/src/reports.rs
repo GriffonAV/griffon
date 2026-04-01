@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use serde::Serialize;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct PathStats {
@@ -40,7 +40,6 @@ impl ModuleReport {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize)]
 pub struct GlobalReport {

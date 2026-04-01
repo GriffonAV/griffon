@@ -1,9 +1,6 @@
+use abi_stable::std_types::{RResult, RString};
 use griffon_cleaner::{
-    ExecutionContext, CleanerConfig, Profile,
-    run_modules, default_modules, GlobalReport,
-};
-use abi_stable::{
-    std_types::{RResult, RString},
+    default_modules, run_modules, CleanerConfig, ExecutionContext, GlobalReport, Profile,
 };
 
 fn main() {
@@ -15,7 +12,7 @@ fn main() {
 
         enable_system_cache: true,
         enable_user_cache: true,
-        enable_browser_cache: false,     // on évite de casser les sessions de navigation des users
+        enable_browser_cache: false, // on évite de casser les sessions de navigation des users
         enable_dev_cache: true,
         enable_package_cache: true,
         enable_desktop_cache: true,

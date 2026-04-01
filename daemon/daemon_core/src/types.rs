@@ -24,5 +24,5 @@ pub enum DaemonTask {
         request_id: u32,
         plugin_uuid: [u8; 16],
         reply_tx: mpsc::Sender<InterfaceResponse>,
-    }
+    },
 }

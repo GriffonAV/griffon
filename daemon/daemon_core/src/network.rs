@@ -7,14 +7,13 @@ use std::sync::mpsc;
 use uuid::Uuid;
 
 use ipc_protocol::ipc_payload_interface::{
-    recv_interface_request, send_interface_response, InterfaceRequest, InterfaceResponse,
+    InterfaceRequest, InterfaceResponse, recv_interface_request, send_interface_response,
 };
 use logger::Logger;
 
 use crate::types::DaemonTask;
 
-static LOGGER_NETWORK: Logger =
-    Logger::new("DAEMON-INTERFACE-NETWORK", logger::LogLevel::Debug);
+static LOGGER_NETWORK: Logger = Logger::new("DAEMON-INTERFACE-NETWORK", logger::LogLevel::Debug);
 static LOGGER_CORE: Logger = Logger::new("DAEMON-CORE", logger::LogLevel::Debug);
 
 pub const DAEMON_SOCK_PATH: &str = "/run/griffon/daemon.sock";
@@ -44,10 +43,7 @@ pub fn setup_listener() -> io::Result<UnixListener> {
     Ok(listener)
 }
 
-pub fn handle_client(
-    mut stream: UnixStream,
-    task_tx: mpsc::Sender<DaemonTask>,
-) -> io::Result<()> {
+pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) -> io::Result<()> {
     LOGGER_NETWORK.debug("Client handler started");
 
     loop {
@@ -65,9 +61,7 @@ pub fn handle_client(
         ));
 
         let resp = match req {
-            InterfaceRequest::StartPlugin {
-                plugin_uuid,
-            } => {
+            InterfaceRequest::StartPlugin { plugin_uuid } => {
                 let plugin_uuid_str = Uuid::from_bytes(plugin_uuid).to_string();
                 LOGGER_CORE.debug(format!("Start plugin {}", plugin_uuid_str));
 
@@ -86,15 +80,15 @@ pub fn handle_client(
                         message: format!("Failed to queue task: {e}"),
                     }
                 } else {
-                    reply_rx.recv().unwrap_or_else(|e| InterfaceResponse::Error {
-                        request_id: frame.request_id,
-                        message: format!("Dispatcher response channel closed: {e}"),
-                    })
+                    reply_rx
+                        .recv()
+                        .unwrap_or_else(|e| InterfaceResponse::Error {
+                            request_id: frame.request_id,
+                            message: format!("Dispatcher response channel closed: {e}"),
+                        })
                 }
             }
-            InterfaceRequest::StopPlugin {
-                plugin_uuid,
-            } => {
+            InterfaceRequest::StopPlugin { plugin_uuid } => {
                 let plugin_uuid_str = Uuid::from_bytes(plugin_uuid).to_string();
                 LOGGER_CORE.debug(format!("Stop plugin {}", plugin_uuid_str));
 
@@ -113,10 +107,12 @@ pub fn handle_client(
                         message: format!("Failed to queue task: {e}"),
                     }
                 } else {
-                    reply_rx.recv().unwrap_or_else(|e| InterfaceResponse::Error {
-                        request_id: frame.request_id,
-                        message: format!("Dispatcher response channel closed: {e}"),
-                    })
+                    reply_rx
+                        .recv()
+                        .unwrap_or_else(|e| InterfaceResponse::Error {
+                            request_id: frame.request_id,
+                            message: format!("Dispatcher response channel closed: {e}"),
+                        })
                 }
             }
             InterfaceRequest::RefreshPlugins => {
@@ -134,10 +130,12 @@ pub fn handle_client(
                         message: format!("Failed to queue refresh task: {e}"),
                     }
                 } else {
-                    reply_rx.recv().unwrap_or_else(|e| InterfaceResponse::Error {
-                        request_id: frame.request_id,
-                        message: format!("Dispatcher response channel closed: {e}"),
-                    })
+                    reply_rx
+                        .recv()
+                        .unwrap_or_else(|e| InterfaceResponse::Error {
+                            request_id: frame.request_id,
+                            message: format!("Dispatcher response channel closed: {e}"),
+                        })
                 }
             }
             InterfaceRequest::CallPlugin {
@@ -168,10 +166,12 @@ pub fn handle_client(
                         message: format!("Failed to queue task: {e}"),
                     }
                 } else {
-                    reply_rx.recv().unwrap_or_else(|e| InterfaceResponse::Error {
-                        request_id: frame.request_id,
-                        message: format!("Dispatcher response channel closed: {e}"),
-                    })
+                    reply_rx
+                        .recv()
+                        .unwrap_or_else(|e| InterfaceResponse::Error {
+                            request_id: frame.request_id,
+                            message: format!("Dispatcher response channel closed: {e}"),
+                        })
                 }
             }
 

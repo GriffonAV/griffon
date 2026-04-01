@@ -1,7 +1,7 @@
 use std::sync::mpsc;
 use std::thread;
 
-use ipc_protocol::ipc_payload_interface::{format_uuid_bytes, InterfaceResponse};
+use ipc_protocol::ipc_payload_interface::{InterfaceResponse, format_uuid_bytes};
 use ipc_protocol::ipc_payload_runner::CallPayload;
 use logger::Logger;
 
@@ -23,10 +23,8 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                     plugin_uuid,
                     reply_tx,
                 } => {
-                    LOGGER_DISPATCHER.debug(format!(
-                        "Start plugin {}",
-                        format_uuid_bytes(&plugin_uuid)
-                    ));
+                    LOGGER_DISPATCHER
+                        .debug(format!("Start plugin {}", format_uuid_bytes(&plugin_uuid)));
 
                     let response = match pm.enable_plugin(plugin_uuid) {
                         Ok(_) => InterfaceResponse::Ok,
@@ -48,12 +46,10 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                 DaemonTask::StopPlugin {
                     request_id,
                     plugin_uuid,
-                    reply_tx
+                    reply_tx,
                 } => {
-                    LOGGER_DISPATCHER.debug(format!(
-                        "Stop plugin {}",
-                        format_uuid_bytes(&plugin_uuid)
-                    ));
+                    LOGGER_DISPATCHER
+                        .debug(format!("Stop plugin {}", format_uuid_bytes(&plugin_uuid)));
 
                     let response = match pm.disable_plugin(plugin_uuid) {
                         Ok(_) => InterfaceResponse::Ok,
@@ -79,7 +75,7 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                     LOGGER_DISPATCHER.debug("Refreshing plugins");
                     pm.scan_dir();
                     let plugins = pm.list_plugins();
-                    let response = InterfaceResponse::Plugins {plugins};
+                    let response = InterfaceResponse::Plugins { plugins };
 
                     if let Err(e) = reply_tx.send(response) {
                         LOGGER_DISPATCHER.error(format!(
@@ -127,12 +123,11 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                                         message: format!("Plugin closed: {reason}"),
                                     }
                                 }
-                                _ => {
-                                    InterfaceResponse::Error {
-                                        request_id,
-                                        message: "Unexpected message type while waiting for response".to_string(),
-                                    }
-                                }
+                                _ => InterfaceResponse::Error {
+                                    request_id,
+                                    message: "Unexpected message type while waiting for response"
+                                        .to_string(),
+                                },
                             },
                             Err(e) => InterfaceResponse::CallResult {
                                 request_id,
@@ -146,13 +141,13 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                                 request_id,
                                 message: format!("send_call failed: {e}"),
                             }
-                        },
+                        }
                     };
-                    LOGGER_DISPATCHER.debug(format!("Sending response to client thread: {response:?}"));
+                    LOGGER_DISPATCHER
+                        .debug(format!("Sending response to client thread: {response:?}"));
                     if let Err(e) = reply_tx.send(response) {
-                        LOGGER_DISPATCHER.error(format!(
-                            "Failed to send response to client thread: {e}"
-                        ));
+                        LOGGER_DISPATCHER
+                            .error(format!("Failed to send response to client thread: {e}"));
                     }
                 }
             }

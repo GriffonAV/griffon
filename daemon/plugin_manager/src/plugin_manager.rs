@@ -1,5 +1,5 @@
 use nix::libc;
-use nix::sys::socket::{socketpair, AddressFamily, SockFlag, SockType};
+use nix::sys::socket::{AddressFamily, SockFlag, SockType, socketpair};
 use std::collections::VecDeque;
 use std::fs::read_dir;
 use std::io;
@@ -12,7 +12,7 @@ use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 
 use ipc_protocol::ipc_payload_interface::PluginInfoDto;
 use ipc_protocol::ipc_payload_runner::{
-    format_uuid_bytes, recv_message, send_message, CallPayload, Message,
+    CallPayload, Message, format_uuid_bytes, recv_message, send_message,
 };
 use logger::Logger;
 
@@ -234,10 +234,7 @@ impl PluginManager {
         self.plugins_list[pos].enabled = false;
         self.plugins_list[pos].plugin_info.status = false;
 
-        LOGGER_PM.info(format!(
-            "Plugin {} disabled",
-            format_uuid_bytes(&uuid)
-        ));
+        LOGGER_PM.info(format!("Plugin {} disabled", format_uuid_bytes(&uuid)));
 
         Ok(())
     }
@@ -423,7 +420,10 @@ impl PluginManager {
         path.is_file() && path.extension().is_some_and(|ext| ext == "so")
     }
 
-    fn launch_runner(&self, plugin_path: &Path) -> Result<(Child, UnixStream, PluginInfoDto), String> {
+    fn launch_runner(
+        &self,
+        plugin_path: &Path,
+    ) -> Result<(Child, UnixStream, PluginInfoDto), String> {
         let path = plugin_path.display().to_string();
         let tmp_name = plugin_path.display().to_string();
         let name = tmp_name.rsplit('/').next().unwrap().to_string();
@@ -434,7 +434,7 @@ impl PluginManager {
             None,
             SockFlag::empty(),
         )
-            .map_err(|e| format!("socketpair failed: {e}"))?;
+        .map_err(|e| format!("socketpair failed: {e}"))?;
 
         let mut cmd = Command::new(&self.runner_binary);
         cmd.arg(path);
@@ -472,7 +472,10 @@ impl PluginManager {
     }
 }
 
-fn read_plugin_messages(plugin: &mut ManagedPlugin, events_tx: Sender<PluginEvent>) -> io::Result<()> {
+fn read_plugin_messages(
+    plugin: &mut ManagedPlugin,
+    events_tx: Sender<PluginEvent>,
+) -> io::Result<()> {
     let fd = plugin
         .fd
         .as_mut()

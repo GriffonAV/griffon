@@ -1,13 +1,13 @@
 // src/modules/cache.rs
 
-use crate::{CleanerModule, CleanerResult, ExecutionContext, ModuleReport};
-use crate::cache_paths::{KNOWN_CACHE_PATHS, expand_home, CacheCategory};
-use std::{fs};
-use std::path::{Path};
-use walkdir::WalkDir;
-use std::collections::hash_map::Entry;
-use crate::TypeStats;
+use crate::cache_paths::{expand_home, CacheCategory, KNOWN_CACHE_PATHS};
 use crate::PathStats;
+use crate::TypeStats;
+use crate::{CleanerModule, CleanerResult, ExecutionContext, ModuleReport};
+use std::collections::hash_map::Entry;
+use std::fs;
+use std::path::Path;
+use walkdir::WalkDir;
 
 pub struct CacheCleaner;
 
@@ -22,16 +22,14 @@ impl CacheCleaner {
         KNOWN_CACHE_PATHS
             .iter()
             .filter(|cache| match cache.category {
-                CacheCategory::System       => cfg.enable_system_cache,
-                CacheCategory::User         => cfg.enable_user_cache,
-                CacheCategory::Browser      => cfg.enable_browser_cache,
-                CacheCategory::DevTools     => cfg.enable_dev_cache,
+                CacheCategory::System => cfg.enable_system_cache,
+                CacheCategory::User => cfg.enable_user_cache,
+                CacheCategory::Browser => cfg.enable_browser_cache,
+                CacheCategory::DevTools => cfg.enable_dev_cache,
                 CacheCategory::PackageManager => cfg.enable_package_cache,
-                CacheCategory::DesktopEnv   => cfg.enable_desktop_cache,
+                CacheCategory::DesktopEnv => cfg.enable_desktop_cache,
             })
-            .filter_map(|cache| {
-                expand_home(cache.pattern).map(|p| (cache.pattern.to_string(), p))
-            })
+            .filter_map(|cache| expand_home(cache.pattern).map(|p| (cache.pattern.to_string(), p)))
             .collect()
     }
 
@@ -59,10 +57,9 @@ impl CacheCleaner {
             let entry = match entry_res {
                 Ok(e) => e,
                 Err(e) => {
-                    report.warnings.push(format!(
-                        "Erreur walkdir dans {}: {e}",
-                        path.display()
-                    ));
+                    report
+                        .warnings
+                        .push(format!("Erreur walkdir dans {}: {e}", path.display()));
                     continue;
                 }
             };

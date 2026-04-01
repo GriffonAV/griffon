@@ -5,7 +5,8 @@ use std::thread;
 use uuid::Uuid;
 
 use ipc_protocol::ipc_payload_interface::{
-    InterfaceRequest, InterfaceResponse, recv_interface_response, send_interface_request, format_uuid_bytes
+    InterfaceRequest, InterfaceResponse, format_uuid_bytes, recv_interface_response,
+    send_interface_request,
 };
 use logger::{LogLevel, Logger};
 
@@ -36,7 +37,7 @@ fn start_reader_thread(mut read_sock: UnixStream) {
                             "Call accepted received for request_id={request_id}"
                         ));
                     }
-                    InterfaceResponse::Plugins{ plugins} => {
+                    InterfaceResponse::Plugins { plugins } => {
                         LOGGER_NETWORK.info(format!(
                             "Plugins list received: {} plugin(s)",
                             plugins.len()
@@ -44,15 +45,27 @@ fn start_reader_thread(mut read_sock: UnixStream) {
                         for plugin in plugins {
                             println!(
                                 "- UUID: {:?} | NAME: {} | PATH: {} | FUNCTIONS: {:?} | STATUS: {}",
-                                format_uuid_bytes(&plugin.plugin_uuid), plugin.name, plugin.path, plugin.functions, plugin.status
+                                format_uuid_bytes(&plugin.plugin_uuid),
+                                plugin.name,
+                                plugin.path,
+                                plugin.functions,
+                                plugin.status
                             );
                         }
                     }
-                    InterfaceResponse::Error { request_id, message } => {
+                    InterfaceResponse::Error {
+                        request_id,
+                        message,
+                    } => {
                         LOGGER_NETWORK.error(format!("Request {request_id} error={message}"));
-                    },
-                    InterfaceResponse::CallResult { request_id, ok, output } => {
-                        LOGGER_NETWORK.info(format!("Call {request_id} result={ok} output={output}"));
+                    }
+                    InterfaceResponse::CallResult {
+                        request_id,
+                        ok,
+                        output,
+                    } => {
+                        LOGGER_NETWORK
+                            .info(format!("Call {request_id} result={ok} output={output}"));
                     }
                 },
                 Err(e) => {
@@ -111,8 +124,7 @@ fn main() -> io::Result<()> {
 
                 send_interface_request(
                     &mut sock,
-                    &InterfaceRequest::RefreshPlugins {
-                    },
+                    &InterfaceRequest::RefreshPlugins {},
                     id_request_to_use,
                 )?;
 
@@ -121,7 +133,6 @@ fn main() -> io::Result<()> {
                 ));
 
                 id_request = id_request_to_use;
-
             }
             "exit" | "quit" => {
                 LOGGER.debug("QUIT");
@@ -167,9 +178,7 @@ fn main() -> io::Result<()> {
 
                 send_interface_request(
                     &mut sock,
-                    &InterfaceRequest::StartPlugin {
-                        plugin_uuid
-                    },
+                    &InterfaceRequest::StartPlugin { plugin_uuid },
                     id_request_to_use,
                 )?;
 
@@ -200,9 +209,7 @@ fn main() -> io::Result<()> {
 
                 send_interface_request(
                     &mut sock,
-                    &InterfaceRequest::StopPlugin {
-                        plugin_uuid
-                    },
+                    &InterfaceRequest::StopPlugin { plugin_uuid },
                     id_request_to_use,
                 )?;
 
