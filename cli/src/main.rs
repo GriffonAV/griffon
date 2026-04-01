@@ -1,5 +1,4 @@
 use std::io;
-use std::io::Write;
 use std::os::unix::net::UnixStream;
 use std::thread;
 use uuid::Uuid;
@@ -37,9 +36,9 @@ fn start_reader_thread(mut read_sock: UnixStream) {
                             "Call accepted received for request_id={request_id}"
                         ));
                     }
-                    InterfaceResponse::Plugins { plugins } => {
+                    InterfaceResponse::Plugins { request_id, plugins } => {
                         LOGGER_NETWORK.info(format!(
-                            "Plugins list received: {} plugin(s)",
+                            "Plugins list received: {} plugin(s) from request_id={request_id}",
                             plugins.len()
                         ));
                         for plugin in plugins {
