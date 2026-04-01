@@ -12,6 +12,9 @@ setup-gui:
 run-gui:
     cd gui && npx tauri dev
 
+build-gui:
+    cd gui && npx tauri build --no-bundle
+
 # cli
 
 run-daemon:
@@ -25,10 +28,3 @@ run-cli:
 lint:
     cargo fmt -- --check
     cargo clippy -- -D warnings
-
-test:
-    cargo test --all
-
-clean:
-    cargo clean
-    cd gui && npm run clean

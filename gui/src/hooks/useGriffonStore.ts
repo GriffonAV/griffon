@@ -79,7 +79,7 @@ function executeStep(
       if (!step.key)
         return next;
 
-      next[step.key] = !Boolean(next[step.key]);
+      next[step.key] = !next[step.key];
       return next;
     }
 
