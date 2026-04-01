@@ -10,6 +10,7 @@ use std::path::Path;
 use std::{fs, io::ErrorKind};
 use walkdir::WalkDir;
 
+#[derive(Default)]
 pub struct CacheCleaner;
 
 impl CacheCleaner {

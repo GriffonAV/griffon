@@ -1,5 +1,6 @@
 use crate::{CleanerModule, CleanerResult, ExecutionContext, ModuleReport};
 
+#[derive(Default)]
 pub struct BigfilesScanner;
 
 impl BigfilesScanner {
