@@ -1,0 +1,14 @@
+{
+  "profile": "full",
+  "dry_run": false,
+  "root_paths": ["/"],
+  "max_log_retention_days": 3,
+  "max_log_size_gb": 0.5,
+  "min_bigfile_size_mb": 25,
+  "enable_system_cache": true,
+  "enable_user_cache": true,
+  "enable_browser_cache": true,
+  "enable_dev_cache": true,
+  "enable_package_cache": true,
+  "enable_desktop_cache": true
+}

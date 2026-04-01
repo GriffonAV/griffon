@@ -33,7 +33,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     ));
     info.push(Tuple2(
         RString::from("UUID"),
-        RString::from("6e9e800a-0d0c-4f74-8265-7b9ab0234582"),
+        RString::from("d0c90f71-b15c-4b7d-afb0-033316c871f9"),
     ));
     info.push(Tuple2(
         RString::from("function"),

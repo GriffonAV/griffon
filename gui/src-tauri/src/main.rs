@@ -17,7 +17,11 @@ use manifests::PluginManifest;
 static PLUGIN_DIR: &str = "../../target/debug";
 static PLUGIN_MANIFEST_DIR: &str = "../../.config/griffon";
 
-const DAEMON_SOCK_PATH: &str = "/tmp/griffon.sock";
+const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
+    "/tmp/griffon-dev.sock"
+} else {
+    "/run/griffon/griffon.sock"
+};
 
 struct PMState(pub Mutex<PluginManager>);
 
@@ -30,15 +34,18 @@ struct PluginInfo {
 
 #[tauri::command]
 fn list_plugins_cmd(pm: State<PMState>) -> Vec<PluginInfo> {
-    let plugins = pm.0.lock().unwrap().list_plugins();
-    plugins
-        .into_iter()
-        .map(|p| PluginInfo {
-            pid: p.pid,
-            name: p.name.clone(),
-            functions: p.functions.clone(),
-        })
-        .collect()
+    // let plugins = pm.0.lock().unwrap().list_plugins();
+    // plugins
+    //     .into_iter()
+    //     .map(|p| PluginInfo {
+    //         pid: p.pid,
+    //         name: p.name.clone(),
+    //         functions: p.functions.clone(),
+    //     })
+    //     .collect()
+
+    // empty
+    return Vec::new();
 }
 
 #[tauri::command]
@@ -59,7 +66,16 @@ fn refresh_plugins(pm: State<PMState>) {
 fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
     let args = Vec::new(); // TODO: Handle param
     let call_payload = ipc_protocol::ipc_payload_runner::CallPayload { fn_name: msg, args };
-    match pm.0.lock().unwrap().send_call(pid, call_payload) {
+    println!(
+        "[GUI] Sending CALL to plugin {pid} with payload: {:?}",
+        call_payload
+    );
+    //pm is not used for now, but we will need it to send the call and wait for response
+    //For now on I will just create smthg so pm is not declared as unused variable
+
+    let _ = &pm;
+
+    /*match pm.0.lock().unwrap().send_call(pid, call_payload) {
         Ok(req_id) => {
             println!("[GUI] CALL sent (request_id={req_id})");
             match pm.0.lock().unwrap().wait_for_response(req_id) {
@@ -68,7 +84,7 @@ fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
             }
         }
         Err(e) => println!("[GUI](ERROR) Failed to send CALL: {e}"),
-    };
+    };*/
 }
 
 //utils format name to folder name
@@ -87,8 +103,8 @@ fn get_plugin_manifest(pid: u32, pm: State<PMState>) -> Result<PluginManifest, S
 }
 
 fn main() {
-    let mut pm = PluginManager::new(PLUGIN_DIR);
-    pm.scan_dir();
+    // let mut pm = PluginManager::new(PLUGIN_DIR);
+    // pm.scan_dir();
 
     tauri::Builder::default()
         .plugin(
@@ -96,13 +112,8 @@ fn main() {
                 .level(tauri_plugin_log::log::LevelFilter::Info)
                 .build(),
         )
-        .plugin(
-            tauri_plugin_log::Builder::new()
-                .level(tauri_plugin_log::log::LevelFilter::Info)
-                .build(),
-        )
         .plugin(tauri_plugin_opener::init())
-        .manage(PMState(Mutex::new(pm)))
+        // .manage(PMState(Mutex::new(pm)))
         .manage(DaemonConnection(Mutex::new(None)))
         .setup(|app| {
             let app_handle = app.handle().clone();
@@ -133,11 +144,11 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             get_daemon_status,
-            list_plugins,
-            refresh_plugins,
-            message_plugin,
-            list_plugins_cmd,
-            get_plugin_manifest
+            // list_plugins,
+            // refresh_plugins,
+            // message_plugin,
+            // list_plugins_cmd,
+            // get_plugin_manifest
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");

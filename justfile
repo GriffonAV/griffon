@@ -23,7 +23,8 @@ run-daemon:
 run-cli:
     sudo target/debug/cli
 
-#old
+run-gui-sudo:
+    sudo target/debug/app
 
 lint:
     cargo fmt -- --check
