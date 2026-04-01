@@ -3,7 +3,6 @@ use crate::{CleanerModule, CleanerResult, ExecutionContext, ModuleReport};
 #[derive(Default)]
 pub struct LogsCleaner;
 
-
 impl LogsCleaner {
     pub fn new() -> Self {
         Self
