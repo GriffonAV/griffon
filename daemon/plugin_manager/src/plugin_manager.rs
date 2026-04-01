@@ -404,15 +404,14 @@ impl PluginManager {
 
         LOGGER_PM.info(format!("Plugin {} removed", plugin.plugin_info.name));
 
-        if plugin.enabled {
-            if let Some(process) = plugin.process.as_mut() {
-                if let Err(e) = process.kill() {
-                    LOGGER_PM.error(format!(
-                        "Failed to kill plugin {}: {}",
-                        plugin.plugin_info.name, e
-                    ));
-                }
-            }
+        if plugin.enabled
+            && let Some(process) = plugin.process.as_mut()
+            && let Err(e) = process.kill()
+        {
+            LOGGER_PM.error(format!(
+                "Failed to kill plugin {}: {}",
+                plugin.plugin_info.name, e
+            ));
         }
     }
 
