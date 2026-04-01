@@ -1,29 +1,28 @@
+pub mod analysis;
+pub mod cache_paths;
 pub mod config;
 pub mod context;
+pub mod modules;
 pub mod reports;
 pub mod runner;
-pub mod modules;
-pub mod cache_paths;
-pub mod analysis;
 
-pub use config::*;
-pub use context::*;
-pub use reports::*;
-pub use runner::*;
-pub use cache_paths::*;
-pub use analysis::*;
-pub use modules::CleanerModule;
 use abi_stable::{
     export_root_module,
     prefix_type::PrefixTypeTrait,
     sabi_extern_fn,
     std_types::{RResult, RString, RVec, Tuple2},
 };
-use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
-use std::path::{Path, PathBuf};
+pub use analysis::*;
+pub use cache_paths::*;
 use chrono::Utc;
+pub use config::*;
+pub use context::*;
+pub use modules::CleanerModule;
+use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
+pub use reports::*;
+pub use runner::*;
+use std::path::{Path, PathBuf};
 use uuid::Uuid;
-
 
 pub type CleanerResult<T> = Result<T, CleanerError>;
 
@@ -77,9 +76,10 @@ pub fn print_cache_report(global: &GlobalReport) {
     println!("=== CacheCleaner Report ===");
     println!("Dry-run : {}", global.dry_run);
     println!("Total fichiers : {}", cache_report.files_touched);
-    println!("Total libéré : {}", human_readable(cache_report.bytes_freed));
-
-
+    println!(
+        "Total libéré : {}",
+        human_readable(cache_report.bytes_freed)
+    );
 
     // Par dossier racine
     if !cache_report.per_root_path.is_empty() {
@@ -184,11 +184,11 @@ fn parse_arg(flag: &str) -> Option<String> {
 }
 
 fn run() -> RResult<GlobalReport, RString> {
-    let config_path = parse_arg("--config")
-        .unwrap_or_else(|| "bench/configs/light.json".to_string());
+    let config_path =
+        parse_arg("--config").unwrap_or_else(|| "bench/configs/light.json".to_string());
 
-    let output_path = parse_arg("--output")
-        .unwrap_or_else(|| "griffon_cleaner_report.json".to_string());
+    let output_path =
+        parse_arg("--output").unwrap_or_else(|| "griffon_cleaner_report.json".to_string());
 
     let file_cfg = match FileCleanerConfig::load_from_file(PathBuf::from(&config_path).as_path()) {
         Ok(cfg) => cfg,
@@ -213,10 +213,7 @@ fn run() -> RResult<GlobalReport, RString> {
             let analysis = build_analysis_report(&report);
             print_analysis_report(&analysis);
 
-            if let Err(e) = write_analysis_report_to_file(
-                &analysis,
-                Path::new(&output_path),
-            ) {
+            if let Err(e) = write_analysis_report_to_file(&analysis, Path::new(&output_path)) {
                 eprintln!("Erreur lors de l'export JSON de l'analyse : {:?}", e);
             } else {
                 println!("Report exporté dans {}", output_path);
@@ -245,10 +242,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
         RString::from("description"),
         RString::from("Plugin Cleaner"),
     ));
-    info.push(Tuple2(
-        RString::from("function"),
-        RString::from("run"),
-    ));
+    info.push(Tuple2(RString::from("function"), RString::from("run")));
 
     RResult::ROk(info)
 }
@@ -259,7 +253,6 @@ extern "C" fn handle_message(msg: RString) -> RString {
 
     match msg.as_str() {
         "fn:run" => match run() {
-
             RResult::ROk(report) => {
                 let analysis = build_analysis_report(&report);
                 let payload = CleanerExportPayload {
@@ -282,7 +275,6 @@ extern "C" fn handle_message(msg: RString) -> RString {
     }
 }
 
-
 #[export_root_module]
 pub fn get_library() -> PluginRoot_Ref {
     PluginRoot {
@@ -290,7 +282,7 @@ pub fn get_library() -> PluginRoot_Ref {
             init,
             handle_message,
         }
-            .leak_into_prefix(),
+        .leak_into_prefix(),
     }
-        .leak_into_prefix()
+    .leak_into_prefix()
 }

@@ -1,14 +1,14 @@
 // src/modules/cache.rs
 
-use crate::{CleanerModule, CleanerResult, ExecutionContext, ModuleReport};
-use crate::cache_paths::{KNOWN_CACHE_PATHS, expand_home, CacheCategory};
-use std::{fs, io::ErrorKind};
-use std::path::{Path};
-use walkdir::WalkDir;
-use std::collections::hash_map::Entry;
-use crate::TypeStats;
+use crate::cache_paths::{expand_home, CacheCategory, KNOWN_CACHE_PATHS};
 use crate::PathStats;
 use crate::Profile;
+use crate::TypeStats;
+use crate::{CleanerModule, CleanerResult, ExecutionContext, ModuleReport};
+use std::collections::hash_map::Entry;
+use std::path::Path;
+use std::{fs, io::ErrorKind};
+use walkdir::WalkDir;
 
 pub struct CacheCleaner;
 
@@ -29,19 +29,22 @@ impl CacheCleaner {
         }
     }
 
-    fn default_cache_paths_with_logs(ctx: &ExecutionContext, report: &mut ModuleReport) -> Vec<(String, std::path::PathBuf)> {
+    fn default_cache_paths_with_logs(
+        ctx: &ExecutionContext,
+        report: &mut ModuleReport,
+    ) -> Vec<(String, std::path::PathBuf)> {
         let cfg = &ctx.config;
         let is_root = Self::is_root();
         let mut out = Vec::new();
 
         for cache in KNOWN_CACHE_PATHS {
             let category_enabled = match cache.category {
-                CacheCategory::System         => cfg.enable_system_cache,
-                CacheCategory::User           => cfg.enable_user_cache,
-                CacheCategory::Browser        => cfg.enable_browser_cache,
-                CacheCategory::DevTools       => cfg.enable_dev_cache,
+                CacheCategory::System => cfg.enable_system_cache,
+                CacheCategory::User => cfg.enable_user_cache,
+                CacheCategory::Browser => cfg.enable_browser_cache,
+                CacheCategory::DevTools => cfg.enable_dev_cache,
                 CacheCategory::PackageManager => cfg.enable_package_cache,
-                CacheCategory::DesktopEnv     => cfg.enable_desktop_cache,
+                CacheCategory::DesktopEnv => cfg.enable_desktop_cache,
             };
 
             if !category_enabled {
@@ -57,10 +60,9 @@ impl CacheCleaner {
             }
 
             if cache.requires_root && !is_root {
-                report.warnings.push(format!(
-                    "Path skipped (requires root): {}",
-                    cache.pattern
-                ));
+                report
+                    .warnings
+                    .push(format!("Path skipped (requires root): {}", cache.pattern));
                 continue;
             }
 
@@ -83,7 +85,10 @@ impl CacheCleaner {
     fn file_type_key(path: &Path) -> String {
         let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
-        if file_name.contains("Packages") || file_name.contains("InRelease") || file_name.contains("Translation-") {
+        if file_name.contains("Packages")
+            || file_name.contains("InRelease")
+            || file_name.contains("Translation-")
+        {
             return "apt_index".to_string();
         }
 
@@ -126,10 +131,9 @@ impl CacheCleaner {
                 Err(e) => {
                     Self::bump_permission_denied_from_walkdir(report, &e);
 
-                    report.warnings.push(format!(
-                        "Erreur walkdir dans {}: {e}",
-                        path.display()
-                    ));
+                    report
+                        .warnings
+                        .push(format!("Erreur walkdir dans {}: {e}", path.display()));
                     report.warning_count += 1;
                     continue;
                 }

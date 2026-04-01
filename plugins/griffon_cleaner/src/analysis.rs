@@ -1,8 +1,7 @@
-use serde::Serialize;
 use crate::{GlobalReport, ModuleReport};
+use serde::Serialize;
 use std::fs;
 use std::path::Path;
-
 
 #[derive(Debug, Serialize)]
 pub struct CleanerExportPayload {

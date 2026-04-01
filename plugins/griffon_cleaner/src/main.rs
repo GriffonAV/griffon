@@ -1,13 +1,10 @@
-use griffon_cleaner::{
-    ExecutionContext, FileCleanerConfig,
-    run_modules, default_modules,
-    print_cache_report, whats_enabled_modules,
-    build_analysis_report, print_analysis_report,
-    CleanerExportPayload,
-};
 use chrono::Utc;
-use uuid::Uuid;
+use griffon_cleaner::{
+    build_analysis_report, default_modules, print_analysis_report, print_cache_report, run_modules,
+    whats_enabled_modules, CleanerExportPayload, ExecutionContext, FileCleanerConfig,
+};
 use std::path::PathBuf;
+use uuid::Uuid;
 
 fn parse_arg(flag: &str) -> Option<String> {
     let mut args = std::env::args().skip(1);
@@ -20,11 +17,11 @@ fn parse_arg(flag: &str) -> Option<String> {
 }
 
 fn main() {
-    let config_path = parse_arg("--config")
-        .unwrap_or_else(|| "bench/configs/light.json".to_string());
+    let config_path =
+        parse_arg("--config").unwrap_or_else(|| "bench/configs/light.json".to_string());
 
-    let output_path = parse_arg("--output")
-        .unwrap_or_else(|| "griffon_cleaner_report.json".to_string());
+    let output_path =
+        parse_arg("--output").unwrap_or_else(|| "griffon_cleaner_report.json".to_string());
 
     let file_cfg = match FileCleanerConfig::load_from_file(PathBuf::from(&config_path).as_path()) {
         Ok(cfg) => cfg,
@@ -63,8 +60,7 @@ fn main() {
 
             match serde_json::to_string_pretty(&payload) {
                 Ok(json_str) => {
-                    std::fs::write(&output_path, json_str)
-                        .expect("Failed to write report to file");
+                    std::fs::write(&output_path, json_str).expect("Failed to write report to file");
                     println!("Report exporté dans {}", output_path);
                 }
                 Err(e) => {

@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use crate::Profile;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy)]
 pub enum CacheCategory {
@@ -58,7 +58,6 @@ pub const KNOWN_CACHE_PATHS: &[CachePath] = &[
         dangerous: true,
         safe_in_profile: false,
     },
-
     // =======================
     // PACKAGE MANAGERS
     // =======================
@@ -102,7 +101,6 @@ pub const KNOWN_CACHE_PATHS: &[CachePath] = &[
         dangerous: true,
         safe_in_profile: false,
     },
-
     // =======================
     // UTILISATEUR (HOME)
     // =======================
@@ -138,7 +136,6 @@ pub const KNOWN_CACHE_PATHS: &[CachePath] = &[
         dangerous: true,
         safe_in_profile: false,
     },
-
     // =======================
     // DEV TOOLS / LANGAGES
     // =======================
@@ -206,7 +203,6 @@ pub const KNOWN_CACHE_PATHS: &[CachePath] = &[
         dangerous: false,
         safe_in_profile: true,
     },
-
     // =======================
     // NAVIGATEURS
     // =======================
@@ -258,7 +254,6 @@ pub const KNOWN_CACHE_PATHS: &[CachePath] = &[
         dangerous: false,
         safe_in_profile: true,
     },
-
     // =======================
     // ENVIRONNEMENTS GRAPHIQUES / APPS
     // =======================
