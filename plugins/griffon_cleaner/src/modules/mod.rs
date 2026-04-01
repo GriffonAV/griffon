@@ -1,10 +1,10 @@
 // src/modules/mod.rs
 
 // Déclaration des sous-modules
+pub mod bigfiles;
 pub mod cache;
 pub mod logs;
 pub mod packages;
-pub mod bigfiles;
 
 use crate::{CleanerResult, ExecutionContext, ModuleReport};
 

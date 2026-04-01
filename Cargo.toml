@@ -12,7 +12,6 @@ members = [
     "cli",
     "shared/logger",
 ]
-exclude = ["static_analysis"]
 resolver = "2"
 
 
