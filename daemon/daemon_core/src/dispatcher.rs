@@ -69,7 +69,7 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                     }
                 }
                 DaemonTask::RefreshPlugins {
-                    request_id,
+                    request_id: _,
                     reply_tx,
                 } => {
                     LOGGER_DISPATCHER.debug("Refreshing plugins");
