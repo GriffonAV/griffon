@@ -1,11 +1,8 @@
-use plugin_manager::PluginManager;
 use serde::Serialize;
 use std::os::unix::net::UnixStream;
 use std::sync::Mutex;
 use tauri::Emitter;
 use tauri::Manager;
-use tauri::State;
-
 mod daemon;
 use crate::daemon::{get_daemon_status, DaemonConnection};
 
@@ -14,8 +11,14 @@ use manifests::load_plugin_manifest;
 use manifests::PluginManifest;
 
 // static PLUGIN_DIR: &str = "../../plugins";
-static PLUGIN_DIR: &str = "../../target/debug";
+static _PLUGIN_DIR: &str = "../../target/debug";
 static PLUGIN_MANIFEST_DIR: &str = "../../.config/griffon";
+
+#[derive(Serialize)]
+struct Plugin {
+    pid: u32,
+    name: String,
+}
 
 const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
     "/tmp/griffon-dev.sock"
@@ -23,89 +26,43 @@ const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
     "/run/griffon/griffon.sock"
 };
 
-struct PMState(pub Mutex<PluginManager>);
-
-#[derive(Serialize)]
-struct PluginInfo {
-    pid: u32,
-    name: String,
-    functions: Vec<String>,
-}
-
-#[tauri::command]
-fn list_plugins_cmd(pm: State<PMState>) -> Vec<PluginInfo> {
-    // let plugins = pm.0.lock().unwrap().list_plugins();
-    // plugins
-    //     .into_iter()
-    //     .map(|p| PluginInfo {
-    //         pid: p.pid,
-    //         name: p.name.clone(),
-    //         functions: p.functions.clone(),
-    //     })
-    //     .collect()
-
-    // empty
-    return Vec::new();
-}
-
-#[tauri::command]
-fn list_plugins(pm: State<PMState>) -> Vec<String> {
-    let pm = pm.0.lock().unwrap();
-    pm.list_plugins()
-        .into_iter()
-        .map(|p| format!("{}: {}", p.pid, p.name))
-        .collect()
-}
-
-#[tauri::command]
-fn refresh_plugins(pm: State<PMState>) {
-    pm.0.lock().unwrap().scan_dir();
-}
-
-#[tauri::command]
-fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
-    let args = Vec::new(); // TODO: Handle param
-    let call_payload = ipc_protocol::ipc_payload_runner::CallPayload { fn_name: msg, args };
-    println!(
-        "[GUI] Sending CALL to plugin {pid} with payload: {:?}",
-        call_payload
-    );
-    //pm is not used for now, but we will need it to send the call and wait for response
-    //For now on I will just create smthg so pm is not declared as unused variable
-
-    let _ = &pm;
-
-    /*match pm.0.lock().unwrap().send_call(pid, call_payload) {
-        Ok(req_id) => {
-            println!("[GUI] CALL sent (request_id={req_id})");
-            match pm.0.lock().unwrap().wait_for_response(req_id) {
-                Ok(ev) => println!("[GUI] RESPONSE: {:?}", ev),
-                Err(e) => eprintln!("[GUI](ERROR) wait_for_response failed: {e}"),
-            }
-        }
-        Err(e) => println!("[GUI](ERROR) Failed to send CALL: {e}"),
-    };*/
-}
-
-//utils format name to folder name
-// Test Name2 -> test_name2
 fn format_name(name: &str) -> String {
     name.replace(' ', "_").to_lowercase()
 }
 
 #[tauri::command]
-fn get_plugin_manifest(pid: u32, pm: State<PMState>) -> Result<PluginManifest, String> {
-    let plugins = pm.0.lock().unwrap().list_plugins();
-    let plugin_name = plugins.into_iter().find(|p| p.pid == pid).unwrap().name;
-    let plugin_name = format_name(&plugin_name);
-    let path = format!("{PLUGIN_MANIFEST_DIR}/{plugin_name}/{plugin_name}.toml");
+fn get_plugin_manifest(name: String) -> Result<PluginManifest, String> {
+    println!("Loading plugin manifest of: {}", name);
+    let name = format_name(&name);
+    let path = format!("{PLUGIN_MANIFEST_DIR}/{name}.toml");
     load_plugin_manifest(&path).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn list_plugins() -> Result<Vec<Plugin>, String> {
+    println!("Listing plugins from directory: {}", PLUGIN_MANIFEST_DIR);
+    let entries = std::fs::read_dir(PLUGIN_MANIFEST_DIR).map_err(|e| e.to_string())?;
+    let mut plugins = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("toml") {
+            if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
+                plugins.push(Plugin {
+                    pid: 0, // populate if you have a real pid
+                    name: stem.to_string(),
+                });
+            }
+        }
+    }
+    println!(
+        "Found plugins: {:?}",
+        plugins.iter().map(|p| &p.name).collect::<Vec<_>>()
+    );
+    plugins.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(plugins)
+}
 fn main() {
-    // let mut pm = PluginManager::new(PLUGIN_DIR);
-    // pm.scan_dir();
-
     tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
@@ -113,7 +70,6 @@ fn main() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        // .manage(PMState(Mutex::new(pm)))
         .manage(DaemonConnection(Mutex::new(None)))
         .setup(|app| {
             let app_handle = app.handle().clone();
@@ -121,7 +77,6 @@ fn main() {
             std::thread::spawn({
                 let app_handle = app_handle.clone();
                 move || {
-                    // Give the frontend time to set up listeners
                     std::thread::sleep(std::time::Duration::from_millis(500));
 
                     match UnixStream::connect(DAEMON_SOCK_PATH) {
@@ -144,11 +99,8 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             get_daemon_status,
-            // list_plugins,
-            // refresh_plugins,
-            // message_plugin,
-            // list_plugins_cmd,
-            // get_plugin_manifest
+            list_plugins,
+            get_plugin_manifest
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");

@@ -12,47 +12,43 @@ import { useGriffonStore } from "@/hooks/useGriffonStore";
 interface PluginInfo {
   pid: number;
   name: string;
-  functions: string[];
   manifest?: PluginManifest; // Add manifest as optional
 }
 
 export default function PluginPage() {
-  const { pid } = useParams();
+  const { name } = useParams();
   const [plugin, setPlugin] = useState<PluginInfo | null>(null);
   // @ts-ignore
+
   const [logs, setLogs] = useState<string[]>([]);
   const manifest = plugin?.manifest ?? null;
   const { store, handleAction } = useGriffonStore(manifest);
 
   useEffect(() => {
-    // Load plugin info
-    invoke<PluginInfo[]>("list_plugins_cmd").then((list) => {
-      const found = list.find((p) => p.pid.toString() === pid);
-      if (found) {
-        setPlugin(found);
-        // Load manifest for this plugin
-        invoke<PluginManifest>("get_plugin_manifest", { pid: Number(pid) })
-          .then((manifest) => {
-            debug(JSON.stringify(manifest));
-            setPlugin((prev) =>
-              prev
-                ? {
-                  ...prev,
-                  manifest: {
-                    ...manifest,
-                    store: manifest.store ?? {},
-                    interactions: manifest.interactions ?? [],
-                  },
-                }
-                : null
-            );
-          })
-          .catch((err) => {
-            debug("Failed to load manifest:" + err);
-            console.error("Failed to load manifest:", err);
-          });
-      }
-    });
+
+    setPlugin({ pid: -1, name: name ? name : "" }); // Set basic info first
+    invoke<PluginManifest>("get_plugin_manifest", { name: name })
+      .then((manifest) => {
+        debug(JSON.stringify(manifest));
+        setPlugin((prev) =>
+          prev
+            ? {
+              ...prev,
+              manifest: {
+                ...manifest,
+                store: manifest.store ?? {},
+                interactions: manifest.interactions ?? [],
+              },
+            }
+            : null
+        );
+      })
+      .catch((err) => {
+        debug("Failed to load manifest:" + err);
+        console.error("Failed to load manifest:", err);
+      });
+    //   }
+    // });
 
     // Listen for logs
     const unlisten = listen<string>("plugin-log", (event) => {
@@ -62,14 +58,14 @@ export default function PluginPage() {
     return () => {
       unlisten.then((f) => f());
     };
-  }, [pid]);
+  }, [name]);
 
 
   // @ts-ignore
-  function send(msg: string) {
-    if (!plugin) return;
-    invoke("message_plugin", { pid: plugin.pid, msg });
-  }
+  // function send(msg: string) {
+  //   if (!plugin) return;
+  //   invoke("message_plugin", { pid: plugin.pid, msg });
+  // }
 
   if (!plugin) return <div>Plugin not found</div>;
 

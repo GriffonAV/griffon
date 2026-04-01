@@ -30,7 +30,7 @@ export default function App() {
                 <Route path="/log" element={<LogsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
 
-                <Route path="/plugin/:pid" element={<PluginPage />} />
+                <Route path="/plugin/:name" element={<PluginPage />} />
               </Routes>
             </div>
           </div>

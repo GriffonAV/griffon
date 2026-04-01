@@ -71,7 +71,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     async function refreshPlugins() {
         setIsLoading(true);
         try {
-            const result = await invoke<Plugin[]>("list_plugins_cmd");
+            const result = await invoke<Plugin[]>("list_plugins");
             setPlugins(result);
         } catch (err) {
             error("Failed to load plugins:" + err);
