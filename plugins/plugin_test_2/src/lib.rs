@@ -20,6 +20,10 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
         RString::from("description"),
         RString::from("Test Description2"),
     ));
+    info.push(Tuple2(
+        RString::from("UUID"),
+        RString::from("6e9e800a-0d0c-4f74-8265-7b9ab0234582"),
+    ));
     info.push(Tuple2(RString::from("function"), RString::from("ping")));
 
     RResult::ROk(info)

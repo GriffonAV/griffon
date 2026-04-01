@@ -1,15 +1,15 @@
 use abi_stable::library::lib_header_from_path;
 use abi_stable::std_types::{RResult, RString, Tuple2};
-use std::io;
-use std::os::fd::FromRawFd;
-use std::path::{Path, PathBuf};
-use std::process::exit;
-
 use ipc_protocol::ipc_payload_runner::{
     CallPayload, ErrorPayload, HelloOkPayload, Message, ResultPayload, recv_message, send_message,
 };
 use logger::{LogLevel, Logger};
 use plugin_interface::{PluginRef, PluginRoot_Ref};
+use std::io;
+use std::os::fd::FromRawFd;
+use std::path::{Path, PathBuf};
+use std::process::exit;
+use uuid::Uuid;
 
 static LOGGER_RUNNER: Logger = Logger::new("RUNNER", logger::LogLevel::Debug);
 static LOGGER_RUNNER_NETWORK: Logger = Logger::new("RUNNER-NETWORK", logger::LogLevel::Debug);
@@ -95,14 +95,19 @@ fn build_hello_ok(plugin: &LoadedPlugin, fallback_name: &str) -> HelloOkPayload 
         plugin.name.as_str().to_string()
     };
 
-    let uuid = plugin.uuid.as_str().to_string();
+    let uuid_string = plugin.uuid.as_str().to_string();
 
     let functions = parse_functions(plugin.functions.as_str());
 
     LOGGER_RUNNER_NETWORK.debug(format!(
-        "name: {name}, uuid: {uuid}, functions: {:?}",
+        "name: {name}, uuid: {uuid_string}, functions: {:?}",
         functions
     ));
+
+    let uuid: [u8; 16] = Uuid::parse_str(&uuid_string)
+        .unwrap_or_else(|_| Uuid::nil())
+        .into_bytes();
+
     HelloOkPayload {
         name,
         uuid,

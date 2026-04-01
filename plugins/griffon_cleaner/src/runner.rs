@@ -22,9 +22,7 @@ pub fn run_modules(
 
         global.total_files_touched += report.files_touched;
         global.total_bytes_freed += report.bytes_freed;
-        global
-            .per_module
-            .insert(report.module_id.clone(), report);
+        global.per_module.insert(report.module_id.clone(), report);
     }
 
     Ok(global)
