@@ -51,7 +51,16 @@ fn refresh_plugins(pm: State<PMState>) {
 fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
     let args = Vec::new(); // TODO: Handle param
     let call_payload = ipc_protocol::ipc_payload_runner::CallPayload { fn_name: msg, args };
-    match pm.0.lock().unwrap().send_call(pid, call_payload) {
+    println!(
+        "[GUI] Sending CALL to plugin {pid} with payload: {:?}",
+        call_payload
+    );
+    //pm is not used for now, but we will need it to send the call and wait for response
+    //For now on I will just create smthg so pm is not declared as unused variable
+
+    let _ = &pm;
+
+    /*match pm.0.lock().unwrap().send_call(pid, call_payload) {
         Ok(req_id) => {
             println!("[GUI] CALL sent (request_id={req_id})");
             match pm.0.lock().unwrap().wait_for_response(req_id) {
@@ -60,7 +69,7 @@ fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
             }
         }
         Err(e) => println!("[GUI](ERROR) Failed to send CALL: {e}"),
-    };
+    };*/
 }
 
 //utils format name to folder name

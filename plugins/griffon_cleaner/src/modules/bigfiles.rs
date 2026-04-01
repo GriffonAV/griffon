@@ -1,5 +1,6 @@
 use crate::{CleanerModule, CleanerResult, ExecutionContext, ModuleReport};
 
+#[derive(Default)]
 pub struct BigfilesScanner;
 
 impl BigfilesScanner {
@@ -10,7 +11,7 @@ impl BigfilesScanner {
 
 impl CleanerModule for BigfilesScanner {
     fn id(&self) -> &'static str {
-        " bigfiles"
+        "bigfiles"
     }
 
     fn description(&self) -> &'static str {
