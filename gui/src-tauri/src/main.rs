@@ -51,7 +51,10 @@ fn refresh_plugins(pm: State<PMState>) {
 fn message_plugin(pid: u32, msg: String, pm: State<PMState>) {
     let args = Vec::new(); // TODO: Handle param
     let call_payload = ipc_protocol::ipc_payload_runner::CallPayload { fn_name: msg, args };
-    println!("[GUI] Sending CALL to plugin {pid} with payload: {:?}", call_payload);
+    println!(
+        "[GUI] Sending CALL to plugin {pid} with payload: {:?}",
+        call_payload
+    );
     //pm is not used for now, but we will need it to send the call and wait for response
     //For now on I will just create smthg so pm is not declared as unused variable
 
