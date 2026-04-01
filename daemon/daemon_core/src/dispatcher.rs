@@ -18,6 +18,60 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
 
         while let Ok(task) = task_rx.recv() {
             match task {
+                DaemonTask::StartPlugin {
+                    request_id,
+                    plugin_uuid,
+                    reply_tx,
+                } => {
+                    LOGGER_DISPATCHER.debug(format!(
+                        "Start plugin {}",
+                        format_uuid_bytes(&plugin_uuid)
+                    ));
+
+                    let response = match pm.enable_plugin(plugin_uuid) {
+                        Ok(_) => InterfaceResponse::Ok,
+                        Err(e) => InterfaceResponse::Error {
+                            request_id,
+                            message: format!(
+                                "Failed to start plugin {}: {e}",
+                                format_uuid_bytes(&plugin_uuid)
+                            ),
+                        },
+                    };
+
+                    if let Err(e) = reply_tx.send(response) {
+                        LOGGER_DISPATCHER.error(format!(
+                            "Failed to send start response to client thread: {e}"
+                        ));
+                    }
+                }
+                DaemonTask::StopPlugin {
+                    request_id,
+                    plugin_uuid,
+                    reply_tx
+                } => {
+                    LOGGER_DISPATCHER.debug(format!(
+                        "Stop plugin {}",
+                        format_uuid_bytes(&plugin_uuid)
+                    ));
+
+                    let response = match pm.disable_plugin(plugin_uuid) {
+                        Ok(_) => InterfaceResponse::Ok,
+                        Err(e) => InterfaceResponse::Error {
+                            request_id,
+                            message: format!(
+                                "Failed to stop plugin {}: {e}",
+                                format_uuid_bytes(&plugin_uuid)
+                            ),
+                        },
+                    };
+
+                    if let Err(e) = reply_tx.send(response) {
+                        LOGGER_DISPATCHER.error(format!(
+                            "Failed to send stop response to client thread: {e}"
+                        ));
+                    }
+                }
                 DaemonTask::RefreshPlugins {
                     request_id,
                     reply_tx,

@@ -43,8 +43,8 @@ fn start_reader_thread(mut read_sock: UnixStream) {
                         ));
                         for plugin in plugins {
                             println!(
-                                "- UUID: {:?} | NAME: {} | PATH: {} | FUNCTIONS: {:?}",
-                                format_uuid_bytes(&plugin.plugin_uuid), plugin.name, plugin.path, plugin.functions
+                                "- UUID: {:?} | NAME: {} | PATH: {} | FUNCTIONS: {:?} | STATUS: {}",
+                                format_uuid_bytes(&plugin.plugin_uuid), plugin.name, plugin.path, plugin.functions, plugin.status
                             );
                         }
                     }
@@ -105,10 +105,6 @@ fn main() -> io::Result<()> {
         let cmd = parts.next().unwrap();
 
         match cmd {
-            "info" => {
-                LOGGER.debug("INFO");
-                // TODO: envoyer une vraie requête info si elle exsiste côté daemon
-            }
             "refresh" => {
                 LOGGER.debug("REFRESH");
                 let id_request_to_use = alloc_request_id(id_request);
@@ -150,12 +146,12 @@ fn main() -> io::Result<()> {
 
                 // TODO
             }
-            "kill" => {
-                LOGGER.debug("KILL");
+            "start" => {
+                LOGGER.debug("START");
                 let plugin_uuid_str = parts.next();
 
                 if plugin_uuid_str.is_none() {
-                    LOGGER.error("Usage: kill <plugin_uuid>");
+                    LOGGER.error("Usage: start <plugin_uuid>");
                     continue;
                 }
 
@@ -171,14 +167,47 @@ fn main() -> io::Result<()> {
 
                 send_interface_request(
                     &mut sock,
-                    &InterfaceRequest::KillPlugin {
+                    &InterfaceRequest::StartPlugin {
                         plugin_uuid
-                    }, 
+                    },
                     id_request_to_use,
                 )?;
 
                 LOGGER_NETWORK.debug(format!(
-                    "Kill plugin sent with request_id={id_request_to_use}"
+                    "Start plugin sent with request_id={id_request_to_use}"
+                ));
+
+                id_request = id_request_to_use;
+            }
+            "stop" => {
+                LOGGER.debug("STOP");
+                let plugin_uuid_str = parts.next();
+
+                if plugin_uuid_str.is_none() {
+                    LOGGER.error("Usage: stop <plugin_uuid>");
+                    continue;
+                }
+
+                let plugin_uuid = match parse_uuid_16(plugin_uuid_str) {
+                    Some(uuid) => uuid,
+                    None => {
+                        LOGGER.error("Invalid UUID format");
+                        continue;
+                    }
+                };
+
+                let id_request_to_use = alloc_request_id(id_request);
+
+                send_interface_request(
+                    &mut sock,
+                    &InterfaceRequest::StopPlugin {
+                        plugin_uuid
+                    },
+                    id_request_to_use,
+                )?;
+
+                LOGGER_NETWORK.debug(format!(
+                    "Stop plugin sent with request_id={id_request_to_use}"
                 ));
 
                 id_request = id_request_to_use;

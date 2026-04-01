@@ -8,6 +8,7 @@ use crate::ipc_header::{Frame, MsgType};
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PluginInfoDto {
     pub pid: u32,
+    pub status: bool,
     pub plugin_uuid: [u8; 16],
     pub name: String,
     pub path: String,
@@ -17,14 +18,17 @@ pub struct PluginInfoDto {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum InterfaceRequest {
     RefreshPlugins,
-    RestartPlugin {
+    StopPlugin {
+        plugin_uuid: [u8; 16],
+    },
+    StartPlugin {
         plugin_uuid: [u8; 16],
     },
     KillPlugin {
         plugin_uuid: [u8; 16],
     },
     CallPlugin {
-        plugin_uuid: [u8; 16], // Actually use plugin_name as a [u8; 16] ( Simulate UUID ) we don't need the crate for now.
+        plugin_uuid: [u8; 16],
         fn_name: String,
         args: Vec<String>,
     },

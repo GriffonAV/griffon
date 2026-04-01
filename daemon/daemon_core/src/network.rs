@@ -65,6 +65,60 @@ pub fn handle_client(
         ));
 
         let resp = match req {
+            InterfaceRequest::StartPlugin {
+                plugin_uuid,
+            } => {
+                let plugin_uuid_str = Uuid::from_bytes(plugin_uuid).to_string();
+                LOGGER_CORE.debug(format!("Start plugin {}", plugin_uuid_str));
+
+                let (reply_tx, reply_rx) = mpsc::channel();
+
+                let task = DaemonTask::StartPlugin {
+                    request_id: frame.request_id,
+                    plugin_uuid,
+                    reply_tx,
+                };
+
+                if let Err(e) = task_tx.send(task) {
+                    LOGGER_CORE.error(format!("Failed to queue task: {e}"));
+                    InterfaceResponse::Error {
+                        request_id: frame.request_id,
+                        message: format!("Failed to queue task: {e}"),
+                    }
+                } else {
+                    reply_rx.recv().unwrap_or_else(|e| InterfaceResponse::Error {
+                        request_id: frame.request_id,
+                        message: format!("Dispatcher response channel closed: {e}"),
+                    })
+                }
+            }
+            InterfaceRequest::StopPlugin {
+                plugin_uuid,
+            } => {
+                let plugin_uuid_str = Uuid::from_bytes(plugin_uuid).to_string();
+                LOGGER_CORE.debug(format!("Stop plugin {}", plugin_uuid_str));
+
+                let (reply_tx, reply_rx) = mpsc::channel();
+
+                let task = DaemonTask::StopPlugin {
+                    request_id: frame.request_id,
+                    plugin_uuid,
+                    reply_tx,
+                };
+
+                if let Err(e) = task_tx.send(task) {
+                    LOGGER_CORE.error(format!("Failed to queue task: {e}"));
+                    InterfaceResponse::Error {
+                        request_id: frame.request_id,
+                        message: format!("Failed to queue task: {e}"),
+                    }
+                } else {
+                    reply_rx.recv().unwrap_or_else(|e| InterfaceResponse::Error {
+                        request_id: frame.request_id,
+                        message: format!("Dispatcher response channel closed: {e}"),
+                    })
+                }
+            }
             InterfaceRequest::RefreshPlugins => {
                 let (reply_tx, reply_rx) = mpsc::channel();
 
