@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Copy, Minus, Square, X, Github, Bell, MonitorUp } from "lucide-react";
+import { Copy, Minus, Square, X, Github, Bell } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import NotificationPanel from "./NotificationPanel";
 import DaemonConnection from "@/bindings/component/layout/DaemonConnection";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 

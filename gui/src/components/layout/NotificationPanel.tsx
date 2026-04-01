@@ -1,4 +1,3 @@
-import React from "react";
 import { LaptopMinimalCheck, CircleAlert } from "lucide-react";
 
 function NotificationPanel() {

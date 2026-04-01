@@ -19,6 +19,7 @@ interface PluginInfo {
 export default function PluginPage() {
   const { pid } = useParams();
   const [plugin, setPlugin] = useState<PluginInfo | null>(null);
+  // @ts-ignore
   const [logs, setLogs] = useState<string[]>([]);
   const manifest = plugin?.manifest ?? null;
   const { store, handleAction } = useGriffonStore(manifest);
@@ -36,13 +37,13 @@ export default function PluginPage() {
             setPlugin((prev) =>
               prev
                 ? {
-                    ...prev,
-                    manifest: {
-                      ...manifest,
-                      store: manifest.store ?? {},
-                      interactions: manifest.interactions ?? [],
-                    },
-                  }
+                  ...prev,
+                  manifest: {
+                    ...manifest,
+                    store: manifest.store ?? {},
+                    interactions: manifest.interactions ?? [],
+                  },
+                }
                 : null
             );
           })
@@ -64,6 +65,7 @@ export default function PluginPage() {
   }, [pid]);
 
 
+  // @ts-ignore
   function send(msg: string) {
     if (!plugin) return;
     invoke("message_plugin", { pid: plugin.pid, msg });
@@ -79,7 +81,7 @@ export default function PluginPage() {
     >
       {plugin.manifest?.plugin?.tabs?.map((tab) => {
         const tabSections =
-            plugin.manifest?.ui?.sections?.filter((section) => section.tab === tab) ?? [];
+          plugin.manifest?.ui?.sections?.filter((section) => section.tab === tab) ?? [];
 
         return (
           <div className="flex flex-col h-full gap-4" key={tab}>

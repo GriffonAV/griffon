@@ -4,11 +4,8 @@ import { PanelLeft } from "lucide-react";
 import {
   NavigationMenu,
   NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
-import { Separator } from "@/components/ui/separator";
 import { titleCase } from "@/lib/titleCase";
 
 interface PageProps {
@@ -82,7 +79,9 @@ export const PageWrapper: React.FC<PageProps> = ({ title, children, navigation, 
         {React.Children.map(children, (child, index) => (
           <div
             id={tabs?.[index]}
-            ref={(el) => (sectionRefs.current[index] = el)}
+            ref={(el) => {
+              sectionRefs.current[index] = el;
+            }}
             className="w-full"
           >
             {child}

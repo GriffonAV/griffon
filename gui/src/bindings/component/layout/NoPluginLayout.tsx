@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { usePlugins } from "../../PluginContext";
 import { openPath } from "@tauri-apps/plugin-opener";
+import type { ReactNode } from "react";
 
 export function NoPluginLayout({ children }: { children: ReactNode }) {
     const { plugins, isLoading } = usePlugins();
