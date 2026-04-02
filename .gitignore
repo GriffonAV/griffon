@@ -40,3 +40,4 @@ target
 .config/**
 *.config/debugging/
 *.config/griffon/
+*.d
