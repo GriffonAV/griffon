@@ -10,9 +10,11 @@ mod manifests;
 use manifests::load_plugin_manifest;
 use manifests::PluginManifest;
 
-// static PLUGIN_DIR: &str = "../../plugins";
-static _PLUGIN_DIR: &str = "../../target/debug";
-static PLUGIN_MANIFEST_DIR: &str = "../../.config/griffon";
+const PLUGIN_MANIFEST_DIR: &str = if cfg!(debug_assertions) {
+    "../../.config/griffon"
+} else {
+    "~/.config/griffon"
+};
 
 #[derive(Serialize)]
 struct Plugin {
