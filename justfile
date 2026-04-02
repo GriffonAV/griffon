@@ -3,8 +3,6 @@
 setup-dev-env:
     git config core.hooksPath .githooks
 
-# gui
-
 setup-gui:
     cd gui && npm install
 
@@ -15,7 +13,8 @@ run-gui:
 build-gui:
     cd gui && npx tauri build --no-bundle
 
-# cli
+build-workspace:
+    cargo build --release --workspace --exclude griffonav-gui
 
 run-daemon:
     sudo target/debug/daemon_core
