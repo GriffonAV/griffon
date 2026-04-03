@@ -1,8 +1,9 @@
 [package]
 name = "griffonav-gui"
+
 version = "0.1.0"
 description = "The official GUI for GriffonAV"
-authors = ["you"]
+authors = ["GriffonAV"]
 license = ""
 repository = ""
 edition = "2021"

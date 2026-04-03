@@ -71,13 +71,14 @@ fn resolve_runner_binary() -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
     let exe_dir = exe.parent().ok_or("exe has no parent")?;
 
-    let profile = if cfg!(debug_assertions) {
-        "debug"
+    let candidate = if cfg!(debug_assertions) {
+        exe_dir
+            .join("../")
+            .join("debug")
+            .join("griffonav-daemon-runner")
     } else {
-        "release"
+        PathBuf::from("/usr/bin/griffonav-daemon-runner")
     };
-
-    let candidate = exe_dir.join("../").join(profile).join("runner");
 
     if candidate.exists() {
         Ok(candidate)
