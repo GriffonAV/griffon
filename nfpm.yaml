@@ -8,26 +8,33 @@ maintainer: "Alexis <votre@email.com>"
 description: "GriffonAV - Multi-component security tool"
 
 contents:
-  # Le GUI (issu de tauri build)
-  - src: ./target/release/app 
-    dst: /usr/bin/griffonav-gui
 
   # Le Daemon Core
-  - src: ./target/release/daemon_core  # Le nom réel du fichier produit par Cargo
-    dst: /usr/bin/griffonav-daemon     # Le nom que tu veux donner à l'utilisateur final
+  - src: ./target/release/griffonav-daemon
+    dst: /usr/bin/griffonav-daemon
 
-#   # Le Runner (Indispensable pour le plugin_manager !)
-#   - src: ./target/release/runner
-#     dst: /usr/bin/griffonav-runner
+# Le Runner (Indispensable pour le plugin_manager !)
+  - src: ./target/release/griffonav-daemon-runner
+    dst: /usr/bin/griffonav-daemon-runner
 
-#   # Le CLI
-#   - src: ./target/release/cli
-#     dst: /usr/bin/griffon
+# Le CLI
+  - src: ./target/release/griffonav-cli
+    dst: /usr/bin/griffonav-cli
 
-#   # Le service Systemd pour le daemon
-#   - src: ./daemon/griffonav-daemon.service
-#     dst: /lib/systemd/system/griffonav-daemon.service
+# Le GUI (issu de tauri build)
+  - src: ./target/release/griffonav-gui 
+    dst: /usr/bin/griffonav-gui
 
-# scripts:
-#   postinstall: ./scripts/postinstall.sh
-#   preremove: ./scripts/preremove.sh
+# plugins
+  - src: ./target/release/plugins/libplugin_test.so
+    dst: /usr/lib/griffonav/plugins/libplugin_test.so
+  - src: ./target/release/plugins/libplugin_test_2.so
+    dst: /usr/lib/griffonav/plugins/libplugin_test_2.so
+
+  # Le service Systemd pour le daemon
+  - src: ./daemon/griffonav-daemon.service
+    dst: /lib/systemd/system/griffonav-daemon.service
+
+scripts:
+  postinstall: ./scripts/postinstall.sh
+  preremove: ./scripts/preremove.sh
