@@ -1,0 +1,464 @@
+# Griffon Plugin Manifest: Griffon Showcase
+[plugin]
+name = "Griffon Showcase"
+id = "org.griffon.showcase"
+version = "1.0.0"
+author = "Raphael"
+description = "Demonstrates all currently supported Griffon UI elements"
+tabs = ["overview", "form", "layout", "data"]
+
+[ui]
+
+# =========================================================
+# OVERVIEW TAB
+# =========================================================
+
+[[ui.sections]]
+id = "overview_intro"
+tab = "overview"
+
+[[ui.sections.contents]]
+type = "text"
+id = "overview_title"
+name = "Griffon UI Showcase"
+variant = "title"
+
+
+[[ui.sections.contents]]
+type = "text"
+id = "overview_subtitle"
+name = "This manifest demonstrates all currently supported Griffon elements rendered via shadcn wrappers."
+variant = "caption"
+tone = "neutral"
+
+
+[[ui.sections.contents]]
+type = "divider"
+id = "overview_divider"
+
+
+[[ui.sections.contents]]
+type = "group"
+id = "status_group"
+title = "Status Badges"
+description = "Examples of badge variants"
+gap = "sm"
+
+[[ui.sections.contents.children]]
+type = "row"
+id = "badge_row"
+gap = "sm"
+align = "center"
+
+[[ui.sections.contents.children.children]]
+type = "badge"
+id = "badge_default"
+name = "Default"
+variant = "default"
+
+[[ui.sections.contents.children.children]]
+type = "badge"
+id = "badge_secondary"
+name = "Secondary"
+variant = "secondary"
+
+[[ui.sections.contents.children.children]]
+type = "badge"
+id = "badge_outline"
+name = "Outline"
+variant = "outline"
+
+[[ui.sections.contents.children.children]]
+type = "badge"
+id = "badge_destructive"
+name = "Destructive"
+variant = "destructive"
+
+[[ui.sections.contents.children.children]]
+type = "badge"
+id = "badge_success"
+name = "Success"
+variant = "success"
+
+[[ui.sections.contents]]
+type = "group"
+id = "button_group"
+title = "Buttons"
+description = "Examples of button variants and sizes"
+gap = "sm"
+
+[[ui.sections.contents.children]]
+type = "row"
+id = "button_row"
+gap = "sm"
+wrap = true
+
+[[ui.sections.contents.children.children]]
+type = "button"
+id = "btn_primary"
+name = "Primary"
+variant = "primary"
+size = "md"
+action = "demo.primary"
+
+[[ui.sections.contents.children.children]]
+type = "button"
+id = "btn_secondary"
+name = "Secondary"
+variant = "secondary"
+size = "md"
+action = "demo.secondary"
+
+[[ui.sections.contents.children.children]]
+type = "button"
+id = "btn_ghost"
+name = "Ghost"
+variant = "ghost"
+size = "md"
+action = "demo.ghost"
+
+[[ui.sections.contents.children.children]]
+type = "button"
+id = "btn_danger"
+name = "Danger"
+variant = "danger"
+size = "md"
+action = "demo.danger"
+
+[[ui.sections.contents.children.children]]
+type = "button"
+id = "btn_success"
+name = "Success"
+variant = "success"
+size = "md"
+action = "demo.success"
+
+[[ui.sections.contents]]
+type = "group"
+id = "progress_group"
+title = "Progress"
+description = "Examples of progress bars"
+gap = "md"
+
+[[ui.sections.contents.children]]
+type = "progress"
+id = "progress_install"
+label = "Installation Progress"
+value = 35
+show_value = true
+
+[[ui.sections.contents.children]]
+type = "progress"
+id = "progress_complete"
+label = "Completed"
+value = 100
+show_value = true
+
+# =========================================================
+# FORM TAB
+# =========================================================
+
+[[ui.sections]]
+id = "form_elements"
+tab = "form"
+
+[[ui.sections.contents]]
+type = "text"
+id = "form_title"
+name = "Form Elements"
+variant = "title"
+
+[[ui.sections.contents]]
+type = "text"
+id = "form_caption"
+name = "Examples of input, select, switch, checkbox, and tabs."
+variant = "caption"
+
+[[ui.sections.contents]]
+type = "divider"
+id = "form_divider"
+
+[[ui.sections.contents]]
+type = "column"
+id = "form_column"
+gap = "md"
+
+[[ui.sections.contents.children]]
+type = "input"
+id = "input_username"
+label = "Username"
+placeholder = "Enter your username"
+description = "This is a standard text input"
+value = "griffon-user"
+input_type = "text"
+action = "form.username.change"
+
+[[ui.sections.contents.children]]
+type = "input"
+id = "input_email"
+label = "Email"
+placeholder = "you@example.com"
+description = "Email input example"
+value = "raphael@example.com"
+input_type = "email"
+action = "form.email.change"
+
+[[ui.sections.contents.children]]
+type = "select"
+id = "select_theme"
+label = "Theme"
+placeholder = "Choose a theme"
+description = "Select your preferred theme"
+value = "system"
+action = "form.theme.change"
+
+[[ui.sections.contents.children.options]]
+label = "Light"
+value = "light"
+
+[[ui.sections.contents.children.options]]
+label = "Dark"
+value = "dark"
+
+[[ui.sections.contents.children.options]]
+label = "System"
+value = "system"
+
+[[ui.sections.contents.children]]
+type = "switch"
+id = "switch_notifications"
+label = "Enable Notifications"
+description = "Turn on app notifications"
+checked = true
+action = "form.notifications.toggle"
+
+[[ui.sections.contents.children]]
+type = "checkbox"
+id = "checkbox_terms"
+label = "I agree to the terms"
+description = "Required before continuing"
+checked = true
+action = "form.terms.toggle"
+
+[[ui.sections.contents]]
+type = "tabs"
+id = "nested_tabs_demo"
+value = "profile"
+action = "form.tabs.change"
+
+[[ui.sections.contents.tabs]]
+label = "Profile"
+value = "profile"
+
+[[ui.sections.contents.tabs.children]]
+type = "text"
+id = "tab_profile_text"
+name = "Profile settings can go here."
+variant = "body"
+
+[[ui.sections.contents.tabs.children]]
+type = "button"
+id = "tab_profile_button"
+name = "Edit Profile"
+variant = "primary"
+action = "tab.profile.edit"
+
+[[ui.sections.contents.tabs]]
+label = "Security"
+value = "security"
+
+[[ui.sections.contents.tabs.children]]
+type = "text"
+id = "tab_security_text"
+name = "Security settings can go here."
+variant = "body"
+
+[[ui.sections.contents.tabs.children]]
+type = "button"
+id = "tab_security_button"
+name = "Update Password"
+variant = "secondary"
+action = "tab.security.password"
+
+
+# =========================================================
+# LAYOUT TAB
+# =========================================================
+
+[[ui.sections]]
+id = "layout_examples"
+tab = "layout"
+
+[[ui.sections.contents]]
+type = "text"
+id = "layout_title"
+name = "Layout Elements"
+variant = "title"
+
+[[ui.sections.contents]]
+type = "text"
+id = "layout_caption"
+name = "Examples of group, row, column, and card containers."
+variant = "caption"
+
+[[ui.sections.contents]]
+type = "divider"
+id = "layout_divider"
+
+[[ui.sections.contents]]
+type = "group"
+id = "group_example"
+title = "Group Example"
+description = "A vertical stack of related items"
+gap = "md"
+
+[[ui.sections.contents.children]]
+type = "text"
+id = "group_text_1"
+name = "This is inside a group"
+variant = "body"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "group_button"
+name = "Group Action"
+variant = "primary"
+action = "layout.group.action"
+
+[[ui.sections.contents]]
+type = "row"
+id = "row_example"
+gap = "md"
+justify = "space-between"
+align = "center"
+wrap = true
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "row_btn_1"
+name = "Left"
+variant = "secondary"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "row_btn_2"
+name = "Center"
+variant = "ghost"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "row_btn_3"
+name = "Right"
+variant = "danger"
+
+[[ui.sections.contents]]
+type = "column"
+id = "column_example"
+gap = "sm"
+align = "stretch"
+
+[[ui.sections.contents.children]]
+type = "text"
+id = "column_text_1"
+name = "Column item 1"
+variant = "body"
+
+[[ui.sections.contents.children]]
+type = "text"
+id = "column_text_2"
+name = "Column item 2"
+variant = "body"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "column_button"
+name = "Column Button"
+variant = "secondary"
+
+[[ui.sections.contents]]
+type = "card"
+id = "card_example"
+name = "Card Example"
+description = "Basic card wrapper using shadcn Card"
+
+
+# =========================================================
+# DATA TAB
+# =========================================================
+
+[[ui.sections]]
+id = "data_examples"
+tab = "data"
+
+[[ui.sections.contents]]
+type = "text"
+id = "data_title"
+name = "Data Display"
+variant = "title"
+
+[[ui.sections.contents]]
+type = "text"
+id = "data_caption"
+name = "Examples of table and informational text."
+variant = "caption"
+
+[[ui.sections.contents]]
+type = "divider"
+id = "data_divider"
+
+[[ui.sections.contents]]
+type = "table"
+id = "users_table"
+
+[[ui.sections.contents.columns]]
+key = "name"
+label = "Name"
+
+[[ui.sections.contents.columns]]
+key = "role"
+label = "Role"
+
+[[ui.sections.contents.columns]]
+key = "status"
+label = "Status"
+
+[[ui.sections.contents.rows]]
+id = "user_1"
+name = "Raphael"
+role = "Admin"
+status = "Active"
+
+[[ui.sections.contents.rows]]
+id = "user_2"
+name = "Alex"
+role = "Editor"
+status = "Pending"
+
+[[ui.sections.contents.rows]]
+id = "user_3"
+name = "Jordan"
+role = "Viewer"
+status = "Inactive"
+
+[[ui.sections.contents]]
+type = "group"
+id = "data_summary_group"
+title = "Summary"
+description = "Simple mixed content under the data tab"
+gap = "sm"
+
+[[ui.sections.contents.children]]
+type = "text"
+id = "summary_text"
+name = "3 users loaded from manifest"
+variant = "status"
+tone = "info"
+
+[[ui.sections.contents.children]]
+type = "badge"
+id = "summary_badge"
+name = "Demo Data"
+variant = "outline"
+
+[[ui.sections.contents.children]]
+type = "error type"

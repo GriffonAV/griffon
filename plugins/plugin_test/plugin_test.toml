@@ -1,0 +1,79 @@
+# Griffon Plugin Manifest: File Picker Demo
+[plugin]
+name = "File Picker Demo"
+id = "org.griffon.filepickerdemo"
+version = "1.0.0"
+author = "Raphael"
+description = "Demonstrates the select_file component"
+tabs = ["main"]
+
+
+[store]
+
+[store.data]
+selected_file = ""
+
+[store.ui]
+status = "No file selected"
+selected_file = ""
+
+
+[ui]
+
+[[ui.sections]]
+id = "file_main"
+tab = "main"
+
+[[ui.sections.contents]]
+type = "text"
+id = "file_title"
+name = "Select a File"
+variant = "title"
+
+[[ui.sections.contents]]
+type = "file_select"
+id = "config_picker"
+name = "Configuration File"
+placeholder = "Choose a file..."
+button_label = "Browse"
+accept = ".toml,.json,.yaml,.yml"
+bind = "selected_file"
+action = "file.selected"
+
+[[ui.sections.contents]]
+type = "text"
+id = "selected_file_label"
+name = "Selected: {{ui.selected_file}}"
+variant = "body"
+
+[[ui.sections.contents]]
+type = "text"
+id = "file_status"
+name = "{{ui.status}}"
+variant = "caption"
+tone = "neutral"
+
+[[ui.sections.contents]]
+type = "button"
+id = "test_bt"
+name = "TEST BUTTON"
+action = "test_bt.pressed"
+
+[[interactions]]
+id = "handle_file_selected"
+on = "file.selected"
+
+[[interactions.steps]]
+type = "set"
+key = "data.selected_file"
+from = "event.value"
+
+[[interactions.steps]]
+type = "set"
+key = "ui.selected_file"
+from = "event.value"
+
+[[interactions.steps]]
+type = "set"
+key = "ui.status"
+value = "File selected"

@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y \
     libgtk-3-dev \
     libwebkit2gtk-4.1-dev \
     libayatana-appindicator3-dev \
-    librsvg2-dev
+    librsvg2-dev \
+    xdg-utils
 # rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
@@ -40,6 +41,9 @@ COPY --from=workspace-builder /app/target/release/ /app/target/release/
 
 COPY nfpm.yaml .
 COPY scripts/ ./scripts/
+# copy plugin config files
+COPY plugins/plugin_test/plugin_test.toml ./plugins/plugin_test/plugin_test.toml
+COPY plugins/plugin_test_2/plugin_test_2.toml ./plugins/plugin_test_2/plugin_test_2.toml
 COPY daemon/griffonav-daemon.service ./daemon/griffonav-daemon.service
 
 ENTRYPOINT ["sh", "scripts/build-packages.sh"]
