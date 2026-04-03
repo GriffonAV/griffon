@@ -28,3 +28,7 @@ run-gui-sudo:
 lint:
     cargo fmt -- --check
     cargo clippy -- -D warnings
+
+build-deb:
+    sudo docker build -t griffonav-builder -f Dockerfile.build .
+    sudo docker run --rm -v $(pwd)/dist:/out griffonav-builder

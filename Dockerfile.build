@@ -20,7 +20,7 @@ WORKDIR /app/gui
 RUN npm install
 
 # build gui
-RUN npx tauri build --no-bundle
+RUN npx tauri build
 
 # --- STAGE 2: Build du workspace Rust (daemon + cli) ---
 FROM rust:1.94-slim AS workspace-builder
@@ -40,5 +40,6 @@ COPY --from=workspace-builder /app/target/release/ /app/target/release/
 
 COPY nfpm.yaml .
 COPY scripts/ ./scripts/
+COPY daemon/griffonav-daemon.service ./daemon/griffonav-daemon.service
 
-ENTRYPOINT ["nfpm", "pkg", "--target", "/out/griffonav.deb"]
+ENTRYPOINT ["sh", "scripts/build-packages.sh"]

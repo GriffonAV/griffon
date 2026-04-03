@@ -8,7 +8,7 @@ mod types;
 pub const PLUGIN_DIR_PATH: &str = if cfg!(debug_assertions) {
     ".config/griffon"
 } else {
-    "~/.config/griffon"
+    "/usr/lib/griffonav/plugins"
 };
 
 fn main() -> io::Result<()> {

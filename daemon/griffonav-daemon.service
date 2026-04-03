@@ -1,0 +1,13 @@
+[Unit]
+Description=GriffonAV Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/griffonav-daemon
+Restart=on-failure
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target

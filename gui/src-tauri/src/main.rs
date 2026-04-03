@@ -13,7 +13,7 @@ use manifests::PluginManifest;
 const PLUGIN_MANIFEST_DIR: &str = if cfg!(debug_assertions) {
     "../../.config/griffon"
 } else {
-    "~/.config/griffon"
+    "/usr/lib/griffonav/plugins"
 };
 
 #[derive(Serialize)]

@@ -1,3 +1,5 @@
-#!/bin/bash
-systemctl stop griffonav-daemon
-systemctl disable griffonav-daemon
+#!/bin/sh
+set -e
+
+systemctl stop griffonav-daemon || true
+systemctl disable griffonav-daemon || true
