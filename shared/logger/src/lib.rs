@@ -1,4 +1,7 @@
 use std::fmt;
+use std::fs::{self, OpenOptions};
+use std::io::Write;
+use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogLevel {
@@ -22,11 +25,20 @@ impl fmt::Display for LogLevel {
 pub struct Logger {
     min_level: LogLevel,
     prefix: &'static str,
+    file_path: Option<&'static str>,
 }
 
 impl Logger {
-    pub const fn new(prefix: &'static str, min_level: LogLevel) -> Self {
-        Self { min_level, prefix }
+    pub const fn new(
+        prefix: &'static str,
+        min_level: LogLevel,
+        file_path: Option<&'static str>,
+    ) -> Self {
+        Self {
+            min_level,
+            prefix,
+            file_path,
+        }
     }
 
     pub fn set_level(&mut self, level: LogLevel) {
@@ -47,10 +59,25 @@ impl Logger {
         }
 
         let msg = msg.as_ref();
+        let formatted = format!("[{}]({}) {}", self.prefix, level, msg);
 
         match level {
-            LogLevel::Error => eprintln!("[{}]({}) {}", self.prefix, level, msg),
-            _ => println!("[{}]({}) {}", self.prefix, level, msg),
+            LogLevel::Error => eprintln!("{}", formatted),
+            _ => println!("{}", formatted),
+        }
+
+        if let Some(path) = self.file_path {
+            if let Some(parent) = Path::new(path).parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+
+            if let Ok(mut file) = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+            {
+                let _ = writeln!(file, "{}", formatted);
+            }
         }
     }
 

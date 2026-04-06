@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 use std::process::exit;
 use uuid::Uuid;
 
-static LOGGER_RUNNER: Logger = Logger::new("RUNNER", logger::LogLevel::Debug);
-static LOGGER_RUNNER_NETWORK: Logger = Logger::new("RUNNER-NETWORK", logger::LogLevel::Debug);
+static LOGGER_RUNNER: Logger = Logger::new("RUNNER", logger::LogLevel::Debug, Some("/var/log/griffon/griffon-daemon.log"));
+static LOGGER_RUNNER_NETWORK: Logger = Logger::new("RUNNER-NETWORK", logger::LogLevel::Debug, Some("/var/log/griffon/griffon-daemon.log"));
 
 struct LoadedPlugin {
     root: PluginRoot_Ref,

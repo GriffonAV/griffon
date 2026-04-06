@@ -9,8 +9,8 @@ use ipc_protocol::ipc_payload_interface::{
 };
 use logger::{LogLevel, Logger};
 
-static LOGGER: Logger = Logger::new("CLI", LogLevel::Debug);
-static LOGGER_NETWORK: Logger = Logger::new("CLI-NETWORK", LogLevel::Debug);
+static LOGGER: Logger = Logger::new("CLI", LogLevel::Debug, None);
+static LOGGER_NETWORK: Logger = Logger::new("CLI-NETWORK", LogLevel::Debug, None);
 const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
     "/tmp/griffon-dev.sock"
 } else {

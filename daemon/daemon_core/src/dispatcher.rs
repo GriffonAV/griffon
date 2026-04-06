@@ -7,7 +7,7 @@ use logger::Logger;
 
 use crate::types::DaemonTask;
 
-static LOGGER_DISPATCHER: Logger = Logger::new("DISPATCHER", logger::LogLevel::Debug);
+static LOGGER_DISPATCHER: Logger = Logger::new("DISPATCHER", logger::LogLevel::Debug, Some("/var/log/griffon/griffon-daemon.log"));
 
 pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'static str) {
     thread::spawn(move || {
