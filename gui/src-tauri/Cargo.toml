@@ -1,8 +1,9 @@
 [package]
-name = "app"
+name = "griffonav-gui"
+
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "The official GUI for GriffonAV"
+authors = ["GriffonAV"]
 license = ""
 repository = ""
 edition = "2021"

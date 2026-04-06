@@ -1,22 +1,28 @@
 [workspace]
 members = [
+    # daemon components
     "daemon/daemon_core",
+    "daemon/daemon_runner",
+    "daemon/plugin_manager",
+
+    # shared libraries
     "shared/plugin_interface",
+    "shared/ipc_protocol",
+    "shared/logger",
+
+    # plugins
     "plugins/plugin_test",
     "plugins/plugin_test_2",
     "plugins/griffon_cleaner",
-    "daemon/runner",
-    "daemon/plugin_manager",
-    "shared/ipc_protocol",
+
+    # GUI and CLI
     "gui/src-tauri",
     "cli",
-    "shared/logger",
 ]
 resolver = "2"
 
 
 [workspace.dependencies]
-# Shared dependencies across the workspace
 plugin_manager = { path = "daemon/plugin_manager" }
 plugin_interface = { path = "shared/plugin_interface" }
 ipc_protocol = { path = "shared/ipc_protocol" }

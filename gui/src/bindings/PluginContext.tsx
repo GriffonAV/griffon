@@ -1,13 +1,29 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
     debug,
     error
-} from '@tauri-apps/plugin-log';
+} from "@tauri-apps/plugin-log";
 
 export interface Plugin {
     pid: number;
     name: string;
+}
+
+export interface InteractionStep {
+    type: string;
+    key?: string;
+    value?: any;
+    from?: string;
+    amount?: number;
+    [key: string]: any;
+}
+
+export interface Interaction {
+    id: string;
+    on: string;
+    steps: InteractionStep[];
 }
 
 export interface PluginManifest {
@@ -23,8 +39,15 @@ export interface PluginManifest {
         sections: Array<{
             id: string;
             tab: string;
+            contents: Array<{
+                type: string;
+                id: string;
+                [key: string]: any;
+            }>;
         }>;
     };
+    store?: Record<string, any>;
+    interactions?: Interaction[];
 }
 
 interface PluginContextType {
@@ -48,7 +71,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     async function refreshPlugins() {
         setIsLoading(true);
         try {
-            const result = await invoke<Plugin[]>("list_plugins_cmd");
+            const result = await invoke<Plugin[]>("list_plugins");
             setPlugins(result);
         } catch (err) {
             error("Failed to load plugins:" + err);
@@ -62,7 +85,11 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         try {
             const manifest = await invoke<PluginManifest>("get_plugin_manifest", { pluginId });
             debug("Loaded manifest:" + JSON.stringify(manifest));
-            setCurrentManifest(manifest);
+            setCurrentManifest({
+                ...manifest,
+                store: manifest.store ?? {},
+                interactions: manifest.interactions ?? [],
+            });
         } catch (err) {
             error("Failed to load manifest:" + err);
         } finally {

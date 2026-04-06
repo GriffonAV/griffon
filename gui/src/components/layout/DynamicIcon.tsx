@@ -1,4 +1,4 @@
-import { Folder, Camera, Heart, Settings, HelpCircle, LucideProps } from 'lucide-react';
+import { Folder, Camera, Heart, Settings, type LucideProps } from 'lucide-react';
 
 const iconMap: Record<string, React.FC<LucideProps>> = {
     camera: Camera,
@@ -7,6 +7,7 @@ const iconMap: Record<string, React.FC<LucideProps>> = {
     folder: Folder,
 };
 
+// @ts-ignore
 const DynamicIcon = ({ name, ...props }: { name: string } & LucideProps) => {
     if (!name) return null;
     const Icon = iconMap[name];

@@ -13,10 +13,22 @@ use logger::Logger;
 
 use crate::types::DaemonTask;
 
-static LOGGER_NETWORK: Logger = Logger::new("DAEMON-INTERFACE-NETWORK", logger::LogLevel::Debug);
-static LOGGER_CORE: Logger = Logger::new("DAEMON-CORE", logger::LogLevel::Debug);
+static LOGGER_NETWORK: Logger = Logger::new(
+    "DAEMON-INTERFACE-NETWORK",
+    logger::LogLevel::Debug,
+    Some("/var/log/griffon/griffon-daemon.log"),
+);
+static LOGGER_CORE: Logger = Logger::new(
+    "DAEMON-CORE",
+    logger::LogLevel::Debug,
+    Some("/var/log/griffon/griffon-daemon.log"),
+);
 
-pub const DAEMON_SOCK_PATH: &str = "/run/griffon/daemon.sock";
+pub const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
+    "/tmp/griffon-dev.sock"
+} else {
+    "/run/griffon/griffon.sock"
+};
 
 pub fn setup_listener() -> io::Result<UnixListener> {
     let path = Path::new(DAEMON_SOCK_PATH);

@@ -1,7 +1,6 @@
 use nix::libc;
 use nix::sys::socket::{AddressFamily, SockFlag, SockType, socketpair};
 use std::collections::VecDeque;
-use std::fs::read_dir;
 use std::io;
 use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd};
 use std::os::unix::net::UnixStream;
@@ -16,9 +15,16 @@ use ipc_protocol::ipc_payload_runner::{
 };
 use logger::Logger;
 
-static LOGGER_PM: Logger = Logger::new("PLUGIN_MANAGER", logger::LogLevel::Debug);
-static LOGGER_PM_NETWORK: Logger =
-    Logger::new("PLUGIN_MANAGER-RUNNER-NETWORK", logger::LogLevel::Debug);
+static LOGGER_PM: Logger = Logger::new(
+    "PLUGIN_MANAGER",
+    logger::LogLevel::Debug,
+    Some("/var/log/griffon/griffon-daemon.log"),
+);
+static LOGGER_PM_NETWORK: Logger = Logger::new(
+    "PLUGIN_MANAGER-RUNNER-NETWORK",
+    logger::LogLevel::Debug,
+    Some("/var/log/griffon/griffon-daemon.log"),
+);
 
 #[derive(Debug, Clone)]
 pub enum PluginEvent {
@@ -71,13 +77,14 @@ fn resolve_runner_binary() -> Result<PathBuf, String> {
     let exe = std::env::current_exe().map_err(|e| format!("current_exe: {e}"))?;
     let exe_dir = exe.parent().ok_or("exe has no parent")?;
 
-    let profile = if cfg!(debug_assertions) {
-        "debug"
+    let candidate = if cfg!(debug_assertions) {
+        exe_dir
+            .join("../")
+            .join("debug")
+            .join("griffonav-daemon-runner")
     } else {
-        "release"
+        PathBuf::from("/usr/bin/griffonav-daemon-runner")
     };
-
-    let candidate = exe_dir.join("../").join(profile).join("runner");
 
     if candidate.exists() {
         Ok(candidate)
@@ -119,17 +126,44 @@ impl PluginManager {
 
     pub fn scan_dir(&mut self) {
         let mut current_paths = Vec::new();
-        use std::env;
+        use std::{env, fs};
 
         LOGGER_PM.debug(format!("Scanning dir {:?}", env::current_dir().unwrap()));
+
+        if let Err(e) = fs::create_dir_all(&self.plugins_dir) {
+            LOGGER_PM.error(format!(
+                "Failed to ensure plugin directory {:?}: {}",
+                self.plugins_dir, e
+            ));
+            return;
+        }
+
         LOGGER_PM.debug(format!(
             "Plugin dir {:?} | Exists {}",
             self.plugins_dir,
             self.plugins_dir.exists()
         ));
 
-        for entry in read_dir(&self.plugins_dir).expect("Bad plugin directory") {
-            let path = entry.unwrap().path();
+        let entries = match fs::read_dir(&self.plugins_dir) {
+            Ok(entries) => entries,
+            Err(e) => {
+                LOGGER_PM.error(format!(
+                    "Failed to read plugin directory {:?}: {}",
+                    self.plugins_dir, e
+                ));
+                return;
+            }
+        };
+
+        for entry in entries {
+            let path = match entry {
+                Ok(entry) => entry.path(),
+                Err(e) => {
+                    LOGGER_PM.warn(format!("Failed to read a directory entry: {}", e));
+                    continue;
+                }
+            };
+
             if Self::is_shared_library(&path) {
                 current_paths.push(path.clone());
                 self.check_plugin(&path);

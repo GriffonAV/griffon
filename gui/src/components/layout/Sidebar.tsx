@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { usePlugins } from "@/bindings/PluginContext.tsx";
 import { ModeToggle } from "./ModeToggle.tsx";
-import { Settings2, LayoutDashboard, Logs } from "lucide-react";
+import { Settings2, LayoutDashboard, Clock10 } from "lucide-react";
 import { SearchInput } from "./SearchInput.tsx";
 import { ContactButton } from "./ContactButton.tsx";
 import { SidebarButton } from "./SidebarButton.tsx";
@@ -16,7 +16,6 @@ export function Sidebar() {
     <aside className="flex flex-col w-48 m-2">
       <Link to="/dashboard">
         <SidebarButton
-          to="/dashboard"
           icon={<LayoutDashboard />}
           label="Dashboard"
           isActive={location.pathname === "/dashboard" || location.pathname === "/"}
@@ -24,8 +23,7 @@ export function Sidebar() {
       </Link>
       <Link to="/log">
         <SidebarButton
-          to="/log"
-          icon={<Logs />}
+          icon={<Clock10 />}
           label="Logs"
           isActive={location.pathname === "/log"}
         />
@@ -34,12 +32,11 @@ export function Sidebar() {
       <Separator />
       <span className="text-xs text-muted-foreground px-2 my-2 select-none">Plugins</span>
       {plugins.map((plugin) => (
-        <Link key={plugin.pid} to={`/plugin/${plugin.pid}`}>
+        <Link key={plugin.pid} to={`/plugin/${plugin.name}`}>
           <SidebarButton
-            to={`/plugin/${plugin.pid}`}
             icon={null}
             label={plugin.name}
-            isActive={location.pathname === `/plugin/${plugin.pid}`}
+            isActive={location.pathname === `/plugin/${plugin.name}`}
           />
         </Link>
       ))}
