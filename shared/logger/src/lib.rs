@@ -71,11 +71,7 @@ impl Logger {
                 let _ = fs::create_dir_all(parent);
             }
 
-            if let Ok(mut file) = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(path)
-            {
+            if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(path) {
                 let _ = writeln!(file, "{}", formatted);
             }
         }

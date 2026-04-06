@@ -15,9 +15,16 @@ use ipc_protocol::ipc_payload_runner::{
 };
 use logger::Logger;
 
-static LOGGER_PM: Logger = Logger::new("PLUGIN_MANAGER", logger::LogLevel::Debug, Some("/var/log/griffon/griffon-daemon.log"));
-static LOGGER_PM_NETWORK: Logger =
-    Logger::new("PLUGIN_MANAGER-RUNNER-NETWORK", logger::LogLevel::Debug, Some("/var/log/griffon/griffon-daemon.log"));
+static LOGGER_PM: Logger = Logger::new(
+    "PLUGIN_MANAGER",
+    logger::LogLevel::Debug,
+    Some("/var/log/griffon/griffon-daemon.log"),
+);
+static LOGGER_PM_NETWORK: Logger = Logger::new(
+    "PLUGIN_MANAGER-RUNNER-NETWORK",
+    logger::LogLevel::Debug,
+    Some("/var/log/griffon/griffon-daemon.log"),
+);
 
 #[derive(Debug, Clone)]
 pub enum PluginEvent {
