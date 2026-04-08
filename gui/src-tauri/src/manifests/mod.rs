@@ -78,7 +78,7 @@ pub struct InteractionStep {
 }
 
 pub fn load_plugin_manifest(path: &str) -> Result<PluginManifest, Box<dyn std::error::Error>> {
-    println!("{}", path);
+    // println!("{}", path);
     let toml_content = fs::read_to_string(path)?;
     let manifest: PluginManifest = toml::from_str(&toml_content)?;
     Ok(manifest)

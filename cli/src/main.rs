@@ -4,8 +4,8 @@ use std::thread;
 use uuid::Uuid;
 
 use ipc_protocol::ipc_payload_interface::{
-    InterfaceRequest, InterfaceResponse, format_uuid_bytes, recv_interface_response,
-    send_interface_request,
+    InterfaceRequest, InterfaceResponse, alloc_request_id, format_uuid_bytes, parse_uuid_16,
+    recv_interface_response, send_interface_request,
 };
 use logger::{LogLevel, Logger};
 
@@ -16,14 +16,6 @@ const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
 } else {
     "/run/griffon/griffon.sock"
 };
-
-fn alloc_request_id(mut id_request: u32) -> u32 {
-    id_request = id_request.wrapping_add(1);
-    if id_request == 0 {
-        id_request = 1;
-    }
-    id_request
-}
 
 fn start_reader_thread(mut read_sock: UnixStream) {
     thread::spawn(move || {
@@ -83,16 +75,6 @@ fn start_reader_thread(mut read_sock: UnixStream) {
             }
         }
     });
-}
-
-fn parse_uuid_16(plugin_uuid_str: Option<&str>) -> Option<[u8; 16]> {
-    match plugin_uuid_str {
-        Some(uuid_str) => match Uuid::parse_str(uuid_str) {
-            Ok(uuid) => Some(*uuid.as_bytes()),
-            Err(_) => None,
-        },
-        None => None,
-    }
 }
 
 fn main() -> io::Result<()> {
@@ -163,7 +145,7 @@ fn main() -> io::Result<()> {
 
                 // TODO
             }
-            "start" => {
+            "switch_status" => {
                 LOGGER.debug("START");
                 let plugin_uuid_str = parts.next();
 
@@ -184,43 +166,12 @@ fn main() -> io::Result<()> {
 
                 send_interface_request(
                     &mut sock,
-                    &InterfaceRequest::StartPlugin { plugin_uuid },
+                    &InterfaceRequest::SwitchStatusPlugin { plugin_uuid },
                     id_request_to_use,
                 )?;
 
                 LOGGER_NETWORK.debug(format!(
-                    "Start plugin sent with request_id={id_request_to_use}"
-                ));
-
-                id_request = id_request_to_use;
-            }
-            "stop" => {
-                LOGGER.debug("STOP");
-                let plugin_uuid_str = parts.next();
-
-                if plugin_uuid_str.is_none() {
-                    LOGGER.error("Usage: stop <plugin_uuid>");
-                    continue;
-                }
-
-                let plugin_uuid = match parse_uuid_16(plugin_uuid_str) {
-                    Some(uuid) => uuid,
-                    None => {
-                        LOGGER.error("Invalid UUID format");
-                        continue;
-                    }
-                };
-
-                let id_request_to_use = alloc_request_id(id_request);
-
-                send_interface_request(
-                    &mut sock,
-                    &InterfaceRequest::StopPlugin { plugin_uuid },
-                    id_request_to_use,
-                )?;
-
-                LOGGER_NETWORK.debug(format!(
-                    "Stop plugin sent with request_id={id_request_to_use}"
+                    "Switch status plugin sent with request_id={id_request_to_use}"
                 ));
 
                 id_request = id_request_to_use;
