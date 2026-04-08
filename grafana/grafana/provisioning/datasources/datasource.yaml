@@ -1,0 +1,11 @@
+apiVersion: 1
+
+datasources:
+  - name: SQLite
+    uid: sqlite-main
+    type: frser-sqlite-datasource
+    access: proxy
+    isDefault: true
+    editable: false
+    jsonData:
+      path: /var/lib/grafana/sqlite/reporting.sqlite
