@@ -1,12 +1,7 @@
 use anyhow::Result;
 use log::debug;
-use scanner::{
-    load_yara_rules,
-    scan::{self, MultiThreadScanner},
-    scan_file,
-};
+use scanner::scan::MultiThreadScanner;
 use std::time::Instant;
-use walkdir::WalkDir;
 
 use scanner::database::RulesEngine;
 use scanner::file_context::{FileType, ScanStage};
@@ -20,7 +15,7 @@ fn main() {
     debug!("Loading rules...");
     let load_start = Instant::now();
 
-    let mut engine = RulesEngine::from_dir("./rules").unwrap();
+    let engine = RulesEngine::from_dir("./rules").unwrap();
     engine.select_rules(FileType::GenericBinary, ScanStage::Pre);
     let engine: Arc<RulesEngine> = Arc::new(engine);
 

@@ -50,10 +50,10 @@ pub enum DocumentType {
 }
 
 pub struct FileContext {
-    path: PathBuf,
-    detected_type: FileType,
-    extension: Option<String>,
-    size: u64,
+    _path: PathBuf,
+    _detected_type: FileType,
+    _extension: Option<String>,
+    _size: u64,
 }
 
 struct MagicSig {
@@ -79,10 +79,10 @@ pub fn get(path: &Path) -> io::Result<FileContext> {
     debug!("Finding file class for: {}", path.display());
     if !path.exists() || !path.is_file() {
         return Ok(FileContext {
-            path: path.to_path_buf(),
-            detected_type: FileType::Unknown,
-            extension: None,
-            size: 0,
+            _path: path.to_path_buf(),
+            _detected_type: FileType::Unknown,
+            _extension: None,
+            _size: 0,
         });
     }
 
@@ -96,18 +96,18 @@ pub fn get(path: &Path) -> io::Result<FileContext> {
     let n = file.read(&mut buffer)?;
     if let Some(detected_type) = get_type(&buffer[..n]) {
         return Ok(FileContext {
-            path: path.to_path_buf(),
-            detected_type,
-            extension,
-            size,
+            _path: path.to_path_buf(),
+            _detected_type: detected_type,
+            _extension: extension,
+            _size: size,
         });
     }
 
     Ok(FileContext {
-        path: path.to_path_buf(),
-        detected_type: FileType::Unknown,
-        extension: None,
-        size: size,
+        _path: path.to_path_buf(),
+        _detected_type: FileType::Unknown,
+        _extension: None,
+        _size: size,
     })
 }
 

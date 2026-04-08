@@ -14,7 +14,7 @@ use crate::{database::RulesEngine, scan::scan_report::ScanReport};
 
 pub struct MultiThreadScanner {
     engine: Arc<RulesEngine>,
-    num_threads: usize,
+    _num_threads: usize,
 }
 
 impl MultiThreadScanner {
@@ -31,7 +31,7 @@ impl MultiThreadScanner {
 
         Ok(Self {
             engine,
-            num_threads,
+            _num_threads: num_threads,
         })
     }
 
@@ -53,10 +53,10 @@ impl MultiThreadScanner {
     pub fn scan_directory<P: AsRef<Path>>(&self, path: P) -> Result<ScanReport> {
         let scan_start = Instant::now();
 
-        let mut scanReport = ScanReport::new("test".to_string());
-        scanReport.scan_path = path.as_ref().to_string_lossy().to_string();
-        scanReport.timestamp = chrono::Utc::now();
-        let Rules = match self.engine.select_rules(
+        let mut scan_report = ScanReport::new("test".to_string());
+        scan_report.scan_path = path.as_ref().to_string_lossy().to_string();
+        scan_report.timestamp = chrono::Utc::now();
+        let rules = match self.engine.select_rules(
             crate::file_context::FileType::GenericBinary,
             crate::file_context::ScanStage::Pre,
         ) {
@@ -70,18 +70,18 @@ impl MultiThreadScanner {
 
         for entry in WalkDir::new("samples").into_iter().filter_map(|e| e.ok()) {
             if entry.path().is_file() {
-                let hits = self.scan_file(Rules, entry.path());
+                let hits = self.scan_file(rules, entry.path());
                 if hits > 0 {
                     debug!("[ALERT] {:?} matched {} rules", entry.path(), hits);
-                    scanReport.infected_files += 1;
+                    scan_report.infected_files += 1;
                 } else {
-                    scanReport.clean_files += 1;
+                    scan_report.clean_files += 1;
                 }
-                scanReport.total_files += 1;
+                scan_report.total_files += 1;
             }
         }
 
-        scanReport.scan_duration_secs = scan_start.elapsed().as_secs_f64();
-        Ok(scanReport)
+        scan_report.scan_duration_secs = scan_start.elapsed().as_secs_f64();
+        Ok(scan_report)
     }
 }
