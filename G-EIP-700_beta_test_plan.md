@@ -53,25 +53,25 @@ All of the listed features will be demonstrated during the beta presentation.
 
 | **Feature ID** | **User role** | **Feature name** | **Short description** |
 |--------------|---------------|------------------|----------------------|
-| F1 | Everyone | Launch application | Application starts without crashing |
-| F2 | Everyone | Plugin listing | All installed plugins are displayed |
-| F3 | Everyone | Cleaner data selection | Select types of data to analyze and clean |
-| F4 | Everyone | Cleaner analysis | Analyze system to find removable data |
-| F5 | Everyone | Cleaner results | Display detected data before cleaning |
-| F6 | Everyone | Cleaner execution | Select and remove detected data |
-| F7 | Everyone | File or folder analysis | Choose a file or folder to analyze |
-| F8 | Everyone | Default static analysis | Run analysis with default settings |
-| F9 | Advanced | Threat selection | Choose types of threats to detect |
-| F10 | Advanced | Performance configuration | Configure number of threads |
-| F11 | Everyone | Analysis results | Display duration, files analyzed, threats found |
-| F12 | Everyone | Threat handling | Delete or confine detected threats |
-| F13 | Everyone | Archive analysis | Analyze compressed archive files |
-| F14 | Everyone | Plugins history | View history of each plugins past results |
-| F15 | Everyone | Notifications | Receive notification when analysis ends |
-| F16 | Advanced | Plugin management | Enable or disable plugins |
-| F17 | Advanced | Plugin installation | Install or uninstall plugins |
-| F18 | Advanced | Notification settings | Enable or disable notifications per plugin |
-| F19 | Developer | Plugin creation | Create a plugin using documentation |
+| F1 | Everyone | Launch application | Start the application without encountering crashes or system errors. |
+| F2 | Everyone | Plugin listing | Display a dynamic list of all currently installed plugins. |
+| F3 | Everyone | Cleaner data selection | Select specific types of system data (cache, temporary files) for analysis. |
+| F4 | Everyone | Cleaner analysis | Scan the system to identify removable or unnecessary data. |
+| F5 | Everyone | Cleaner results | Review the detected data details before proceeding with cleaning. |
+| F6 | Everyone | Cleaner execution | Remove the selected system data to free up space. |
+| F7 | Everyone | File or folder analysis | Target a specific file or directory for a security scan. |
+| F8 | Everyone | Default static analysis | Run a malware analysis using the predefined default settings. |
+| F9 | Advanced | Threat selection | Filter the specific types of threats to be detected during analysis. |
+| F10 | Advanced | Performance configuration | Adjust the number of threads to optimize analysis speed and behavior. |
+| F11 | Everyone | Analysis results | View the analysis summary, including duration and threats found. |
+| F12 | Everyone | Threat handling | Manage detected threats by deleting or confining them to quarantine. |
+| F13 | Everyone | Archive analysis | Toggle the inclusion of compressed archive files (e.g., .zip) within the analysis scope. |
+| F14 | Everyone | Plugins history | Access the historical logs and past results for every installed plugin. |
+| F15 | Everyone | Notifications | Receive a system alert once an analysis or task is completed. |
+| F16 | Advanced | Plugin management | Toggle the enabled or disabled status of specific plugins. |
+| F17 | Advanced | Plugin installation | Handle the complete lifecycle of plugins, including installation and removal. |
+| F18 | Advanced | Notification settings | Configure notification preferences on a per-plugin basis. |
+| F19 | Developer | Plugin creation | Build new custom plugins using the provided technical documentation. |
 
 ---
 
