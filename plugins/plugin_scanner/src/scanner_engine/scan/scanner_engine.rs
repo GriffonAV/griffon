@@ -9,7 +9,7 @@ use std::sync::Arc;
 use std::fs;
 use yara_x::{Rules, Scanner};
 
-use crate::{database::RulesEngine, scan::scan_report::ScanReport};
+use crate::scanner_engine::{database::RulesEngine, scan::scan_report::ScanReport};
 // use crate::scan::ScanReport;
 
 pub struct MultiThreadScanner {
@@ -57,8 +57,8 @@ impl MultiThreadScanner {
         scan_report.scan_path = path.as_ref().to_string_lossy().to_string();
         scan_report.timestamp = chrono::Utc::now();
         let rules = match self.engine.select_rules(
-            crate::file_context::FileType::GenericBinary,
-            crate::file_context::ScanStage::Pre,
+            crate::scanner_engine::file_context::FileType::GenericBinary,
+            crate::scanner_engine::file_context::ScanStage::Pre,
         ) {
             Some(r) => r,
             None => {

@@ -1,4 +1,4 @@
-use crate::file_context::{FileType, ScanStage};
+use crate::scanner_engine::file_context::{FileType, ScanStage};
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone, Copy)]
 pub struct RuleKey {

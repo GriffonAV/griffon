@@ -1,11 +1,11 @@
+mod scanner_engine;
+use scanner_engine::database::RulesEngine;
+use scanner_engine::file_context::{FileType, ScanStage};
+use scanner_engine::scan::{MultiThreadScanner, ScanReport};
+
 use anyhow::Result;
 use log::debug;
-use scanner::scan::MultiThreadScanner;
 use std::time::Instant;
-
-use scanner::database::RulesEngine;
-use scanner::file_context::{FileType, ScanStage};
-use scanner::scan::ScanReport;
 
 use std::sync::Arc;
 
@@ -29,10 +29,10 @@ fn main() {
     let result: Result<ScanReport> = scanner_engine.scan_directory(path);
     match result {
         Ok(report) => {
-            debug!("Scan completed: \n{}", report);
+            println!("Scan completed: \n{}", report);
         }
         Err(e) => {
-            debug!("Error during scan: {}", e);
+            println!("Error during scan: {}", e);
         }
     }
 }
