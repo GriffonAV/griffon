@@ -1,64 +1,59 @@
-# Griffon — Modular Antivirus for Linux (Rust)
-> A fast, modular, and secure antivirus engine for Linux, written in Rust and powered by YARA. And open source.
+# How to use :
 
----> [Installation and documentation](https://griffon-av.vercel.app/) <---
+```
+docker-compose up -d 
+```
 
+go to 
+```
+http://localhost:3000
+```
 
-<p align="center">
-  <img width="250" height="250" src="logo.png" alt='Griffon logo'>
-</p>
+# How to enter data :
 
-## Key features
+```
+sqlite3 datasources/reporting.sqlite
+```
 
-- **Modular Architecture** - plug-and-play analysis modules and highly customizable engine.
-- **Rust Performance** - memory-safe, fast, concurrent scanning
-- **YARA Integration** - pattern-based detection support
-- **Modern Application** - desktop application powered by [tauri](https://v2.tauri.app/fr/)
+>.  
+> create a new table
+>```
+>CREATE TABLE system_metrics (
+>    id INTEGER PRIMARY KEY AUTOINCREMENT,
+>    plugin TEXT NOT NULL,
+>    ram_usage REAL NOT NULL,
+>    cpu_usage REAL NOT NULL,
+>    disk_usage REAL NOT NULL,
+>    is_active INTEGER,
+>    version REAL NOT NULL
+>);
+>```
 
-
-
-## Documentation
-
-- **User docs:** [griffon-av.vercel.app](https://griffon-av.vercel.app/)
-- **Developer docs:** [`/docs`](./docs)
-- **Internal wiki:** [GitHub Wiki](https://github.com/GriffonAV/GriffonAV/wiki)
-
-
-## Authors
-
-<table>
-    <tbody>
-        <tr>
-            <td align="center">
-                <a href="https://github.com/Raphael-Mabille">
-                    <img src="https://avatars.githubusercontent.com/u/114607576?s=96&v=4" width="100px;" alt="Sebabacou"/><br />
-                    <sub><b>Sebabacou</b></sub>
-                </a>
-            </td>
-            <td align="center">
-                <a href="https://github.com/orgs/GriffonAV/people/Sebabacou">
-                    <img src="https://avatars.githubusercontent.com/u/114739950?s=96&v=4" width="100px;" alt="Raphael_m"/><br />
-                    <sub><b>Raphael_m</b></sub>
-                </a>
-            </td>
-            <td align="center">
-                <a href="https://github.com/ewen1507">
-                    <img src="https://avatars.githubusercontent.com/u/114604459?s=96&v=4" width="100px;" alt="ewen1507"/><br />
-                    <sub><b>ewen1507</b></sub>
-                </a>
-            </td>
-            <td align="center">
-                <a href="https://github.com/DiaboloAB">
-                    <img src="https://avatars.githubusercontent.com/u/109909203?s=96&v=4" width="100px;" alt="Alexis Boitel"/><br />
-                    <sub><b>Alexis Boitel</b></sub>
-                </a>
-            </td>
-        </tr>
-    </tbody>
-</table>
-
-## License
-
-Licensed under the [Apache License 2.0](LICENSE).
-
-You may freely use, modify, and distribute this project under the terms of this license.
+>.  
+> insert data into the table
+>```
+>INSERT INTO system_metrics (plugin, ram_usage, cpu_usage, disk_usage, is_active, version) VALUES
+>-- Initial versions
+>('Cleaner', 12, 15.5, 20, 1, 0.1),
+>('Scanner', 32, 18.2, 25, 1, 0.1),
+>
+>-- Version 0.2
+>('Cleaner', 11, 14.8, 19, 1, 0.2),
+>('Scanner', 34, 19.5, 27, 1, 0.2),
+>
+>-- Version 0.3
+>('Cleaner', 10, 13.6, 18, 1, 0.3),
+>('Scanner', 37, 21.0, 30, 1, 0.3),
+>
+>-- Version 0.4
+>('Cleaner', 9, 12.9, 17, 1, 0.4),
+>('Scanner', 40, 22.7, 33, 1, 0.4),
+>
+>-- Version 0.5
+>('Cleaner', 8, 11.7, 15, 1, 0.5),
+>('Scanner', 44, 24.8, 36, 1, 0.5),
+>
+>-- Version 1.0
+>('Cleaner', 7, 10.5, 14, 1, 1.0),
+>('Scanner', 48, 27.2, 40, 1, 1.0);
+>```
