@@ -23,7 +23,7 @@
     {
       "datasource": {
         "type": "frser-sqlite-datasource",
-        "uid": "P2D2EEF3E092AF52B"
+        "uid": "sqlite-main"
       },
       "fieldConfig": {
         "defaults": {
@@ -118,9 +118,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "P2D2EEF3E092AF52B"
           },
-          "queryText": "SELECT ram_usage, cpu_usage, disk_usage, version FROM system_metrics_2 WHERE plugin = 'Scanner' and version = 0.1 or plugin = 'Scanner' and version = 1.0;",
+          "queryText": "SELECT ram_usage, cpu_usage, disk_usage, version FROM system_metrics WHERE plugin = 'Scanner' and version = 0.1 or plugin = 'Scanner' and version = 1.0;",
           "queryType": "table",
-          "rawQueryText": "SELECT ram_usage, cpu_usage, disk_usage, version FROM system_metrics_2 WHERE plugin = 'Scanner' and version = 0.1 or plugin = 'Scanner' and version = 1.0;",
+          "rawQueryText": "SELECT ram_usage, cpu_usage, disk_usage, version FROM system_metrics WHERE plugin = 'Scanner' and version = 0.1 or plugin = 'Scanner' and version = 1.0;",
           "refId": "A",
           "timeColumns": [
             "time",
@@ -134,7 +134,7 @@
     {
       "datasource": {
         "type": "frser-sqlite-datasource",
-        "uid": "P2D2EEF3E092AF52B"
+        "uid": "sqlite-main"
       },
       "fieldConfig": {
         "defaults": {
@@ -342,9 +342,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "P2D2EEF3E092AF52B"
           },
-          "queryText": "SELECT ram_usage, cpu_usage, disk_usage, version, 40 AS threshold FROM system_metrics_2 WHERE plugin = 'Scanner' and version < 1;\n",
+          "queryText": "SELECT ram_usage, cpu_usage, disk_usage, version, 40 AS threshold FROM system_metrics WHERE plugin = 'Scanner' and version < 1;\n",
           "queryType": "table",
-          "rawQueryText": "SELECT ram_usage, cpu_usage, disk_usage, version, 40 AS threshold FROM system_metrics_2 WHERE plugin = 'Scanner' and version < 1;\n",
+          "rawQueryText": "SELECT ram_usage, cpu_usage, disk_usage, version, 40 AS threshold FROM system_metrics WHERE plugin = 'Scanner' and version < 1;\n",
           "refId": "A",
           "timeColumns": [
             "time",
@@ -358,7 +358,7 @@
     {
       "datasource": {
         "type": "frser-sqlite-datasource",
-        "uid": "P2D2EEF3E092AF52B"
+        "uid": "sqlite-main"
       },
       "fieldConfig": {
         "defaults": {
@@ -442,9 +442,9 @@
             "type": "frser-sqlite-datasource",
             "uid": "P2D2EEF3E092AF52B"
           },
-          "queryText": "SELECT ram_usage, version FROM system_metrics_2 WHERE plugin = 'Scanner' and version = 0.1;\n",
+          "queryText": "SELECT ram_usage, version FROM system_metrics WHERE plugin = 'Scanner' and version = 0.1;\n",
           "queryType": "table",
-          "rawQueryText": "SELECT ram_usage, version FROM system_metrics_2 WHERE plugin = 'Scanner' and version = 0.1;\n",
+          "rawQueryText": "SELECT ram_usage, version FROM system_metrics WHERE plugin = 'Scanner' and version = 0.1;\n",
           "refId": "A",
           "timeColumns": [
             "time",
