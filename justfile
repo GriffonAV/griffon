@@ -29,6 +29,11 @@ lint:
     cargo fmt -- --check
     cargo clippy -- -D warnings
 
+# lint fix at path input
+lint-fix:
+    cargo fmt
+    cargo clippy --fix --allow-dirty
+
 build-deb:
     sudo docker build -t griffonav-builder -f Dockerfile.build .
     sudo docker run --rm -v $(pwd)/dist:/out griffonav-builder
