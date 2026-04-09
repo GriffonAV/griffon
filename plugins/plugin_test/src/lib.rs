@@ -4,7 +4,7 @@ use abi_stable::{
     sabi_extern_fn,
     std_types::{RResult, RString, RVec, Tuple2},
 };
-use interface::{PluginI, PluginRoot, PluginRoot_Ref};
+use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{JoinHandle, sleep, spawn};
 use std::time::Duration;
@@ -19,6 +19,7 @@ lazy_static::lazy_static! {
 
 #[sabi_extern_fn]
 pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
+    // GET ALL INFO FROM TOML
     let mut info = RVec::new();
 
     info.push(Tuple2(
@@ -29,6 +30,10 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     info.push(Tuple2(
         RString::from("description"),
         RString::from("Test Description1"),
+    ));
+    info.push(Tuple2(
+        RString::from("UUID"),
+        RString::from("d0c90f71-b15c-4b7d-afb0-033316c871f9"),
     ));
     info.push(Tuple2(
         RString::from("function"),
@@ -42,7 +47,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 extern "C" fn handle_message(msg: RString) -> RString {
     print!("[LIB1](msg) Received message: {}", msg.as_str());
 
-    let res = match msg.as_str() {
+    match msg.as_str() {
         "fn:start" => {
             start_thread();
             RString::from(format!("ACK LIB1 {}\n", msg.as_str()))
@@ -52,8 +57,7 @@ extern "C" fn handle_message(msg: RString) -> RString {
             RString::from(format!("ACK LIB1 {}\n", msg.as_str()))
         }
         _ => RString::from(format!("ACK LIB1 {}\n", msg.as_str())),
-    };
-    res
+    }
 }
 
 #[export_root_module]

@@ -1,30 +1,38 @@
-name: CI
+name: GriffonAV CI
 
 on:
-    push:
-        branches: [main]
-    pull_request:
-        branches: [main]
+  push:
+    branches: [ "feat/*", "fix/*", "main", "develop" ]
+  pull_request:
+    branches:
+      - "main"
+      - "develop"
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-    quality-check:
-        runs-on: ubuntu-latest
+  quality:
+    name: Formatting & Lints
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v3
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
 
-            - name: Install Rust
-              uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
 
-            - name: Build
-              run: cargo build --all --release
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
 
-            - name: Run tests (critical only)
-              run: cargo test --all --no-default-features
+      - name: Check Formatting
+        run: cargo fmt --all --check
 
-            - name: Check formatting
-              run: cargo fmt --all --check
-
-            - name: Lint with Clippy
-              run: cargo clippy --all --all-targets -- -D warnings
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings

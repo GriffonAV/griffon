@@ -1,0 +1,76 @@
+name: "griffonav"
+arch: "amd64"
+platform: "linux"
+version: "0.1.0"
+section: "utils"
+priority: "optional"
+maintainer: "Alexis <votre@email.com>"
+description: "GriffonAV - Multi-component security tool"
+
+contents:
+
+  # Le Daemon Core
+  - src: ./target/release/griffonav-daemon
+    dst: /usr/bin/griffonav-daemon
+    file_info:
+      mode: 0755
+
+# Le Runner (Indispensable pour le plugin_manager !)
+  - src: ./target/release/griffonav-daemon-runner
+    dst: /usr/bin/griffonav-daemon-runner
+    file_info:
+      mode: 0755
+
+# Le CLI
+  - src: ./target/release/griffonav-cli
+    dst: /usr/bin/griffonav-cli
+    file_info:
+      mode: 0755
+
+# Le GUI (issu de tauri build)
+  - src: ./target/release/griffonav-gui 
+    dst: /usr/bin/griffonav-gui
+    file_info:
+      mode: 0755
+
+# plugins
+  - src: ./target/release/libplugin_test.so
+    dst: /usr/lib/griffonav/plugins/libplugin_test.so
+    file_info:
+      mode: 0644
+
+  - src: ./target/release/libplugin_test_2.so
+    dst: /usr/lib/griffonav/plugins/libplugin_test_2.so
+    file_info:
+      mode: 0644
+
+   # Plugin configs
+  - src: ./plugins/plugin_test/plugin_test.toml
+    dst: /usr/lib/griffonav/plugins/plugin_test.toml
+    file_info:
+      mode: 0644
+
+  - src: ./plugins/plugin_test_2/plugin_test_2.toml
+    dst: /usr/lib/griffonav/plugins/plugin_test_2.toml
+    file_info:
+      mode: 0644
+
+  # Le service Systemd pour le daemon
+  - src: ./daemon/griffonav-daemon.service
+    dst: /lib/systemd/system/griffonav-daemon.service
+    file_info:
+      mode: 0644
+
+overrides:
+  deb:
+    depends:
+      - libwebkit2gtk-4.1-dev
+      - libssl-dev
+  rpm:
+    depends:
+      - webkit2gtk4.1-devel
+      - openssl-devel
+
+scripts:
+  postinstall: ./scripts/postinstall.sh
+  preremove: ./scripts/preremove.sh

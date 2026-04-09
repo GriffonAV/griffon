@@ -5,7 +5,7 @@ use abi_stable::{
     sabi_extern_fn,
     std_types::{RResult, RString},
 };
-use interface::{PluginI, PluginRoot, PluginRoot_Ref};
+use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 
 #[sabi_extern_fn]
 pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
@@ -20,6 +20,10 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
         RString::from("description"),
         RString::from("Test Description2"),
     ));
+    info.push(Tuple2(
+        RString::from("UUID"),
+        RString::from("6e9e800a-0d0c-4f74-8265-7b9ab0234582"),
+    ));
     info.push(Tuple2(RString::from("function"), RString::from("ping")));
 
     RResult::ROk(info)
@@ -28,11 +32,11 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 #[sabi_extern_fn]
 extern "C" fn handle_message(msg: RString) -> RString {
     print!("[LIB2](msg) Received message: {}", msg.as_str());
-    let res = match msg.as_str() {
+
+    match msg.as_str() {
         "fn:ping" => ping(),
         _ => RString::from(format!("ACK LIB2 {}\n", msg.as_str())),
-    };
-    res
+    }
 }
 
 #[export_root_module]

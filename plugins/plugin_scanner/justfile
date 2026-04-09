@@ -1,0 +1,19 @@
+# justfile
+
+prepare:
+    cargo run --bin prepare
+
+run:
+    cargo run
+
+run-debug:
+    RUST_LOG=debug cargo run
+
+bench:
+    cargo bench
+
+test:
+    cargo test
+
+clean:
+    cargo clean

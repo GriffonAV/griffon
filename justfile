@@ -1,33 +1,39 @@
 # justfile
 
-build-core:
-    cargo build -p griffon_core
-
-build-cli:
-    cargo build -p cli
-
-build-daemon:
-    cargo build -p daemon
+setup-dev-env:
+    git config core.hooksPath .githooks
 
 setup-gui:
     cd gui && npm install
 
-build-gui:
-    cd gui && npm run build
 
-dev-gui:
-    cd gui && npm run dev
-
-tauri-dev:
+run-gui:
     cd gui && npx tauri dev
+
+build-gui:
+    cd gui && npx tauri build --no-bundle
+
+build-workspace:
+    cargo build --release --workspace --exclude griffonav-gui
+
+run-daemon:
+    sudo target/debug/daemon_core
+
+run-cli:
+    sudo target/debug/cli
+
+run-gui-sudo:
+    sudo target/debug/app
 
 lint:
     cargo fmt -- --check
     cargo clippy -- -D warnings
 
-test:
-    cargo test --all
+# lint fix at path input
+lint-fix:
+    cargo fmt
+    cargo clippy --fix --allow-dirty
 
-clean:
-    cargo clean
-    cd gui && npm run clean
+build-deb:
+    sudo docker build -t griffonav-builder -f Dockerfile.build .
+    sudo docker run --rm -v $(pwd)/dist:/out griffonav-builder

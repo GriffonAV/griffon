@@ -1,21 +1,35 @@
 [workspace]
 members = [
-    "cli", "daemon", "plugin_manager/interface", "plugins/plugin_test", "plugins/plugin_test_2", "plugin_manager/runner", "plugin_manager/plugin_manager"
-, "plugin_manager/ipc_protocol"] #"gui/src-tauri" as been remove for test and work
-exclude = ["static_analysis"]
+    # daemon components
+    "daemon/daemon_core",
+    "daemon/daemon_runner",
+    "daemon/plugin_manager",
+
+    # shared libraries
+    "shared/plugin_interface",
+    "shared/ipc_protocol",
+    "shared/logger",
+
+    # plugins
+    "plugins/plugin_test",
+    "plugins/plugin_test_2",
+    "plugins/griffon_cleaner",
+    "plugins/plugin_scanner",
+
+    # GUI and CLI
+    "gui/src-tauri",
+    "cli",
+]
 resolver = "2"
 
 
 [workspace.dependencies]
-# Shared dependencies across the workspace
-# No one yet
-plugin_manager = { path = "plugin_manager/plugin_manager" }
-interface = { path = "plugin_manager/interface" }
-ipc_protocol = { path = "plugin_manager/ipc_protocol" }
+plugin_manager = { path = "daemon/plugin_manager" }
+plugin_interface = { path = "shared/plugin_interface" }
+ipc_protocol = { path = "shared/ipc_protocol" }
+logger = { path = "shared/logger" }
 abi_stable = "0.11.3"
 
-# Testing dependencies
-mockall = "0.12"
 
 [profile.dev]
 opt-level = 0

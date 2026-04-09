@@ -1,6 +1,6 @@
 // src/context.rs
-use std::path::PathBuf;
 use crate::CleanerConfig;
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct ExecutionContext {

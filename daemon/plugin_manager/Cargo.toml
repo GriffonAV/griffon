@@ -1,0 +1,12 @@
+[package]
+name = "plugin_manager"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+path = "src/plugin_manager.rs"
+
+[dependencies]
+nix = { version = "0.30.1", features = ["socket"] }
+ipc_protocol = { workspace = true }
+logger = { workspace = true}
