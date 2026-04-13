@@ -153,20 +153,25 @@ impl CacheCleaner {
         let mut report = ModuleReport::empty(self.id());
         let cache_paths = Self::default_cache_paths_with_logs(ctx, &mut report);
 
-        for (root_label, path) in cache_paths {
-            if !path.exists() {
+        for (root_label, root_path) in cache_paths {
+            if !root_path.exists() || !root_path.is_dir() {
                 continue;
             }
 
             let category = Self::root_label_to_category(&root_label).to_string();
 
-            for entry_res in WalkDir::new(&path).into_iter() {
+            let entries = match fs::read_dir(&root_path) {
+                Ok(entries) => entries,
+                Err(_) => continue,
+            };
+
+            for entry_res in entries {
                 let entry = match entry_res {
                     Ok(e) => e,
                     Err(_) => continue,
                 };
 
-                let entry_path = entry.path();
+                let path = entry.path();
 
                 let metadata = match entry.metadata() {
                     Ok(m) => m,
@@ -184,21 +189,30 @@ impl CacheCleaner {
                 let size = if metadata.is_file() {
                     metadata.len()
                 } else {
-                    Self::dir_size(entry_path).unwrap_or(0)
+                    Self::dir_size(&path).unwrap_or(0)
                 };
 
+                if size == 0 {
+                    continue;
+                }
+
+                let name = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown")
+                    .to_string();
+
                 items.push(CleanerCandidate {
-                    id: format!("cache:{}", entry_path.display()),
-                    path: entry_path.display().to_string(),
-                    kind,
-                    module: self.id().to_string(),
+                    path: path.display().to_string(),
+                    name,
                     category: category.clone(),
+                    kind,
                     size,
-                    selected_by_default: true,
                 });
             }
         }
 
+        items.sort_by(|a, b| b.size.cmp(&a.size));
         Ok(items)
     }
 
@@ -264,6 +278,12 @@ impl CacheCleaner {
                 continue;
             };
 
+            if ctx.dry_run {
+                deleted_count += 1;
+                deleted_bytes += size;
+                continue;
+            }
+
             let delete_result = if metadata.is_file() {
                 fs::remove_file(path)
             } else {
@@ -286,6 +306,7 @@ impl CacheCleaner {
 
         DeleteSelectedResponse {
             ok: failed.is_empty(),
+            dry_run: ctx.dry_run,
             deleted_count,
             deleted_bytes,
             failed,

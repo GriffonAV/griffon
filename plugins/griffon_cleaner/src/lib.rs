@@ -260,19 +260,70 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 
 #[sabi_extern_fn]
 extern "C" fn handle_message(msg: RString) -> RString {
-    println!("[LIBCLEAN](msg) Received message: {}", msg.as_str());
+    let raw = msg.as_str().trim();
 
-    if msg.as_str() == "fn:run" {
-        return match execute_cleaner_payload() {
-            Ok(payload) => match serde_json::to_string(&payload) {
-                Ok(json) => RString::from(json),
-                Err(e) => RString::from(format!("ERR json serialize analysis: {e}")),
-            },
-            Err(err) => RString::from(format!("ERR cleaner: {}", err)),
+    println!("[LIBCLEAN](msg) Received message: {}", raw);
+
+    match raw {
+        "fn:run" | "run" => {
+            return match execute_cleaner_payload() {
+                Ok(payload) => match serde_json::to_string(&payload) {
+                    Ok(json) => RString::from(json),
+                    Err(e) => RString::from(format!("ERR json serialize analysis: {e}")),
+                },
+                Err(err) => RString::from(format!("ERR cleaner: {}", err)),
+            };
+        }
+
+        "fn:list_candidates" | "list_candidates" => {
+            let (ctx, _) = match build_execution_context() {
+                Ok(v) => v,
+                Err(e) => return RString::from(format!("ERR context: {}", e)),
+            };
+
+            let cleaner = modules::cache::CacheCleaner::new();
+
+            return match cleaner.collect_cache_candidates(&ctx) {
+                Ok(items) => {
+                    let resp = ListCandidatesResponse { ok: true, items };
+                    println!("[LIBCLEAN] Found {} cache candidates", resp.items.len());
+                    match serde_json::to_string(&resp) {
+                        Ok(json) => RString::from(json),
+                        Err(e) => RString::from(format!("ERR json serialize: {e}")),
+                    }
+                }
+                Err(e) => RString::from(format!("ERR list_candidates: {}", e)),
+            };
+        }
+
+        _ => {}
+    }
+
+    if raw.starts_with("fn:delete_selected") {
+        let parts: Vec<&str> = raw.split_whitespace().collect();
+
+        if parts.len() < 2 {
+            return RString::from("ERR delete_selected requires at least one path");
+        }
+
+        let items: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+
+        let (ctx, _) = match build_execution_context() {
+            Ok(v) => v,
+            Err(e) => return RString::from(format!("ERR context: {}", e)),
+        };
+
+        let cleaner = modules::cache::CacheCleaner::new();
+
+        let resp = cleaner.delete_selected_paths(&ctx, &items);
+
+        return match serde_json::to_string(&resp) {
+            Ok(json) => RString::from(json),
+            Err(e) => RString::from(format!("ERR json serialize: {e}")),
         };
     }
 
-    let req: CleanerPluginRequest = match serde_json::from_str(msg.as_str()) {
+    let req: CleanerPluginRequest = match serde_json::from_str(raw) {
         Ok(req) => req,
         Err(e) => return RString::from(format!("ERR invalid request json: {e}")),
     };

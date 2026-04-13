@@ -9,13 +9,11 @@ pub enum CandidateKind {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CleanerCandidate {
-    pub id: String,
     pub path: String,
-    pub kind: CandidateKind,
-    pub module: String,
+    pub name: String,
     pub category: String,
+    pub kind: CandidateKind,
     pub size: u64,
-    pub selected_by_default: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,6 +36,7 @@ pub struct DeleteFailure {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteSelectedResponse {
     pub ok: bool,
+    pub dry_run: bool,
     pub deleted_count: u64,
     pub deleted_bytes: u64,
     pub failed: Vec<DeleteFailure>,
