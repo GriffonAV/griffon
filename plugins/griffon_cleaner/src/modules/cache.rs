@@ -1,12 +1,11 @@
-// src/modules/cache.rs
-
+use crate::api::{CandidateKind, CleanerCandidate, DeleteFailure, DeleteSelectedResponse};
 use crate::cache_paths::{expand_home, CacheCategory, KNOWN_CACHE_PATHS};
 use crate::PathStats;
 use crate::Profile;
 use crate::TypeStats;
 use crate::{CleanerModule, CleanerResult, ExecutionContext, ModuleReport};
 use std::collections::hash_map::Entry;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::{fs, io::ErrorKind};
 use walkdir::WalkDir;
 
@@ -21,6 +20,7 @@ impl CacheCleaner {
     fn is_root() -> bool {
         #[cfg(target_family = "unix")]
         {
+            // SAFETY: libc::geteuid is safe to call here and has no preconditions.
             unsafe { libc::geteuid() == 0 }
         }
 
@@ -33,7 +33,7 @@ impl CacheCleaner {
     fn default_cache_paths_with_logs(
         ctx: &ExecutionContext,
         report: &mut ModuleReport,
-    ) -> Vec<(String, std::path::PathBuf)> {
+    ) -> Vec<(String, PathBuf)> {
         let cfg = &ctx.config;
         let is_root = Self::is_root();
         let mut out = Vec::new();
@@ -83,6 +83,26 @@ impl CacheCleaner {
         out
     }
 
+    fn category_key(category: CacheCategory) -> &'static str {
+        match category {
+            CacheCategory::System => "system",
+            CacheCategory::User => "user",
+            CacheCategory::Browser => "browser",
+            CacheCategory::DevTools => "devtools",
+            CacheCategory::PackageManager => "package_manager",
+            CacheCategory::DesktopEnv => "desktop_env",
+        }
+    }
+
+    fn root_label_to_category(root_label: &str) -> &'static str {
+        for cache in KNOWN_CACHE_PATHS {
+            if cache.pattern == root_label {
+                return Self::category_key(cache.category);
+            }
+        }
+        "unknown"
+    }
+
     fn file_type_key(path: &Path) -> String {
         let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
@@ -109,6 +129,166 @@ impl CacheCleaner {
 
         if is_permission_denied {
             report.permission_denied += 1;
+        }
+    }
+
+    fn dir_size(path: &Path) -> std::io::Result<u64> {
+        let mut total = 0;
+
+        for entry in WalkDir::new(path) {
+            let entry = entry?;
+            if entry.file_type().is_file() {
+                total += entry.metadata()?.len();
+            }
+        }
+
+        Ok(total)
+    }
+
+    pub fn collect_cache_candidates(
+        &self,
+        ctx: &ExecutionContext,
+    ) -> CleanerResult<Vec<CleanerCandidate>> {
+        let mut items = Vec::new();
+        let mut report = ModuleReport::empty(self.id());
+        let cache_paths = Self::default_cache_paths_with_logs(ctx, &mut report);
+
+        for (root_label, path) in cache_paths {
+            if !path.exists() {
+                continue;
+            }
+
+            let category = Self::root_label_to_category(&root_label).to_string();
+
+            for entry_res in WalkDir::new(&path).into_iter() {
+                let entry = match entry_res {
+                    Ok(e) => e,
+                    Err(_) => continue,
+                };
+
+                let entry_path = entry.path();
+
+                let metadata = match entry.metadata() {
+                    Ok(m) => m,
+                    Err(_) => continue,
+                };
+
+                let kind = if metadata.is_file() {
+                    CandidateKind::File
+                } else if metadata.is_dir() {
+                    CandidateKind::Directory
+                } else {
+                    continue;
+                };
+
+                let size = if metadata.is_file() {
+                    metadata.len()
+                } else {
+                    Self::dir_size(entry_path).unwrap_or(0)
+                };
+
+                items.push(CleanerCandidate {
+                    id: format!("cache:{}", entry_path.display()),
+                    path: entry_path.display().to_string(),
+                    kind,
+                    module: self.id().to_string(),
+                    category: category.clone(),
+                    size,
+                    selected_by_default: true,
+                });
+            }
+        }
+
+        Ok(items)
+    }
+
+    fn is_path_allowed(path: &Path, allowed_roots: &[PathBuf]) -> bool {
+        allowed_roots.iter().any(|root| path.starts_with(root))
+    }
+
+    pub fn delete_selected_paths(
+        &self,
+        ctx: &ExecutionContext,
+        items: &[String],
+    ) -> DeleteSelectedResponse {
+        let mut deleted_count = 0;
+        let mut deleted_bytes = 0;
+        let mut failed = Vec::new();
+
+        let mut report = ModuleReport::empty(self.id());
+        let allowed_roots: Vec<PathBuf> = Self::default_cache_paths_with_logs(ctx, &mut report)
+            .into_iter()
+            .map(|(_, path)| path)
+            .collect();
+
+        for item in items {
+            let path = Path::new(item);
+
+            if !Self::is_path_allowed(path, &allowed_roots) {
+                failed.push(DeleteFailure {
+                    path: item.clone(),
+                    error: "Path is outside allowed cleaner scope".to_string(),
+                });
+                continue;
+            }
+
+            let metadata = match fs::metadata(path) {
+                Ok(m) => m,
+                Err(e) => {
+                    failed.push(DeleteFailure {
+                        path: item.clone(),
+                        error: format!("metadata failed: {e}"),
+                    });
+                    continue;
+                }
+            };
+
+            let size = if metadata.is_file() {
+                metadata.len()
+            } else if metadata.is_dir() {
+                match Self::dir_size(path) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        failed.push(DeleteFailure {
+                            path: item.clone(),
+                            error: format!("dir_size failed: {e}"),
+                        });
+                        continue;
+                    }
+                }
+            } else {
+                failed.push(DeleteFailure {
+                    path: item.clone(),
+                    error: "Unsupported path type".to_string(),
+                });
+                continue;
+            };
+
+            let delete_result = if metadata.is_file() {
+                fs::remove_file(path)
+            } else {
+                fs::remove_dir_all(path)
+            };
+
+            match delete_result {
+                Ok(_) => {
+                    deleted_count += 1;
+                    deleted_bytes += size;
+                }
+                Err(e) => {
+                    failed.push(DeleteFailure {
+                        path: item.clone(),
+                        error: format!("delete failed: {e}"),
+                    });
+                }
+            }
+        }
+
+        DeleteSelectedResponse {
+            ok: failed.is_empty(),
+            deleted_count,
+            deleted_bytes,
+            failed,
         }
     }
 

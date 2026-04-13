@@ -1,11 +1,11 @@
 pub mod analysis;
+pub mod api;
 pub mod cache_paths;
 pub mod config;
 pub mod context;
 pub mod modules;
 pub mod reports;
 pub mod runner;
-
 use abi_stable::{
     export_root_module,
     prefix_type::PrefixTypeTrait,
@@ -13,6 +13,7 @@ use abi_stable::{
     std_types::{RResult, RString, RVec, Tuple2},
 };
 pub use analysis::*;
+pub use api::*;
 pub use cache_paths::*;
 use chrono::Utc;
 pub use config::*;
@@ -176,7 +177,7 @@ fn parse_arg(flag: &str) -> Option<String> {
     None
 }
 
-fn build_execution_context() -> CleanerResult<(ExecutionContext, String)> {
+pub fn build_execution_context() -> CleanerResult<(ExecutionContext, String)> {
     let config_path =
         parse_arg("--config").unwrap_or_else(|| "bench/configs/light.json".to_string());
 
@@ -249,7 +250,10 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
         RString::from("description"),
         RString::from("Plugin Cleaner"),
     ));
-    info.push(Tuple2(RString::from("function"), RString::from("run")));
+    info.push(Tuple2(
+        RString::from("function"),
+        RString::from("run/list_candidates/delete_selected"),
+    ));
 
     RResult::ROk(info)
 }
@@ -258,8 +262,23 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 extern "C" fn handle_message(msg: RString) -> RString {
     println!("[LIBCLEAN](msg) Received message: {}", msg.as_str());
 
-    match msg.as_str() {
-        "fn:run" => match execute_cleaner_payload() {
+    if msg.as_str() == "fn:run" {
+        return match execute_cleaner_payload() {
+            Ok(payload) => match serde_json::to_string(&payload) {
+                Ok(json) => RString::from(json),
+                Err(e) => RString::from(format!("ERR json serialize analysis: {e}")),
+            },
+            Err(err) => RString::from(format!("ERR cleaner: {}", err)),
+        };
+    }
+
+    let req: CleanerPluginRequest = match serde_json::from_str(msg.as_str()) {
+        Ok(req) => req,
+        Err(e) => return RString::from(format!("ERR invalid request json: {e}")),
+    };
+
+    match req.function.as_str() {
+        "run" => match execute_cleaner_payload() {
             Ok(payload) => match serde_json::to_string(&payload) {
                 Ok(json) => RString::from(json),
                 Err(e) => RString::from(format!("ERR json serialize analysis: {e}")),
@@ -267,7 +286,54 @@ extern "C" fn handle_message(msg: RString) -> RString {
             Err(err) => RString::from(format!("ERR cleaner: {}", err)),
         },
 
-        _ => RString::from(format!("ACK LIBCLEAN {}\n", msg.as_str())),
+        "list_candidates" => {
+            let (ctx, _) = match build_execution_context() {
+                Ok(v) => v,
+                Err(e) => return RString::from(format!("ERR context: {}", e)),
+            };
+
+            let cleaner = modules::cache::CacheCleaner::new();
+
+            match cleaner.collect_cache_candidates(&ctx) {
+                Ok(items) => {
+                    let resp = ListCandidatesResponse { ok: true, items };
+                    match serde_json::to_string(&resp) {
+                        Ok(json) => RString::from(json),
+                        Err(e) => RString::from(format!("ERR json serialize: {e}")),
+                    }
+                }
+                Err(e) => RString::from(format!("ERR list_candidates: {}", e)),
+            }
+        }
+
+        "delete_selected" => {
+            let payload = match req.payload {
+                Some(value) => value,
+                None => return RString::from("ERR missing payload"),
+            };
+
+            let delete_req: DeleteSelectedRequest = match serde_json::from_value(payload) {
+                Ok(v) => v,
+                Err(e) => {
+                    return RString::from(format!("ERR invalid delete_selected payload: {e}"))
+                }
+            };
+
+            let (ctx, _) = match build_execution_context() {
+                Ok(v) => v,
+                Err(e) => return RString::from(format!("ERR context: {}", e)),
+            };
+
+            let cleaner = modules::cache::CacheCleaner::new();
+            let resp = cleaner.delete_selected_paths(&ctx, &delete_req.items);
+
+            match serde_json::to_string(&resp) {
+                Ok(json) => RString::from(json),
+                Err(e) => RString::from(format!("ERR json serialize: {e}")),
+            }
+        }
+
+        other => RString::from(format!("ERR unknown function: {other}")),
     }
 }
 
@@ -278,7 +344,7 @@ pub fn get_library() -> PluginRoot_Ref {
             init,
             handle_message,
         }
-            .leak_into_prefix(),
+        .leak_into_prefix(),
     }
-        .leak_into_prefix()
+    .leak_into_prefix()
 }
