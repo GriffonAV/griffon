@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
-
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -27,12 +27,15 @@ export function ContactButton() {
 
   return (
     <Dialog>
-      <DialogTrigger><Button variant="outline" size="icon" className="cursor-pointer">
-        <Info></Info>
-        <span className="sr-only">Toggle theme</span>
-      </Button></DialogTrigger>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="icon" className="cursor-pointer">
+          <Info></Info>
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+      </DialogTrigger>
 
-      <DialogContent className="w-min">
+      <DialogContent className="w-min" aria-describedby={undefined}>
+        <DialogTitle className="text-center hidden">Contact & Support</DialogTitle>
 
         <div className="flex flex-col flex-1 align-middle items-center">
 

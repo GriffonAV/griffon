@@ -1,0 +1,15 @@
+[Unit]
+Description=GriffonAV Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/griffonav-daemon
+Restart=on-failure
+RestartSec=5
+User=root
+RuntimeDirectory=griffon
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target

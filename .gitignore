@@ -40,3 +40,12 @@ target
 .config/**
 *.config/debugging/
 *.config/griffon/
+*.d
+out/
+dist/
+
+/rules
+/malwares
+/samples
+/target
+/eicar_files

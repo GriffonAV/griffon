@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Copy, Minus, Square, X, Github, Bell } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import NotificationPanel from "./NotificationPanel";
+import DaemonConnection from "@/bindings/component/layout/DaemonConnection";
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -68,15 +69,30 @@ function TitleBar() {
       />
       <div className="pl-2 font-bold">Griffon</div>
       <div className="flex-1"></div>
-      <NotificationPanel />
-      <Button className="cursor-pointer text-muted-foreground" variant={"ghost"}>
-        <Bell />
-      </Button>
-      <a target="_blank" rel="noopener noreferrer" onClick={openGitHub}>
-        <Button className="cursor-pointer text-muted-foreground" variant={"ghost"}>
-          <Github />7
-        </Button>
-      </a>
+      <DaemonConnection />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button className="cursor-pointer text-muted-foreground" variant={"ghost"}>
+            <Bell />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Notifications</p>
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <a target="_blank" rel="noopener noreferrer" onClick={openGitHub}>
+            <Button className="cursor-pointer text-muted-foreground" variant={"ghost"}>
+              <Github />7
+            </Button>
+          </a>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Follow on GitHub</p>
+        </TooltipContent>
+      </Tooltip>
+
       {isTauri && (
         <>
           <Button

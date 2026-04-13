@@ -5,7 +5,11 @@ mod dispatcher;
 mod network;
 mod types;
 
-static PLUGIN_DIR_PATH: &str = "./plugins";
+pub const PLUGIN_DIR_PATH: &str = if cfg!(debug_assertions) {
+    ".config/griffon"
+} else {
+    "/usr/lib/griffonav/plugins"
+};
 
 fn main() -> io::Result<()> {
     let (task_tx, task_rx) = mpsc::channel::<types::DaemonTask>();
