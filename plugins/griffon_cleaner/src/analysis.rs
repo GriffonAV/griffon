@@ -3,10 +3,18 @@ use serde::Serialize;
 use std::fs;
 use std::path::Path;
 
+#[derive(Debug, Clone, Serialize)]
+pub struct CleanerSelectionSummary {
+    pub profile: String,
+    pub enabled_categories: Vec<String>,
+    pub dry_run: bool,
+}
+
 #[derive(Debug, Serialize)]
 pub struct CleanerExportPayload {
     pub report: GlobalReport,
     pub analysis: AnalysisReport,
+    pub selected_scope: CleanerSelectionSummary,
     pub generated_at: String,
     pub plugin_name: String,
     pub plugin_version: String,

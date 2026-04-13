@@ -44,9 +44,9 @@ pub enum CleanerError {
 pub fn default_modules() -> Vec<Box<dyn CleanerModule>> {
     vec![
         Box::new(modules::cache::CacheCleaner::new()),
-        //Box::new(modules::logs::LogsCleaner::new()),
-        //Box::new(modules::packages::PackagesCleaner::new()),
-        //Box::new(modules::bigfiles::BigfilesScanner::new()),
+        // Box::new(modules::logs::LogsCleaner::new()),
+        // Box::new(modules::packages::PackagesCleaner::new()),
+        // Box::new(modules::bigfiles::BigfilesScanner::new()),
     ]
 }
 
@@ -64,7 +64,6 @@ fn human_readable(bytes: u64) -> String {
 }
 
 pub fn print_cache_report(global: &GlobalReport) {
-    // On récupère le report du module cache
     let cache_report = match global.per_module.get("cache") {
         Some(r) => r,
         None => {
@@ -81,7 +80,6 @@ pub fn print_cache_report(global: &GlobalReport) {
         human_readable(cache_report.bytes_freed)
     );
 
-    // Par dossier racine
     if !cache_report.per_root_path.is_empty() {
         println!("\nPar dossier :");
         let mut entries: Vec<_> = cache_report.per_root_path.iter().collect();
@@ -97,7 +95,6 @@ pub fn print_cache_report(global: &GlobalReport) {
         }
     }
 
-    // Par type de fichier
     if !cache_report.per_file_type.is_empty() {
         println!("\nPar type :");
 
@@ -118,7 +115,6 @@ pub fn print_cache_report(global: &GlobalReport) {
         }
     }
 
-    // Permissions
     if cache_report.permission_denied > 0 {
         println!(
             "\nPermission denied : {} fichiers (lancer en root pour tout nettoyer)",
@@ -126,7 +122,6 @@ pub fn print_cache_report(global: &GlobalReport) {
         );
     }
 
-    // Warnings éventuels
     if !cache_report.warnings.is_empty() {
         println!("\nWarnings :");
         for w in &cache_report.warnings {
@@ -143,31 +138,29 @@ pub fn print_cache_report(global: &GlobalReport) {
 
     println!("Durée totale : {} ms", global.total_duration_ms);
     println!("Durée module cache : {} ms", cache_report.duration_ms);
-
     println!("===========================");
-    println!("Module Used:");
 }
 
-pub fn whats_enabled_modules(cfg: &CleanerConfig) -> Vec<&'static str> {
+pub fn selected_cache_categories(cfg: &CleanerConfig) -> Vec<String> {
     let mut res = Vec::new();
 
     if cfg.enable_system_cache {
-        res.push("System");
+        res.push("system".to_string());
     }
     if cfg.enable_user_cache {
-        res.push("User");
+        res.push("user".to_string());
     }
     if cfg.enable_browser_cache {
-        res.push("Browser");
+        res.push("browser".to_string());
     }
     if cfg.enable_dev_cache {
-        res.push("DevTools");
+        res.push("devtools".to_string());
     }
     if cfg.enable_package_cache {
-        res.push("PackageManager");
+        res.push("package_manager".to_string());
     }
     if cfg.enable_desktop_cache {
-        res.push("DesktopEnv");
+        res.push("desktop_env".to_string());
     }
 
     res
@@ -183,20 +176,11 @@ fn parse_arg(flag: &str) -> Option<String> {
     None
 }
 
-fn run() -> RResult<GlobalReport, RString> {
+fn build_execution_context() -> CleanerResult<(ExecutionContext, String)> {
     let config_path =
         parse_arg("--config").unwrap_or_else(|| "bench/configs/light.json".to_string());
 
-    let output_path =
-        parse_arg("--output").unwrap_or_else(|| "griffon_cleaner_report.json".to_string());
-
-    let file_cfg = match FileCleanerConfig::load_from_file(PathBuf::from(&config_path).as_path()) {
-        Ok(cfg) => cfg,
-        Err(e) => {
-            eprintln!("Erreur chargement config: {:?}", e);
-            std::process::exit(1);
-        }
-    };
+    let file_cfg = FileCleanerConfig::load_from_file(PathBuf::from(&config_path).as_path())?;
 
     let ctx = ExecutionContext {
         config: file_cfg.to_runtime_config(),
@@ -204,31 +188,51 @@ fn run() -> RResult<GlobalReport, RString> {
         root_paths: file_cfg.root_paths.iter().map(PathBuf::from).collect(),
     };
 
-    let modules = default_modules();
+    ctx.config.validate()?;
 
-    match run_modules(&ctx, &modules) {
-        Ok(report) => {
-            print_cache_report(&report);
-
-            let analysis = build_analysis_report(&report);
-            print_analysis_report(&analysis);
-
-            if let Err(e) = write_analysis_report_to_file(&analysis, Path::new(&output_path)) {
-                eprintln!("Erreur lors de l'export JSON de l'analyse : {:?}", e);
-            } else {
-                println!("Report exporté dans {}", output_path);
-            }
-
-            let enabled = whats_enabled_modules(&ctx.config);
-            println!("Enabled Cache Modules: {:?}", enabled);
-            RResult::ROk(report)
-        }
-        Err(e) => RResult::RErr(RString::from(format!(
-            "Erreur lors de l'exécution du cleaner : {:?}",
-            e
-        ))),
-    }
+    Ok((ctx, config_path))
 }
+
+pub fn execute_cleaner_payload() -> CleanerResult<CleanerExportPayload> {
+    let (ctx, _config_path) = build_execution_context()?;
+    let output_path =
+        parse_arg("--output").unwrap_or_else(|| "griffon_cleaner_report.json".to_string());
+
+    let modules = default_modules();
+    let report = run_modules(&ctx, &modules)?;
+    let analysis = build_analysis_report(&report);
+
+    print_cache_report(&report);
+    print_analysis_report(&analysis);
+
+    if let Err(e) = write_analysis_report_to_file(&analysis, Path::new(&output_path)) {
+        eprintln!("Erreur lors de l'export JSON de l'analyse : {:?}", e);
+    } else {
+        println!("Report exporté dans {}", output_path);
+    }
+
+    let selected_scope = CleanerSelectionSummary {
+        profile: ctx.config.profile.as_str().to_string(),
+        enabled_categories: selected_cache_categories(&ctx.config),
+        dry_run: ctx.dry_run,
+    };
+
+    println!(
+        "Selected cache categories: {:?}",
+        selected_scope.enabled_categories
+    );
+
+    Ok(CleanerExportPayload {
+        generated_at: Utc::now().to_rfc3339(),
+        plugin_name: env!("CARGO_PKG_NAME").to_string(),
+        plugin_version: env!("CARGO_PKG_VERSION").to_string(),
+        run_id: Uuid::new_v4().to_string(),
+        selected_scope,
+        report,
+        analysis,
+    })
+}
+
 #[sabi_extern_fn]
 pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     let mut info = RVec::new();
@@ -237,7 +241,10 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
         RString::from("author"),
         RString::from("Ewen Emeraud"),
     ));
-    info.push(Tuple2(RString::from("name"), RString::from("Test Name1")));
+    info.push(Tuple2(
+        RString::from("name"),
+        RString::from("Griffon Cleaner"),
+    ));
     info.push(Tuple2(
         RString::from("description"),
         RString::from("Plugin Cleaner"),
@@ -252,23 +259,12 @@ extern "C" fn handle_message(msg: RString) -> RString {
     println!("[LIBCLEAN](msg) Received message: {}", msg.as_str());
 
     match msg.as_str() {
-        "fn:run" => match run() {
-            RResult::ROk(report) => {
-                let analysis = build_analysis_report(&report);
-                let payload = CleanerExportPayload {
-                    generated_at: Utc::now().to_rfc3339(),
-                    plugin_name: env!("CARGO_PKG_NAME").to_string(),
-                    plugin_version: env!("CARGO_PKG_VERSION").to_string(),
-                    run_id: Uuid::new_v4().to_string(),
-                    report,
-                    analysis,
-                };
-                match serde_json::to_string(&payload) {
-                    Ok(json) => RString::from(json),
-                    Err(e) => RString::from(format!("ERR json serialize analysis: {e}")),
-                }
-            }
-            RResult::RErr(err) => RString::from(format!("ERR cleaner: {}", err)),
+        "fn:run" => match execute_cleaner_payload() {
+            Ok(payload) => match serde_json::to_string(&payload) {
+                Ok(json) => RString::from(json),
+                Err(e) => RString::from(format!("ERR json serialize analysis: {e}")),
+            },
+            Err(err) => RString::from(format!("ERR cleaner: {}", err)),
         },
 
         _ => RString::from(format!("ACK LIBCLEAN {}\n", msg.as_str())),
@@ -282,7 +278,7 @@ pub fn get_library() -> PluginRoot_Ref {
             init,
             handle_message,
         }
-        .leak_into_prefix(),
+            .leak_into_prefix(),
     }
-    .leak_into_prefix()
+        .leak_into_prefix()
 }
