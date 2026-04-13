@@ -1,16 +1,11 @@
+mod scanner_engine;
+use scanner_engine::database::RulesEngine;
+use scanner_engine::file_context::{FileType, ScanStage};
+use scanner_engine::scan::{MultiThreadScanner, ScanReport};
+
 use anyhow::Result;
 use log::debug;
-use scanner::{
-    load_yara_rules,
-    scan::{self, MultiThreadScanner},
-    scan_file,
-};
 use std::time::Instant;
-use walkdir::WalkDir;
-
-use scanner::database::RulesEngine;
-use scanner::file_context::{FileType, ScanStage};
-use scanner::scan::ScanReport;
 
 use std::sync::Arc;
 
@@ -20,7 +15,7 @@ fn main() {
     debug!("Loading rules...");
     let load_start = Instant::now();
 
-    let mut engine = RulesEngine::from_dir("./rules").unwrap();
+    let engine = RulesEngine::from_dir("./rules").unwrap();
     engine.select_rules(FileType::GenericBinary, ScanStage::Pre);
     let engine: Arc<RulesEngine> = Arc::new(engine);
 
@@ -34,10 +29,10 @@ fn main() {
     let result: Result<ScanReport> = scanner_engine.scan_directory(path);
     match result {
         Ok(report) => {
-            debug!("Scan completed: \n{}", report);
+            println!("Scan completed: \n{}", report);
         }
         Err(e) => {
-            debug!("Error during scan: {}", e);
+            println!("Error during scan: {}", e);
         }
     }
 }

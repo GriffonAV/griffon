@@ -1,5 +1,5 @@
 use super::rule_key::RuleKey;
-use crate::file_context::{FileType, ScanStage};
+use crate::scanner_engine::file_context::{FileType, ScanStage};
 use std::collections::HashMap;
 use yara_x::Rules;
 

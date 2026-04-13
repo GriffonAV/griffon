@@ -62,3 +62,7 @@
 Licensed under the [Apache License 2.0](LICENSE).
 
 You may freely use, modify, and distribute this project under the terms of this license.
+
+## Epitech Project
+
+This project is a final-year study project at Epitech and is not commercial in any way. Here is the link to the [repository being evaluated](https://github.com/GriffonAV/GriffonAV).

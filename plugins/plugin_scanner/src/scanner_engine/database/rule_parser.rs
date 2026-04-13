@@ -1,4 +1,4 @@
-use crate::file_context::{self, FileType, ScanStage};
+use crate::scanner_engine::file_context::{self, FileType, ScanStage};
 use log::error;
 use regex::Regex;
 use std::path::Path;

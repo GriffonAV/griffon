@@ -42,7 +42,7 @@ impl RuleLoader {
             }
 
             if let Some((key, contents)) = self.process_rule_file(path) {
-                buckets.entry(key).or_insert_with(Vec::new).push(contents);
+                buckets.entry(key).or_default().push(contents);
             }
         }
 
