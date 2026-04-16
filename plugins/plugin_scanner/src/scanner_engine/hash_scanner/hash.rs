@@ -1,6 +1,6 @@
-use std::{fs, io, iter::Scan, path::Path};
+use std::{fs, io, path::Path};
 
-use sha2::{Digest, digest};
+use sha2::Digest;
 
 use crate::scanner_engine::{
     data_type::{ScanResult, Severity, Threat},
@@ -12,6 +12,30 @@ pub fn hash_file(path: &Path) -> io::Result<String> {
     let bytes = fs::read(path)?;
     let digest = sha2::Sha256::digest(&bytes);
     Ok(hex::encode(digest))
+}
+
+#[allow(dead_code)]
+pub fn scan_bytes(path: &Path, input: &[u8], db: &SignatureDb) -> ScanResult {
+    let digest = sha2::Sha256::digest(input);
+    let hash = hex::encode(digest);
+
+    if db.contains(&hash) {
+        ScanResult {
+            path: path.to_path_buf(),
+            threats: vec![Threat {
+                name: format!("known-malware:{}", &hash[..16]),
+                severity: Severity::High,
+                matched_rule: "hash-db".to_string(),
+            }],
+            error: None,
+        }
+    } else {
+        ScanResult {
+            path: path.to_path_buf(),
+            threats: vec![],
+            error: None,
+        }
+    }
 }
 
 pub fn scan_file(path: &Path, db: &SignatureDb) -> ScanResult {

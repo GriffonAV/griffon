@@ -9,6 +9,7 @@
 
 //RUST_LOG=debug
 use log::debug;
+use rand::RngExt;
 
 use std::env;
 use std::path::{Path, PathBuf};
@@ -16,7 +17,6 @@ use std::process::Command;
 
 use anyhow::{Context, Result};
 
-use rand::Rng;
 use rand::seq::SliceRandom;
 use regex::Regex;
 use std::fs;

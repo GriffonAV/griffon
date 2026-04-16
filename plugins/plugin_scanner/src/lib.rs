@@ -13,14 +13,11 @@ use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     let mut info = RVec::new();
 
-    info.push(Tuple2(
-        RString::from("author"),
-        RString::from("Test Author2"),
-    ));
+    info.push(Tuple2(RString::from("author"), RString::from("Diabolo")));
     info.push(Tuple2(RString::from("name"), RString::from("Test Name2")));
     info.push(Tuple2(
         RString::from("description"),
-        RString::from("Test Description2"),
+        RString::from("Griffon Scanner default plugin"),
     ));
     info.push(Tuple2(
         RString::from("UUID"),

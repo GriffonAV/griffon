@@ -36,7 +36,7 @@ impl SignatureDb {
         self.hashes.contains(&hash.to_lowercase())
     }
 
-    pub fn len(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.hashes.len()
     }
 }
