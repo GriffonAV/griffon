@@ -7,7 +7,7 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/dashboards:/var/lib/grafana/dashboards
-      - ./grafana/datasources:/var/lib/grafana/sqlite
+      - ./grafana/datasources:/var/lib/grafana/datasources/
       - ./grafana/provisioning:/etc/grafana/provisioning
     environment:
       - GF_PLUGINS_PREINSTALL=frser-sqlite-datasource
