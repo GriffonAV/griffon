@@ -13,16 +13,29 @@ use logger::Logger;
 
 use crate::types::DaemonTask;
 
-static LOGGER_NETWORK: Logger = Logger::new(
-    "DAEMON-INTERFACE-NETWORK",
-    logger::LogLevel::Debug,
-    Some("/var/log/griffon/griffon-daemon.log"),
-);
-static LOGGER_CORE: Logger = Logger::new(
-    "DAEMON-CORE",
-    logger::LogLevel::Debug,
-    Some("/var/log/griffon/griffon-daemon.log"),
-);
+static LOGGER_NETWORK: Logger = if cfg!(debug_assertions) {
+    Logger::new(
+        "DAEMON-INTERFACE-NETWORK",
+        logger::LogLevel::Debug,
+        None)
+} else {
+    Logger::new(
+        "DAEMON-INTERFACE-NETWORK",
+        logger::LogLevel::Debug,
+        Some("/var/log/griffon/griffon-daemon.log"))
+};
+
+static LOGGER_CORE: Logger = if cfg!(debug_assertions) {
+    Logger::new(
+        "DAEMON-CORE",
+        logger::LogLevel::Debug,
+        None)
+} else {
+    Logger::new(
+        "DAEMON-CORE",
+        logger::LogLevel::Debug,
+        Some("/var/log/griffon/griffon-daemon.log"))
+};
 
 pub const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
     "/tmp/griffon-dev.sock"

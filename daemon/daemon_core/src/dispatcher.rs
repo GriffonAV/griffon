@@ -7,11 +7,19 @@ use logger::Logger;
 
 use crate::types::DaemonTask;
 
-static LOGGER_DISPATCHER: Logger = Logger::new(
-    "DISPATCHER",
-    logger::LogLevel::Debug,
-    Some("/var/log/griffon/griffon-daemon.log"),
-);
+
+static LOGGER_DISPATCHER: Logger = if cfg!(debug_assertions) {
+    Logger::new(
+        "DISPATCHER",
+        logger::LogLevel::Debug,
+        None)
+} else {
+    Logger::new(
+        "DISPATCHER",
+        logger::LogLevel::Debug,
+        Some("/var/log/griffon/griffon-daemon.log"))
+};
+
 
 pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'static str) {
     thread::spawn(move || {
@@ -33,7 +41,9 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                     ));
 
                     let response = match pm.switch_status_plugin(plugin_uuid) {
-                        Ok(_) => InterfaceResponse::Ok,
+                        Ok(_) => InterfaceResponse::SwitchDone {
+                            request_id,
+                        },
                         Err(e) => InterfaceResponse::Error {
                             request_id,
                             message: format!(
