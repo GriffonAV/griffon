@@ -33,7 +33,9 @@ pub enum InterfaceRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum InterfaceResponse {
-    Ok,
+    Ok {
+        request_id: u32,
+    },
     Error {
         request_id: u32,
         message: String,
@@ -50,6 +52,9 @@ pub enum InterfaceResponse {
         ok: bool,
         output: String,
     },
+    SwitchDone {
+        request_id: u32,
+    }
 }
 
 pub fn format_uuid_bytes(uuid: &[u8; 16]) -> String {

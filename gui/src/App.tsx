@@ -10,8 +10,10 @@ import LogsPage from "./pages/LogsPage";
 import { ThemeInitializer } from "./components/layout/ModeToggle";
 import { PluginProvider } from "@/bindings/PluginContext";
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { useDaemonNotifications } from "@/hooks/useDaemonNotifications";
 
 export default function App() {
+  useDaemonNotifications()
   return (
     <PluginProvider>
       <TooltipProvider>

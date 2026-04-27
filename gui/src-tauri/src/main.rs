@@ -185,6 +185,7 @@ fn switch_status_plugin_inner(
 fn refresh_plugin(state: State<'_, DaemonConnection>) -> Result<(), String> {
     refresh_plugin_inner(&state)
 }
+
 fn refresh_plugin_inner(conn: &DaemonConnection) -> Result<(), String> {
     LOGGER.debug("REFRESH");
 
@@ -204,6 +205,7 @@ fn refresh_plugin_inner(conn: &DaemonConnection) -> Result<(), String> {
     )
     .map_err(|e| e.to_string())?;
 
+    let _ = list_plugins();
     LOGGER_NETWORK.debug(format!(
         "Refresh plugins sent with request_id={next_request_id}"
     ));
@@ -213,16 +215,24 @@ fn refresh_plugin_inner(conn: &DaemonConnection) -> Result<(), String> {
     Ok(())
 }
 
-fn start_reader_thread(mut read_sock: UnixStream) {
-    // TMP FROM CLI TO DEBUG
+fn start_reader_thread(mut read_sock: UnixStream, app_handle: tauri::AppHandle) {
     thread::spawn(move || {
         LOGGER_NETWORK.debug("Reader thread started");
 
         loop {
             match recv_interface_response(&mut read_sock) {
                 Ok(resp) => match resp {
-                    InterfaceResponse::Ok => {
-                        LOGGER_NETWORK.info("Ok received");
+                    InterfaceResponse::SwitchDone { request_id } => {
+                        LOGGER_NETWORK.info(format!("SwitchDone received {}", request_id))
+                    }
+                    InterfaceResponse::Ok { request_id } => {
+                        LOGGER_NETWORK.info(format!("Ok received {}", request_id));
+                        // let _ = app_handle.emit(
+                        //     "daemon-ok",
+                        //     serde_json::json!({
+                        //         "request_id": request_id
+                        //     }),
+                        // ); I comment it because annoying
                     }
                     InterfaceResponse::CallAccepted { request_id } => {
                         LOGGER_NETWORK.info(format!(
@@ -247,8 +257,8 @@ fn start_reader_thread(mut read_sock: UnixStream) {
                                 plugin.status
                             );
                         }
+                        let _ = app_handle.emit("plugins-updated", ());
                     }
-
                     InterfaceResponse::Error {
                         request_id,
                         message,
@@ -273,7 +283,7 @@ fn start_reader_thread(mut read_sock: UnixStream) {
             }
         }
     });
-}
+} // TMP FROM CLI TO DEBUG
 
 fn main() {
     tauri::Builder::default()
@@ -304,21 +314,22 @@ fn main() {
                             }
                             let _ = app_handle.emit("daemon-status", "Connected");
 
-                            start_reader_thread(stream.try_clone().unwrap());
+                            start_reader_thread(stream.try_clone().unwrap(), app_handle.clone());
 
-                            if let Err(e) = refresh_plugin_inner(&state) {
-                                LOGGER_NETWORK.error(format!("Failed to refresh plugins: {e}"));
-                            }
-                            let vec_empty = Vec::new();
-                            if let Err(e) = call_plugin_inner(
-                                &state,
-                                "6e9e800a-0d0c-4f74-8265-7b9ab0234582",
-                                "ping",
-                                vec_empty,
-                            ) {
-                                LOGGER_NETWORK
-                                    .error(format!("Failed to switch status plugins: {e}"));
-                            }
+                            // TMP FOR TEST
+                            // if let Err(e) = refresh_plugin_inner(&state) {
+                            //     LOGGER_NETWORK.error(format!("Failed to refresh plugins: {e}"));
+                            // }
+                            // let vec_empty = Vec::new();
+                            // if let Err(e) = call_plugin_inner(
+                            //     &state,
+                            //     "6e9e800a-0d0c-4f74-8265-7b9ab0234582",
+                            //     "ping",
+                            //     vec_empty,
+                            // ) {
+                            //     LOGGER_NETWORK
+                            //         .error(format!("Failed to switch status plugins: {e}"));
+                            // }
                             if let Err(e) = switch_status_plugin_inner(
                                 &state,
                                 "6e9e800a-0d0c-4f74-8265-7b9ab0234582",
@@ -326,6 +337,7 @@ fn main() {
                                 LOGGER_NETWORK
                                     .error(format!("Failed to switch status plugins: {e}"));
                             }
+                            // END OF TMP FOR TEST
                         }
                         Err(e) => {
                             LOGGER_NETWORK.error(format!("Failed to connect: {}", e));
