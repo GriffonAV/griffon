@@ -1,21 +1,19 @@
+use logger::Logger;
 use std::io;
 use std::sync::mpsc;
-use logger::Logger;
 
 mod dispatcher;
 mod network;
 mod types;
 
 static LOGGER_NETWORK: Logger = if cfg!(debug_assertions) {
-    Logger::new(
-        "DAEMON-INTERFACE-NETWORK",
-        logger::LogLevel::Debug,
-        None)
+    Logger::new("DAEMON-INTERFACE-NETWORK", logger::LogLevel::Debug, None)
 } else {
     Logger::new(
         "DAEMON-INTERFACE-NETWORK",
         logger::LogLevel::Debug,
-        Some("/var/log/griffon/griffon-daemon.log"))
+        Some("/var/log/griffon/griffon-daemon.log"),
+    )
 };
 
 pub const PLUGIN_DIR_PATH: &str = if cfg!(debug_assertions) {

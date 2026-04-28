@@ -54,7 +54,7 @@ pub enum InterfaceResponse {
     },
     SwitchDone {
         request_id: u32,
-    }
+    },
 }
 
 pub fn format_uuid_bytes(uuid: &[u8; 16]) -> String {
