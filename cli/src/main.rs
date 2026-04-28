@@ -1,7 +1,6 @@
 use std::io;
 use std::os::unix::net::UnixStream;
 use std::thread;
-use uuid::Uuid;
 
 use ipc_protocol::ipc_payload_interface::{
     InterfaceRequest, InterfaceResponse, alloc_request_id, format_uuid_bytes, parse_uuid_16,
@@ -24,7 +23,7 @@ fn start_reader_thread(mut read_sock: UnixStream) {
         loop {
             match recv_interface_response(&mut read_sock) {
                 Ok(resp) => match resp {
-                    InterfaceResponse::Ok => {
+                    InterfaceResponse::Ok { request_id: _ } => {
                         LOGGER_NETWORK.info("Ok received");
                     }
                     InterfaceResponse::CallAccepted { request_id } => {
@@ -64,6 +63,9 @@ fn start_reader_thread(mut read_sock: UnixStream) {
                     } => {
                         LOGGER_NETWORK
                             .info(format!("Call {request_id} result={ok} output={output}"));
+                    }
+                    InterfaceResponse::SwitchDone { request_id } => {
+                        LOGGER_NETWORK.info(format!("Switch done with request_id = {request_id}"));
                     }
                 },
                 Err(e) => {
