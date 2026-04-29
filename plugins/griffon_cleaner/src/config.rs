@@ -60,3 +60,31 @@ impl FileCleanerConfig {
         }
     }
 }
+
+impl Profile {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Profile::Safe => "safe",
+            Profile::Full => "full",
+        }
+    }
+}
+
+impl CleanerConfig {
+    pub fn validate(&self) -> Result<(), crate::CleanerError> {
+        let any_enabled = self.enable_system_cache
+            || self.enable_user_cache
+            || self.enable_browser_cache
+            || self.enable_dev_cache
+            || self.enable_package_cache
+            || self.enable_desktop_cache;
+
+        if !any_enabled {
+            return Err(crate::CleanerError::Config(
+                "At least one cleaner category must be enabled".to_string(),
+            ));
+        }
+
+        Ok(())
+    }
+}
