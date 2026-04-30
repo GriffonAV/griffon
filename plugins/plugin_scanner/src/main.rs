@@ -20,8 +20,18 @@ fn main() {
     if result.threats.is_empty() {
         println!("Clean");
     } else {
+        println!("{} is a threat:", result.path.display());
+        println!("Number of files scanned: {}", result.number_file_scanned);
         for threat in &result.threats {
-            println!("THREAT: {} ({})", threat.name, threat.matched_rule);
+            println!(
+                "THREAT: {} ({}) in {}",
+                threat.name,
+                threat.matched_rule,
+                threat.path.display()
+            );
         }
+    }
+    if !result.threats.is_empty() {
+        std::process::exit(1);
     }
 }

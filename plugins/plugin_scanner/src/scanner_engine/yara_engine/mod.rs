@@ -34,44 +34,37 @@ impl YaraEngine {
         self.rule_count
     }
 
-    pub fn scan_bytes(&self, path: &Path, data: &[u8]) -> ScanResult {
+    pub fn scan_bytes(&self, path: &Path, data: &[u8]) -> Result<Vec<Threat>, yara_x::ScanError> {
         let mut scanner = yara_x::Scanner::new(&self.rules);
 
         match scanner.scan(data) {
             Ok(scan_results) => {
-                let threats = scan_results
+                let threats: Vec<Threat> = scan_results
                     .matching_rules()
                     .map(|r| Threat {
+                        path: path.to_path_buf(),
                         name: r.identifier().to_string(),
                         severity: Severity::High,
-                        matched_rule: "yara-x".to_string(),
+                        matched_rule: "yara_x".to_string(),
                     })
                     .collect();
 
-                ScanResult {
-                    path: path.to_path_buf(),
-                    threats,
-                    error: None,
-                }
+                Ok(threats)
             }
-            Err(e) => ScanResult {
-                path: path.to_path_buf(),
-                threats: Vec::new(),
-                error: Some(format!("Scan Error: {}", e)),
-            },
+            Err(e) => Err(e),
         }
     }
 
     #[allow(dead_code)]
-    pub fn scan(&self, path: &Path) -> ScanResult {
+    pub fn scan(&self, path: &Path) -> Result<Vec<Threat>, yara_x::ScanError> {
         let data = match std::fs::read(path) {
             Ok(d) => d,
             Err(e) => {
-                return ScanResult {
+                eprintln!("Failed to read file {}: {}", path.display(), e);
+                return Err(yara_x::ScanError::OpenError {
                     path: path.to_path_buf(),
-                    threats: Vec::new(),
-                    error: Some(format!("IO Error: {}", e)),
-                };
+                    err: e,
+                });
             }
         };
 
@@ -82,23 +75,16 @@ impl YaraEngine {
                 let threats = scan_results
                     .matching_rules()
                     .map(|r| Threat {
+                        path: path.to_path_buf(),
                         name: r.identifier().to_string(),
                         severity: Severity::High,
-                        matched_rule: "yara-x".to_string(),
+                        matched_rule: r.identifier().to_string(),
                     })
                     .collect();
 
-                ScanResult {
-                    path: path.to_path_buf(),
-                    threats,
-                    error: None,
-                }
+                Ok(threats)
             }
-            Err(e) => ScanResult {
-                path: path.to_path_buf(),
-                threats: Vec::new(),
-                error: Some(format!("Scan Error: {}", e)),
-            },
+            Err(e) => Err(e),
         }
     }
 }

@@ -23,17 +23,20 @@ pub fn scan_bytes(path: &Path, input: &[u8], db: &SignatureDb) -> ScanResult {
         ScanResult {
             path: path.to_path_buf(),
             threats: vec![Threat {
+                path: path.to_path_buf(),
                 name: format!("known-malware:{}", &hash[..16]),
                 severity: Severity::High,
                 matched_rule: "hash-db".to_string(),
             }],
             error: None,
+            number_file_scanned: 1,
         }
     } else {
         ScanResult {
             path: path.to_path_buf(),
             threats: vec![],
             error: None,
+            number_file_scanned: 0,
         }
     }
 }
@@ -44,8 +47,10 @@ pub fn scan_file(path: &Path, db: &SignatureDb) -> ScanResult {
         Ok(hash) => {
             if db.contains(&hash) {
                 ScanResult {
+                    number_file_scanned: 1,
                     path: path.to_path_buf(),
                     threats: vec![Threat {
+                        path: path.to_path_buf(),
                         name: format!("known-malware:{}", &hash[..16]),
                         severity: Severity::High,
                         matched_rule: "hash-db".to_string(),
@@ -54,6 +59,7 @@ pub fn scan_file(path: &Path, db: &SignatureDb) -> ScanResult {
                 }
             } else {
                 ScanResult {
+                    number_file_scanned: 1,
                     path: path.to_path_buf(),
                     threats: vec![],
                     error: None,
@@ -61,6 +67,7 @@ pub fn scan_file(path: &Path, db: &SignatureDb) -> ScanResult {
             }
         }
         Err(e) => ScanResult {
+            number_file_scanned: 0,
             path: path.to_path_buf(),
             threats: vec![],
             error: Some(format!("Failed to hash file: {}", e)),
