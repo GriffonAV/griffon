@@ -5,6 +5,7 @@ import {
     debug,
     error
 } from "@tauri-apps/plugin-log";
+import { listen } from "@tauri-apps/api/event";
 
 export interface Plugin {
     pid: number;
@@ -99,6 +100,22 @@ export function PluginProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         refreshPlugins();
+
+        let unlisten: (() => void) | null = null;
+
+        const setup = async () => {
+            unlisten = await listen("plugins-updated", async () => {
+                await refreshPlugins();
+            });
+        };
+
+        setup();
+
+        return () => {
+            if (unlisten) {
+                unlisten();
+            }
+        };
     }, []);
 
     return (
@@ -125,3 +142,5 @@ export function usePlugins() {
     }
     return context;
 }
+
+

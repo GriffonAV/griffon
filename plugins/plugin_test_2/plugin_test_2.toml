@@ -1,7 +1,7 @@
 # Griffon Plugin Manifest: Griffon Showcase
 [plugin]
 name = "Griffon Showcase"
-id = "org.griffon.showcase"
+id = "6e9e800a-0d0c-4f74-8265-7b9ab0234582"
 version = "1.0.0"
 author = "Raphael"
 description = "Demonstrates all currently supported Griffon UI elements"

@@ -15,16 +15,25 @@ use ipc_protocol::ipc_payload_runner::{
 };
 use logger::Logger;
 
-static LOGGER_PM: Logger = Logger::new(
-    "PLUGIN_MANAGER",
-    logger::LogLevel::Debug,
-    Some("/var/log/griffon/griffon-daemon.log"),
-);
-static LOGGER_PM_NETWORK: Logger = Logger::new(
-    "PLUGIN_MANAGER-RUNNER-NETWORK",
-    logger::LogLevel::Debug,
-    Some("/var/log/griffon/griffon-daemon.log"),
-);
+static LOGGER_PM: Logger = if cfg!(debug_assertions) {
+    Logger::new("PLUGIN_MANAGER", logger::LogLevel::Debug, None)
+} else {
+    Logger::new(
+        "PLUGIN_MANAGER",
+        logger::LogLevel::Debug,
+        Some("/var/log/griffon/griffon-daemon.log"),
+    )
+};
+
+static LOGGER_PM_NETWORK: Logger = if cfg!(debug_assertions) {
+    Logger::new("PLUGIN_MANAGER-NETWORK", logger::LogLevel::Debug, None)
+} else {
+    Logger::new(
+        "PLUGIN_MANAGER-NETWORK",
+        logger::LogLevel::Debug,
+        Some("/var/log/griffon/griffon-daemon.log"),
+    )
+};
 
 #[derive(Debug, Clone)]
 pub enum PluginEvent {
@@ -181,7 +190,7 @@ impl PluginManager {
         }
     }
 
-    pub fn enable_plugin(&mut self, uuid: [u8; 16]) -> io::Result<()> {
+    pub fn switch_status_plugin(&mut self, uuid: [u8; 16]) -> io::Result<()> {
         let pos = self
             .plugins_list
             .iter()
@@ -189,14 +198,25 @@ impl PluginManager {
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "plugin not found"))?;
 
         if self.plugins_list[pos].enabled {
-            LOGGER_PM.debug(format!(
-                "Plugin {} already enabled",
+            if let Some(process) = self.plugins_list[pos].process.as_mut() {
+                process.kill()?;
+            }
+
+            self.plugins_list[pos].process = None;
+            self.plugins_list[pos].fd = None;
+            self.plugins_list[pos].enabled = false;
+            self.plugins_list[pos].plugin_info.status = false;
+
+            LOGGER_PM.info(format!(
+                "Plugin {} {:?} disabled",
+                self.plugins_list[pos].plugin_info.name,
                 format_uuid_bytes(&uuid)
             ));
+
             return Ok(());
         }
 
-        let plugin_path = PathBuf::from(&self.plugins_list[pos].plugin_info.path);
+        let plugin_path = PathBuf::from(self.plugins_list[pos].plugin_info.path.clone());
 
         let (child, fd, mut info) = self.launch_runner(&plugin_path).map_err(io::Error::other)?;
 
@@ -227,10 +247,11 @@ impl PluginManager {
             if let Some(process) = self.plugins_list[pos].process.as_mut() {
                 let _ = process.kill();
             }
+
             self.plugins_list[pos].process = None;
             self.plugins_list[pos].fd = None;
             self.plugins_list[pos].enabled = false;
-            self.plugins_list[pos].plugin_info.status = true;
+            self.plugins_list[pos].plugin_info.status = false;
 
             return Err(e);
         }
@@ -240,35 +261,6 @@ impl PluginManager {
             self.plugins_list[pos].plugin_info.name,
             format_uuid_bytes(&self.plugins_list[pos].plugin_info.plugin_uuid)
         ));
-
-        Ok(())
-    }
-
-    pub fn disable_plugin(&mut self, uuid: [u8; 16]) -> io::Result<()> {
-        let pos = self
-            .plugins_list
-            .iter()
-            .position(|p| p.plugin_info.plugin_uuid == uuid)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "plugin not found"))?;
-
-        if !self.plugins_list[pos].enabled {
-            LOGGER_PM.debug(format!(
-                "Plugin {} already disabled",
-                format_uuid_bytes(&uuid)
-            ));
-            return Ok(());
-        }
-
-        if let Some(process) = self.plugins_list[pos].process.as_mut() {
-            process.kill()?;
-        }
-
-        self.plugins_list[pos].process = None;
-        self.plugins_list[pos].fd = None;
-        self.plugins_list[pos].enabled = false;
-        self.plugins_list[pos].plugin_info.status = false;
-
-        LOGGER_PM.info(format!("Plugin {} disabled", format_uuid_bytes(&uuid)));
 
         Ok(())
     }
