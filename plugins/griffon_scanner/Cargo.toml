@@ -1,8 +1,8 @@
 [package]
-name = "plugin_scanner"
+name = "griffon_scanner"
 version = "0.1.0"
 edition = "2024"
-default-run = "plugin_scanner"
+default-run = "griffon_scanner"
 
 
 [[bin]]
@@ -10,7 +10,7 @@ name = "prepare"
 path = "tools/prepare.rs"
 
 [[bin]]
-name = "plugin_scanner"
+name = "griffon_scanner"
 path = "src/main.rs"
 
 [lib]

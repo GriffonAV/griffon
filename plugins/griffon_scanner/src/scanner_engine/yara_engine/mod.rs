@@ -17,7 +17,7 @@ impl YaraEngine {
 
         let entries = WalkDir::new(rules_dir).into_iter().filter_map(|e| e.ok());
         for entry in entries {
-            println!("Loading YARA rule file: {}", entry.path().display());
+            log::debug!("Loading YARA rule file: {}", entry.path().display());
             let path = entry.path();
             if path.is_file()
                 && let Ok(source) = std::fs::read_to_string(path)
@@ -39,6 +39,11 @@ impl YaraEngine {
 
         match scanner.scan(data) {
             Ok(scan_results) => {
+                log::info!(
+                    "YARA scan found {} matching rules in file {}",
+                    scan_results.matching_rules().count(),
+                    path.display()
+                );
                 let threats: Vec<Threat> = scan_results
                     .matching_rules()
                     .map(|r| Threat {
@@ -51,7 +56,10 @@ impl YaraEngine {
 
                 Ok(threats)
             }
-            Err(e) => Err(e),
+            Err(e) => {
+                log::error!("YARA scan error for file {}: {}", path.display(), e);
+                Err(e)
+            }
         }
     }
 
@@ -60,7 +68,7 @@ impl YaraEngine {
         let data = match std::fs::read(path) {
             Ok(d) => d,
             Err(e) => {
-                eprintln!("Failed to read file {}: {}", path.display(), e);
+                log::error!("Failed to read file {}: {}", path.display(), e);
                 return Err(yara_x::ScanError::OpenError {
                     path: path.to_path_buf(),
                     err: e,
@@ -69,9 +77,13 @@ impl YaraEngine {
         };
 
         let mut scanner = yara_x::Scanner::new(&self.rules);
-
         match scanner.scan(&data) {
             Ok(scan_results) => {
+                log::info!(
+                    "YARA scan found {} matching rules in file {}",
+                    scan_results.matching_rules().count(),
+                    path.display()
+                );
                 let threats = scan_results
                     .matching_rules()
                     .map(|r| Threat {
@@ -84,7 +96,10 @@ impl YaraEngine {
 
                 Ok(threats)
             }
-            Err(e) => Err(e),
+            Err(e) => {
+                log::error!("YARA scan error for file {}: {}", path.display(), e);
+                Err(e)
+            }
         }
     }
 }
