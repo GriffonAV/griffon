@@ -8,9 +8,14 @@ fn main() {
     let args = ScanArgs::parse();
 
     let mut scanner = scanner_engine::ScanEngine::new();
-    scanner
+    let (hash_count, yara_count) = scanner
         .prepare(&args)
         .expect("Failed to prepare the scan engine");
+    log::info!(
+        "Scan engine prepared with {} hash signatures and {} YARA rules",
+        hash_count,
+        yara_count
+    );
 
     let report = scanner.scan(&args.path, &args);
 

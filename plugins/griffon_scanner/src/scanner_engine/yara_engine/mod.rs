@@ -2,7 +2,7 @@ use std::path::Path;
 
 use yara_x::{Compiler, Rules};
 
-use crate::scanner_engine::data_type::{ScanResult, Severity, Threat};
+use crate::scanner_engine::data_type::{Severity, Threat};
 use walkdir::WalkDir;
 
 pub struct YaraEngine {

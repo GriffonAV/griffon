@@ -6,6 +6,7 @@ pub enum Severity {
     #[default]
     Medium,
     High,
+    #[allow(dead_code)]
     Critical,
 }
 
@@ -74,6 +75,7 @@ impl ScanReport {
         }
     }
 
+    #[allow(dead_code)]
     pub fn all_threats(&self) -> Vec<&Threat> {
         let mut threats: Vec<&Threat> =
             self.results.iter().flat_map(|r| r.threats.iter()).collect();
@@ -81,6 +83,7 @@ impl ScanReport {
         threats
     }
 
+    #[allow(dead_code)]
     pub fn errors(&self) -> Vec<&FileResult> {
         self.results.iter().filter(|r| r.error.is_some()).collect()
     }

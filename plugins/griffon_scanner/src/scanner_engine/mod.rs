@@ -1,14 +1,8 @@
 #[allow(dead_code)]
 #[allow(unused_variables)]
-use crate::scanner_engine::data_type::ScanResult;
-use crate::scanner_engine::{
-    archive::{ArchiveKind, detect_archive},
-    data_type::ScanReport,
-};
+use crate::scanner_engine::data_type::ScanReport;
 use clap::Parser;
-use rayon::iter::{ParallelBridge, ParallelIterator};
 use std::path::{Path, PathBuf};
-use walkdir::WalkDir;
 
 mod archive;
 pub mod data_type;
@@ -75,7 +69,7 @@ impl ScanEngine {
         Self::default()
     }
 
-    pub fn prepare(&mut self, args: &ScanArgs) -> Result<(), String> {
+    pub fn prepare(&mut self, args: &ScanArgs) -> Result<(i32, i32), String> {
         self.scan_args = args.clone();
         if !args.yara_only {
             self.load_hash_db(args)
@@ -84,7 +78,12 @@ impl ScanEngine {
         self.load_yara_rules(args)
             .expect("Failed to load YARA rules");
 
-        Ok(())
+        Ok((
+            self.hash_db.as_ref().map_or(0, |db| db.count() as i32),
+            self.yara_rules
+                .as_ref()
+                .map_or(0, |r| r.rule_count() as i32),
+        ))
     }
 
     pub fn scan(&mut self, path: &Path, args: &ScanArgs) -> ScanReport {
