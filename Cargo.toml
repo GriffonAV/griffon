@@ -14,7 +14,7 @@ members = [
     "plugins/plugin_test",
     "plugins/plugin_test_2",
     "plugins/griffon_cleaner",
-    "plugins/plugin_scanner",
+    "plugins/griffon_scanner",
 
     # GUI and CLI
     "gui/src-tauri",

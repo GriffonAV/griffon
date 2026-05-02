@@ -1,4 +1,6 @@
-#[derive(PartialEq)]
+pub mod extract;
+
+#[derive(PartialEq, Debug)]
 pub enum ArchiveKind {
     Zip,
     // TarGz,

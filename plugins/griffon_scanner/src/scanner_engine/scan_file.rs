@@ -2,11 +2,12 @@ use std::path::Path;
 
 use crate::scanner_engine::{
     ScanEngine,
-    archive::{ArchiveKind, detect_archive},
+    archive::{ArchiveKind, detect_archive, extract::extract_entries},
     data_type::FileResult,
 };
 
 const MAX_DEPTH: u32 = 5;
+const MAX_ENTRY_SIZE: usize = 100 * 1024 * 1024; // 100MB per entry
 
 impl ScanEngine {
     pub fn scan_file(&self, path: &Path) -> Vec<FileResult> {
@@ -35,12 +36,36 @@ impl ScanEngine {
 
         let kind = detect_archive(bytes);
 
-        if kind != ArchiveKind::Unknown {
+        if matches!(kind, ArchiveKind::Unknown) {
+            return results;
+        }
+        // only zip is supported for now
+        if kind != ArchiveKind::Zip {
             log::warn!(
-                "Archive scanning is not implemented yet, skipping {}",
-                path.display()
+                "Detected archive type {:?} is not supported for scanning",
+                kind
             );
             results[0].skipped = true;
+            return results;
+        }
+
+        let entries = extract_entries(bytes, &kind);
+        for entry in entries {
+            if entry.bytes.len() > MAX_ENTRY_SIZE {
+                log::warn!(
+                    "Entry {} in archive {} exceeds maximum size limit",
+                    entry.name,
+                    path.display()
+                );
+                continue;
+            }
+            let virtual_path = Path::new(path)
+                .to_path_buf()
+                .join(format!("!/{}", entry.name));
+
+            let mut entry_results = self.scan_bytes(&virtual_path, &entry.bytes, depth + 1);
+
+            results.append(&mut entry_results);
         }
 
         results
