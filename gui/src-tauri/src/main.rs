@@ -84,7 +84,7 @@ fn call_plugin(
     plugin_uuid: String,
     fn_name: String,
     args: Vec<String>,
-) -> Result<(), String> {
+) -> Result<u32, String> {
     call_plugin_inner(&state, &plugin_uuid, &fn_name, args)
 }
 
@@ -93,7 +93,7 @@ fn call_plugin_inner(
     plugin_uuid_str: &str,
     fn_name: &str,
     args: Vec<String>,
-) -> Result<(), String> {
+) -> Result<u32, String> {
     LOGGER.debug("CALL Sent");
 
     let mut sock_guard = conn.0.lock().map_err(|e| e.to_string())?;
@@ -135,7 +135,7 @@ fn call_plugin_inner(
 
     *id_guard = next_request_id;
 
-    Ok(())
+    Ok(next_request_id)
 }
 
 #[tauri::command]
