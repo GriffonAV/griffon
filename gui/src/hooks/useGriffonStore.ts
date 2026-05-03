@@ -8,7 +8,10 @@ function resolveFromPath(
   context: { store: GriffonStore; event?: any }
 ): any {
   // defensive valitdation for potential use as standalone function
-  if (typeof path !== "string") return undefined;
+  if (typeof path !== "string") {
+    console.warn("Invalid path provided for resolveFromPath");
+    return undefined;
+  }
 
   const trimmed = path.trim();
   if (!trimmed) {
@@ -32,6 +35,24 @@ function resolveFromPath(
   return current;
 }
 
+function setByPath(obj: any, path: string, value: any) {
+  const parts = path.split(".");
+  let current = obj;
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+
+    if (current[part] === undefined || typeof current[part] !== "object") {
+      current[part] = {};
+    }
+
+    current = current[part];
+  }
+
+  current[parts[parts.length - 1]] = value;
+}
+
+
 function executeStep(
   draft: GriffonStore,
   step: InteractionStep,
@@ -48,8 +69,8 @@ function executeStep(
       const value = hasFrom
           ? resolveFromPath(step.from, { store: next, event })
           : step.value;
-
-      next[step.key] = value;
+  
+      setByPath(next, step.key, value);
       return next;
     }
 
