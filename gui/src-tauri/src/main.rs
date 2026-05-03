@@ -137,6 +137,7 @@ fn call_plugin_inner(
 
     Ok(())
 }
+
 #[tauri::command]
 fn switch_status_plugin(
     state: State<'_, DaemonConnection>,
@@ -272,6 +273,11 @@ fn start_reader_thread(mut read_sock: UnixStream, app_handle: tauri::AppHandle) 
                     } => {
                         LOGGER_NETWORK
                             .info(format!("Call {request_id} result={ok} output={output}"));
+                        let _ = app_handle.emit("plugin-call-result", serde_json::json!({
+                            "request_id": request_id,
+                            "ok": ok,
+                            "output": output
+                        }));
                     }
                 },
                 Err(e) => {
