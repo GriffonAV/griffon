@@ -33,7 +33,7 @@ export function Sidebar() {
       <Separator />
       <span className="text-xs text-muted-foreground px-2 my-2 select-none">Plugins</span>
       {plugins.map((plugin) => (
-        <Link key={plugin.pid} to={`/plugin/${plugin.name}`}>
+        <Link key={plugin.name} to={`/plugin/${plugin.name}`}>
           <SidebarButton
             icon={null}
             label={plugin.name}
