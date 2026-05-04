@@ -84,8 +84,9 @@ fn call_plugin(
     plugin_uuid: String,
     fn_name: String,
     args: Vec<String>,
-) -> Result<u32, String> {
-    call_plugin_inner(&state, &plugin_uuid, &fn_name, args)
+    request_id: u32,
+) -> Result<(), String> {
+    call_plugin_inner(&state, &plugin_uuid, &fn_name, args, request_id)
 }
 
 fn call_plugin_inner(
@@ -93,11 +94,11 @@ fn call_plugin_inner(
     plugin_uuid_str: &str,
     fn_name: &str,
     args: Vec<String>,
-) -> Result<u32, String> {
+    request_id: u32,
+) -> Result<(), String> {
     LOGGER.debug("CALL Sent");
 
     let mut sock_guard = conn.0.lock().map_err(|e| e.to_string())?;
-    let mut id_guard = conn.1.lock().map_err(|e| e.to_string())?;
 
     let mut sock = sock_guard
         .as_mut()
@@ -116,7 +117,6 @@ fn call_plugin_inner(
         return Err("Function name cannot be empty".to_string());
     }
 
-    let next_request_id = alloc_request_id(*id_guard);
 
     send_interface_request(
         &mut sock,
@@ -125,17 +125,15 @@ fn call_plugin_inner(
             fn_name: fn_name.to_string(),
             args,
         },
-        next_request_id,
+        request_id,
     )
     .map_err(|e| e.to_string())?;
 
     LOGGER_NETWORK.debug(format!(
-        "Call request sent with request_id={next_request_id}"
+        "Call request sent with request_id={request_id}"
     ));
 
-    *id_guard = next_request_id;
-
-    Ok(next_request_id)
+    Ok(())
 }
 
 #[tauri::command]

@@ -18,7 +18,7 @@ export default function PluginPage() {
   }, [name, loadPluginManifest]);
 
 
-  if (isManifestLoading || !currentManifest) {
+  if (isManifestLoading || !currentManifest?.plugin) {
     return <div>Loading plugin...</div>;
   }
 

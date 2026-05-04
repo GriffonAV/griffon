@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { error } from "@tauri-apps/plugin-log";
+import { listen } from "@tauri-apps/api/event";
 
 export interface Plugin {
     pid: number;
@@ -31,6 +32,7 @@ export interface PluginManifest {
         author: string;
         description: string;
         tabs: string[];
+        uuid: string;
     };
     ui: {
         sections: Array<{
@@ -53,8 +55,14 @@ interface PluginContextType {
     isManifestLoading: boolean;
     refreshPlugins: () => void;
     loadPluginManifest: (pluginId: string) => void;
+    callPluginFunction: (fnName: string, args: string[]) => Promise<any>;
 }
 
+interface PluginCallResult {
+    request_id: number;
+    ok: boolean;
+    output: any;
+}
 
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
@@ -65,6 +73,37 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     const [isManifestLoading, setIsManifestLoading] = useState(false);
     const [currentManifest, setCurrentManifest] = useState<PluginManifest>({} as PluginManifest);
 
+    const pending = new Map<number, { resolve: Function; reject: Function }>();
+    
+    let requestCounter = 0;
+
+    listen("plugin-call-result", (event) => {
+        const { request_id, ok, output } = event.payload as PluginCallResult;
+
+        const entry = pending.get(request_id);
+        if (!entry) return;
+
+        pending.delete(request_id);
+
+        if (ok) entry.resolve(output);
+        else entry.reject(new Error(output));
+    });
+
+    async function callPluginFunction(fnName: string, args: string[]) {
+        requestCounter += 1;
+        const requestId : number = requestCounter;
+
+        return new Promise(async (resolve, reject) => {
+            pending.set(requestId, { resolve, reject });
+    
+            await invoke("call_plugin", {
+                pluginUuid: currentManifest.plugin.uuid,
+                fnName,
+                args,
+                requestId,
+            });
+        });
+    }
 
     async function refreshPlugins() {
         try {
@@ -76,11 +115,8 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     }
 
     async function loadPluginManifest(pluginName: string) {
-        // already cached
 
-        console.log("Loading manifest for plugin:", pluginName);
         if (manifests[pluginName]) {
-            console.log("Manifest already cached for plugin:", pluginName);
             setCurrentManifest(manifests[pluginName]);
             return;
         }
@@ -88,10 +124,8 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         setIsManifestLoading(true);
 
         try {
-            console.log("try");
             const manifest = await invoke<PluginManifest>("get_plugin_manifest", { "name": pluginName });
 
-            console.log("Loaded manifest for plugin:", pluginName, manifest);
             setManifests(prev => ({
             ...prev,
             [pluginName]: {
@@ -121,6 +155,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                 isManifestLoading,
                 refreshPlugins,
                 loadPluginManifest,
+                callPluginFunction
             }}
         >
             {children}
