@@ -12,6 +12,9 @@ pub mod scan_dir;
 pub mod scan_file;
 pub mod yara_engine;
 
+use std::sync::OnceLock;
+static THREAD_POOL_INIT: OnceLock<()> = OnceLock::new();
+
 #[derive(Parser, Debug, Clone)]
 #[command(version, about, long_about = None)]
 pub struct ScanArgs {
@@ -40,6 +43,13 @@ pub struct ScanArgs {
     // parallel scan: bool, default true
     #[arg(short, long)]
     pub parallel: bool,
+
+    // thread settings
+    //--threads 4 — explicit count
+    //--threads auto — let rayon decide (default, uses all cores)
+    //--threads conservative — use max(1, cores / 2) to leave room for the rest of the system
+    #[arg(long, default_value = "auto")]
+    pub threads: String,
 }
 
 impl Default for ScanArgs {
@@ -52,6 +62,7 @@ impl Default for ScanArgs {
             yara_rules: None,
             yara_only: false,
             parallel: true,
+            threads: "auto".to_string(),
         }
     }
 }
@@ -71,6 +82,9 @@ impl ScanEngine {
 
     pub fn prepare(&mut self, args: &ScanArgs) -> Result<(i32, i32), String> {
         self.scan_args = args.clone();
+
+        Self::init_thread_pool(&args.threads)?;
+
         if !args.yara_only {
             self.load_hash_db(args)
                 .expect("Failed to load signature DB");
@@ -90,6 +104,7 @@ impl ScanEngine {
         self.scan_args = args.clone();
         let mut report = ScanReport::default();
 
+        log::info!("Rayon active threads: {}", rayon::current_num_threads());
         if path.is_file() {
             let results = self.scan_file(path);
             report.add(results);
@@ -99,5 +114,37 @@ impl ScanEngine {
         }
 
         report
+    }
+
+    fn init_thread_pool(threads: &str) -> Result<(), String> {
+        let num_threads = match threads.trim().to_lowercase().as_str() {
+            "auto" => None,
+            "conservative" => {
+                let cores = std::thread::available_parallelism()
+                    .map(|n| n.get())
+                    .unwrap_or(2);
+                Some((cores / 2).max(1))
+            }
+            n => Some(n.parse::<usize>().map_err(|_| {
+                format!(
+                    "Invalid --threads value: '{}'. Use a number, 'auto', or 'conservative'",
+                    n
+                )
+            })?),
+        };
+
+        THREAD_POOL_INIT.get_or_init(|| {
+            if let Some(n) = num_threads {
+                rayon::ThreadPoolBuilder::new()
+                    .num_threads(n)
+                    .build_global()
+                    .unwrap_or_else(|e| log::warn!("Thread pool init failed: {}", e));
+                log::info!("Thread pool initialized with {} threads", n);
+            } else {
+                log::info!("Thread pool using auto (all available cores)");
+            }
+        });
+
+        Ok(())
     }
 }
