@@ -1,8 +1,8 @@
 #[allow(dead_code)]
 #[allow(unused_variables)]
 use crate::scanner_engine::data_type::ScanReport;
-use clap::Parser;
-use std::path::{Path, PathBuf};
+use crate::scanner_engine::scanargs::ScanArgs;
+use std::path::Path;
 
 mod archive;
 pub mod data_type;
@@ -10,62 +10,11 @@ pub mod hash_scanner;
 pub mod load;
 pub mod scan_dir;
 pub mod scan_file;
+pub mod scanargs;
 pub mod yara_engine;
 
 use std::sync::OnceLock;
 static THREAD_POOL_INIT: OnceLock<()> = OnceLock::new();
-
-#[derive(Parser, Debug, Clone)]
-#[command(version, about, long_about = None)]
-pub struct ScanArgs {
-    // scan archive file: bool, default false
-    #[arg(short, long)]
-    pub scan_archives: bool,
-
-    // recursive scan: bool, default true
-    #[arg(short, long)]
-    pub recursive: bool,
-
-    // path to scan: string, no flag just the path
-    pub path: PathBuf,
-
-    // path to hash db: string, optional
-    #[arg(short = 'H', long)]
-    pub hash_db: Option<String>,
-    // path to yara rules: string, optional
-    #[arg(short, long)]
-    pub yara_rules: Option<String>,
-
-    // yara only
-    #[arg(long)]
-    pub yara_only: bool,
-
-    // parallel scan: bool, default true
-    #[arg(short, long)]
-    pub parallel: bool,
-
-    // thread settings
-    //--threads 4 — explicit count
-    //--threads auto — let rayon decide (default, uses all cores)
-    //--threads conservative — use max(1, cores / 2) to leave room for the rest of the system
-    #[arg(long, default_value = "auto")]
-    pub threads: String,
-}
-
-impl Default for ScanArgs {
-    fn default() -> Self {
-        ScanArgs {
-            scan_archives: false,
-            recursive: true,
-            path: PathBuf::new(),
-            hash_db: None,
-            yara_rules: None,
-            yara_only: false,
-            parallel: true,
-            threads: "auto".to_string(),
-        }
-    }
-}
 
 #[derive(Default)]
 pub struct ScanEngine {

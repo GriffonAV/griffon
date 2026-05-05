@@ -2,7 +2,7 @@ mod scanner_engine;
 
 use clap::Parser;
 
-use crate::scanner_engine::ScanArgs;
+use crate::scanner_engine::scanargs::ScanArgs;
 
 fn main() {
     let args = ScanArgs::parse();

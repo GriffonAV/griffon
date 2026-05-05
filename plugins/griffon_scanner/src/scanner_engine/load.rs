@@ -21,6 +21,7 @@ impl ScanEngine {
 
     pub fn load_yara_rules(&mut self, args: &ScanArgs) -> anyhow::Result<()> {
         let path = Path::new(args.yara_rules.as_deref().unwrap_or(SDB));
+        log::info!("Loading YARA rules from {}", path.display());
         let rules = yara_engine::YaraEngine::load_from_dir(path.to_str().unwrap_or(""))?;
         self.yara_rules = Some(rules);
         Ok(())

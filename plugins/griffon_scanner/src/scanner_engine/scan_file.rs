@@ -84,15 +84,33 @@ impl ScanEngine {
         }
 
         if let Some(rules) = &self.yara_rules {
-            log::info!("Scanning with {} YARA rules", rules.rule_count());
-            match rules.scan_bytes(path, bytes) {
-                Ok(mut t) => {
-                    result.threats.append(&mut t);
-                }
-                Err(e) => {
-                    result.error = Some(format!("YARA scan error: {}", e));
+            let active_categories = self.scan_args.get_active_categories();
+
+            for category in active_categories {
+                log::info!(
+                    "Scanning with {} YARA rules for category {:?}",
+                    rules.rule_count_by_category(&category),
+                    category
+                );
+                match rules.scan_bytes(path, bytes, category) {
+                    Ok(mut t) => {
+                        result.threats.append(&mut t);
+                    }
+                    Err(e) => {
+                        result.error = Some(format!("YARA scan error: {}", e));
+                    }
                 }
             }
+
+            // log::info!("Scanning with {} YARA rules", rules.rule_count());
+            // match rules.scan_bytes(path, bytes, ThreatCategory::Other) {
+            //     Ok(mut t) => {
+            //         result.threats.append(&mut t);
+            //     }
+            //     Err(e) => {
+            //         result.error = Some(format!("YARA scan error: {}", e));
+            //     }
+            // }
         }
         result
     }
