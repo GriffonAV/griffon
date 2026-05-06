@@ -1,3 +1,4 @@
+mod quanrantine;
 mod scanner_engine;
 
 use clap::Parser;
