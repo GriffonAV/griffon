@@ -1,5 +1,7 @@
+pub mod list_file;
 #[allow(dead_code)]
 pub mod manifest;
+pub mod restore_file;
 
 use crate::scanner_engine::data_type::{FileResult, Threat};
 use manifest::QuarantineManifest;
@@ -22,10 +24,14 @@ impl Quarantine {
     }
 
     pub fn default_dir() -> PathBuf {
-        /// Default location: ~/.local/share/griffon_scanner/quarantine
-        dirs::data_local_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("griffon_scanner")
-            .join("quarantine")
+        if cfg!(debug_assertions) {
+            PathBuf::from("quarantine")
+        } else {
+            /// is equal to ~/.local/share/griffon_scanner/quarantine
+            dirs::data_local_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("griffon_scanner")
+                .join("quarantine")
+        }
     }
 }

@@ -6,10 +6,18 @@ use clap::Parser;
 use crate::{quanrantine::Quarantine, scanner_engine::scanargs::ScanArgs};
 
 fn main() {
+    env_logger::init();
     let quarantine =
         Quarantine::new(&Quarantine::default_dir()).expect("Failed to initialize quarantine");
     // test "samples/sample_00000.bin" for quarantine
-    let path = quarantine.quarantine_file(&"samples/sample_00000.bin".into());
+    // let path = quarantine.quarantine_file(&"samples/test.rs".into());
+    log::info!("Quarantine initialized at {}", quarantine.dir.display());
+    let result = quarantine.restore_file("20260506_074736_e3b0c44298fc1c14.quarantined");
+    if let Err(e) = result {
+        log::error!("Failed to restore file: {}", e);
+    } else {
+        log::info!("File restored successfully");
+    }
 
     return;
     let args = ScanArgs::parse();

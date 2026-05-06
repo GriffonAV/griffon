@@ -1,12 +1,10 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::scanner_engine::{ScanArgs, ScanEngine, hash_scanner, yara_engine};
 
-pub const SDB: &str = "rules/";
-
 fn default_rules_dir() -> PathBuf {
     if cfg!(debug_assertions) {
-        PathBuf::from(SDB)
+        PathBuf::from("rules/")
     } else {
         dirs::data_local_dir()
             .unwrap_or_else(|| PathBuf::from("."))

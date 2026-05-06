@@ -60,9 +60,10 @@ impl Quarantine {
 
         let hash = hex::encode(Sha256::digest(&bytes));
 
-        let dest_name = format!("{}.quarantined", &hash[..16]);
-        let dest_path = self.dir.join(dest_name);
-        let manifest_path = self.dir.join(format!("{}.json", &hash[..16]));
+        let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
+        let dest_name = format!("{}_{}.quarantined", timestamp, &hash[..16]);
+        let dest_path = self.dir.join(dest_name.clone());
+        let manifest_path = self.dir.join(dest_name.replace(".quarantined", ".json"));
 
         let manifest = QuarantineManifest {
             original_path: path.canonicalize().unwrap_or_else(|_| path.to_path_buf()),
@@ -77,7 +78,6 @@ impl Quarantine {
 
         std::fs::rename(path, &dest_path)
             .or_else(|_| {
-                // rename fails across filesystems — fall back to copy + delete
                 std::fs::copy(path, &dest_path)
                     .and_then(|_| std::fs::remove_file(path))
                     .map(|_| ())
