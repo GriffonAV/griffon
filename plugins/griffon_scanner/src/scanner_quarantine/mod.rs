@@ -1,11 +1,7 @@
 pub mod list_file;
-#[allow(dead_code)]
 pub mod manifest;
 pub mod restore_file;
 
-use crate::scanner_engine::data_type::{FileResult, Threat};
-use manifest::QuarantineManifest;
-use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
 pub mod quarantine_file;
@@ -27,7 +23,7 @@ impl Quarantine {
         if cfg!(debug_assertions) {
             PathBuf::from("quarantine")
         } else {
-            /// is equal to ~/.local/share/griffon_scanner/quarantine
+            // is equal to ~/.local/share/griffon_scanner/quarantine
             dirs::data_local_dir()
                 .unwrap_or_else(|| PathBuf::from("."))
                 .join("griffon_scanner")

@@ -1,4 +1,4 @@
-use crate::quanrantine::{Quarantine, manifest::QuarantineManifest};
+use crate::scanner_quarantine::{Quarantine, manifest::QuarantineManifest};
 
 impl Quarantine {
     pub fn list(&self) -> Vec<QuarantineManifest> {

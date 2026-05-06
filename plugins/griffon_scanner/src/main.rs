@@ -1,9 +1,13 @@
-mod quanrantine;
 mod scanner_engine;
+mod scanner_quarantine;
+mod scanner_updater;
 
 use clap::Parser;
 
-use crate::{quanrantine::Quarantine, scanner_engine::scanargs::ScanArgs};
+use crate::{
+    scanner_engine::scanargs::ScanArgs, scanner_quarantine::Quarantine,
+    scanner_updater::ScannerUpdater,
+};
 
 fn main() {
     env_logger::init();
@@ -11,12 +15,17 @@ fn main() {
         Quarantine::new(&Quarantine::default_dir()).expect("Failed to initialize quarantine");
     // test "samples/sample_00000.bin" for quarantine
     // let path = quarantine.quarantine_file(&"samples/test.rs".into());
-    log::info!("Quarantine initialized at {}", quarantine.dir.display());
-    let result = quarantine.restore_file("20260506_074736_e3b0c44298fc1c14.quarantined");
-    if let Err(e) = result {
-        log::error!("Failed to restore file: {}", e);
-    } else {
-        log::info!("File restored successfully");
+    // log::info!("Quarantine initialized at {}", quarantine.dir.display());
+    // let result = quarantine.restore_file("20260506_074736_e3b0c44298fc1c14.quarantined");
+    // if let Err(e) = result {
+    //     log::error!("Failed to restore file: {}", e);
+    // } else {
+    //     log::info!("File restored successfully");
+    // }
+
+    let updater = ScannerUpdater::default();
+    if let Err(e) = updater.update() {
+        log::error!("Failed to update rules: {}", e);
     }
 
     return;

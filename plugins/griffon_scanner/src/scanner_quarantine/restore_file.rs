@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::quanrantine::{Quarantine, manifest::QuarantineManifest};
+use crate::scanner_quarantine::{Quarantine, manifest::QuarantineManifest};
 
 impl Quarantine {
     pub fn restore_file(&self, quarantined_name: &str) -> Result<PathBuf, String> {

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use sha2::{Digest, Sha256};
 
-use crate::quanrantine::{Quarantine, manifest::QuarantineManifest};
+use crate::scanner_quarantine::{Quarantine, manifest::QuarantineManifest};
 
 fn check_virtual_path(path: &PathBuf) -> Option<PathBuf> {
     if path.to_string_lossy().contains('!') {
