@@ -3,9 +3,15 @@ mod scanner_engine;
 
 use clap::Parser;
 
-use crate::scanner_engine::scanargs::ScanArgs;
+use crate::{quanrantine::Quarantine, scanner_engine::scanargs::ScanArgs};
 
 fn main() {
+    let quarantine =
+        Quarantine::new(&Quarantine::default_dir()).expect("Failed to initialize quarantine");
+    // test "samples/sample_00000.bin" for quarantine
+    let path = quarantine.quarantine_file(&"samples/sample_00000.bin".into());
+
+    return;
     let args = ScanArgs::parse();
 
     let mut scanner = scanner_engine::ScanEngine::new();

@@ -6,6 +6,8 @@ use manifest::QuarantineManifest;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
+pub mod quarantine_file;
+
 pub struct Quarantine {
     pub dir: PathBuf,
 }
