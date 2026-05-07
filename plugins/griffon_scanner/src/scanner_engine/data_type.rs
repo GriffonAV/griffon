@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Severity {
     Low,
     #[default]
@@ -10,7 +12,7 @@ pub enum Severity {
     Critical,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Threat {
     pub path: PathBuf,
 
@@ -30,7 +32,7 @@ impl Default for Threat {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FileResult {
     pub path: PathBuf,
     pub threats: Vec<Threat>,
@@ -49,7 +51,7 @@ impl FileResult {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ScanReport {
     pub results: Vec<FileResult>,
     pub total_scanned: u64,

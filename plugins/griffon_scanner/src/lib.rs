@@ -1,5 +1,9 @@
 pub mod scanner_engine;
 
+use std::path::Path;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use abi_stable::std_types::{RVec, Tuple2};
 use abi_stable::{
     export_root_module,
@@ -9,6 +13,15 @@ use abi_stable::{
 };
 use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 
+use crate::scanner_engine::ScanEngine;
+use crate::scanner_engine::scanargs::ScanArgs;
+
+static RUNNING: AtomicBool = AtomicBool::new(false);
+
+lazy_static::lazy_static! {
+    static ref ENGINE: Mutex<Option<ScanEngine>> = Mutex::new(None);
+}
+
 #[sabi_extern_fn]
 pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     let mut info = RVec::new();
@@ -17,16 +30,15 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     info.push(Tuple2(RString::from("name"), RString::from("GriffonScan")));
     info.push(Tuple2(
         RString::from("description"),
-        RString::from("GriffonScan default plugin"),
+        RString::from("YARA & Hash Antivirus Scanner"),
     ));
     info.push(Tuple2(
         RString::from("UUID"),
         RString::from("123e4567-e89b-12d3-a456-426614174000"),
     ));
-    info.push(Tuple2(RString::from("function"), RString::from("ping")));
     info.push(Tuple2(
         RString::from("function"),
-        RString::from("start/stop"),
+        RString::from("start/stop/scan"),
     ));
 
     RResult::ROk(info)
@@ -34,11 +46,21 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 
 #[sabi_extern_fn]
 extern "C" fn handle_message(msg: RString) -> RString {
-    print!("[LIB2](msg) Received message: {}", msg.as_str());
+    let msg_str = msg.as_str();
+    log::info!("[LIBSCANNER] Received message: {}", msg_str);
 
-    match msg.as_str() {
-        "fn:ping" => ping(),
-        _ => RString::from(format!("ACK LIB2 {}\n", msg.as_str())),
+    if msg_str == "fn:start" {
+        start_engine()
+    } else if msg_str == "fn:stop" {
+        stop_engine()
+    } else if let Some(path_str) = msg_str.strip_prefix("scan:") {
+        handle_scan(path_str)
+    } else if msg_str == "update" {
+        handle_update()
+    } else if let Some(path_str) = msg_str.strip_prefix("quarantine:") {
+        handle_quarantine(path_str)
+    } else {
+        RString::from(format!("ACK LIBSCANNER {}\n", msg_str))
     }
 }
 
@@ -54,6 +76,72 @@ pub fn get_library() -> PluginRoot_Ref {
     .leak_into_prefix()
 }
 
-fn ping() -> RString {
-    RString::from("pong\n")
+fn start_engine() -> RString {
+    if RUNNING.load(Ordering::SeqCst) {
+        log::warn!("[LIBSCANNER] Engine already running");
+        return RString::from("ACK: Already running");
+    }
+
+    log::info!("[LIBSCANNER] Starting engine, loading signatures into memory...");
+    let mut engine = ScanEngine::new();
+    let args = ScanArgs::default();
+    println!("[LIB1] Hi from plugin test 1!");
+
+    if let Err(e) = engine.prepare(&args) {
+        let err_msg = format!("ERR: Failed to prepare engine: {}", e);
+        log::error!("{}", err_msg);
+        return RString::from(err_msg);
+    }
+
+    *ENGINE.lock().unwrap() = Some(engine);
+    RUNNING.store(true, Ordering::SeqCst);
+
+    RString::from("ACK: Engine started and rules loaded")
+}
+
+fn stop_engine() -> RString {
+    if !RUNNING.load(Ordering::SeqCst) {
+        return RString::from("ACK: Already stopped");
+    }
+
+    log::info!("[LIBSCANNER] Stopping engine, freeing memory...");
+    RUNNING.store(false, Ordering::SeqCst);
+
+    *ENGINE.lock().unwrap() = None;
+
+    RString::from("ACK: Engine stopped")
+}
+
+fn handle_scan(path_str: &str) -> RString {
+    if !RUNNING.load(Ordering::SeqCst) {
+        return RString::from("ERR: Scanner is not running. Call fn:start first.");
+    }
+
+    let path = Path::new(path_str);
+    if !path.exists() {
+        return RString::from(format!("ERR: Path does not exist: {}", path_str));
+    }
+
+    log::info!("[LIBSCANNER] Scanning: {}", path_str);
+
+    let mut lock = ENGINE.lock().unwrap();
+    if let Some(engine) = lock.as_mut() {
+        let args = ScanArgs::default();
+        let report = engine.scan(path, &args);
+
+        match serde_json::to_string(&report) {
+            Ok(json) => RString::from(json),
+            Err(e) => RString::from(format!("ERR: Failed to serialize report: {}", e)),
+        }
+    } else {
+        RString::from("ERR: Engine state is invalid")
+    }
+}
+
+fn handle_update() -> RString {
+    RString::from("ACK: Update functionality not implemented yet")
+}
+
+fn handle_quarantine(path_str: &str) -> RString {
+    RString::from(format!("ACK: Quarantine requested for {}", path_str))
 }
