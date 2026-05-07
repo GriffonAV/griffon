@@ -14,16 +14,20 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     let mut info = RVec::new();
 
     info.push(Tuple2(RString::from("author"), RString::from("DiaboloAB")));
-    info.push(Tuple2(RString::from("name"), RString::from("Griffon Scan")));
+    info.push(Tuple2(RString::from("name"), RString::from("GriffonScan")));
     info.push(Tuple2(
         RString::from("description"),
-        RString::from("Griffon Scan default plugin"),
+        RString::from("GriffonScan default plugin"),
     ));
     info.push(Tuple2(
         RString::from("UUID"),
         RString::from("123e4567-e89b-12d3-a456-426614174000"),
     ));
     info.push(Tuple2(RString::from("function"), RString::from("ping")));
+    info.push(Tuple2(
+        RString::from("function"),
+        RString::from("start/stop"),
+    ));
 
     RResult::ROk(info)
 }
