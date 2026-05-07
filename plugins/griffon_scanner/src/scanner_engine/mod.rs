@@ -25,7 +25,6 @@ pub struct ScanEngine {
 
 impl ScanEngine {
     pub fn new() -> Self {
-        env_logger::init();
         Self::default()
     }
 
