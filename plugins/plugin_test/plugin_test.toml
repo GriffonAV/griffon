@@ -1,7 +1,7 @@
 # Griffon Plugin Manifest: File Picker Demo
 [plugin]
 name = "File Picker Demo"
-id = "org.griffon.filepickerdemo"
+id = "d0c90f71-b15c-4b7d-afb0-033316c871f9"
 version = "1.0.0"
 author = "Raphael"
 description = "Demonstrates the select_file component"

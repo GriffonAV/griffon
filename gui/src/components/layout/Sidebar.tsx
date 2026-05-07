@@ -7,6 +7,7 @@ import { ContactButton } from "./ContactButton.tsx";
 import { SidebarButton } from "./SidebarButton.tsx";
 import { Button } from "../ui/button.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
+import {invoke} from "@tauri-apps/api/core";
 
 export function Sidebar() {
   const { plugins } = usePlugins();
@@ -44,14 +45,26 @@ export function Sidebar() {
       <div className="flex-1" />
 
       <div className="flex flex-row gap-2 justify-end">
-        <Link to="/settings">
-          <Button variant="outline" size="icon" className="cursor-pointer">
-            <Settings2></Settings2>
-            <span className="sr-only">Settings</span>
+          <Button
+              className="cursor-pointer"
+              onClick={async () => {
+                  try {
+                      await invoke("refresh_plugin");
+                  } catch (error) {
+                      console.error("Failed to refresh plugins:", error);
+                  }
+              }}
+          >
+              R
+          </Button>
+          <Link to="/settings">
+            <Button variant="outline" size="icon" className="cursor-pointer">
+              <Settings2></Settings2>
+              <span className="sr-only">Settings</span>
           </Button>
         </Link>
-        <ModeToggle />
-        <ContactButton />
+          <ModeToggle />
+          <ContactButton />
       </div>
     </aside>
   );

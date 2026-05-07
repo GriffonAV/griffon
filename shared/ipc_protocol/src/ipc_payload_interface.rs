@@ -1,9 +1,9 @@
 use std::io;
 use std::io::{Read, Write};
 
-use serde::{Deserialize, Serialize};
-
 use crate::ipc_header::{Frame, MsgType};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PluginInfoDto {
@@ -18,10 +18,7 @@ pub struct PluginInfoDto {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum InterfaceRequest {
     RefreshPlugins,
-    StopPlugin {
-        plugin_uuid: [u8; 16],
-    },
-    StartPlugin {
+    SwitchStatusPlugin {
         plugin_uuid: [u8; 16],
     },
     KillPlugin {
@@ -36,7 +33,9 @@ pub enum InterfaceRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum InterfaceResponse {
-    Ok,
+    Ok {
+        request_id: u32,
+    },
     Error {
         request_id: u32,
         message: String,
@@ -52,6 +51,9 @@ pub enum InterfaceResponse {
         request_id: u32,
         ok: bool,
         output: String,
+    },
+    SwitchDone {
+        request_id: u32,
     },
 }
 
@@ -75,6 +77,24 @@ pub fn format_uuid_bytes(uuid: &[u8; 16]) -> String {
         uuid[14],
         uuid[15],
     )
+}
+
+pub fn parse_uuid_16(plugin_uuid_str: Option<&str>) -> Option<[u8; 16]> {
+    match plugin_uuid_str {
+        Some(uuid_str) => match Uuid::parse_str(uuid_str) {
+            Ok(uuid) => Some(*uuid.as_bytes()),
+            Err(_) => None,
+        },
+        None => None,
+    }
+}
+
+pub fn alloc_request_id(mut id_request: u32) -> u32 {
+    id_request = id_request.wrapping_add(1);
+    if id_request == 0 {
+        id_request = 1;
+    }
+    id_request
 }
 
 pub fn send_interface_request<W: Write>(

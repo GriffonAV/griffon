@@ -1,0 +1,52 @@
+[plugin]
+name = "Test Name1"
+id = "org.griffon.cleaner"
+version = "0.1.0"
+author = "Ewen Emeraud"
+description = "Plugin Cleaner"
+tabs = ["main"]
+
+[store.data]
+
+[store.ui]
+status = "Ready"
+
+[ui]
+
+[[ui.sections]]
+id = "cleaner_main"
+tab = "main"
+
+[[ui.sections.contents]]
+type = "text"
+id = "title"
+name = "Griffon Cleaner"
+variant = "title"
+
+[[ui.sections.contents]]
+type = "text"
+id = "description"
+name = "Run the cleaner plugin"
+variant = "body"
+
+[[ui.sections.contents]]
+type = "button"
+id = "run_button"
+name = "Run"
+action = "run"
+
+[[ui.sections.contents]]
+type = "text"
+id = "status_text"
+name = "{{ui.status}}"
+variant = "caption"
+tone = "neutral"
+
+[[interactions]]
+id = "handle_run"
+on = "run"
+
+[[interactions.steps]]
+type = "set"
+key = "ui.status"
+value = "Running..."
