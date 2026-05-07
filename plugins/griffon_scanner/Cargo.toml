@@ -6,10 +6,6 @@ default-run = "griffon_scanner"
 
 
 [[bin]]
-name = "prepare"
-path = "tools/prepare.rs"
-
-[[bin]]
 name = "griffon_scanner"
 path = "src/main.rs"
 

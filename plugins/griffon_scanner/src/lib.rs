@@ -1,4 +1,6 @@
 pub mod scanner_engine;
+pub mod scanner_quarantine;
+pub mod scanner_updater;
 
 use std::path::Path;
 use std::sync::Mutex;
@@ -15,6 +17,8 @@ use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 
 use crate::scanner_engine::ScanEngine;
 use crate::scanner_engine::scanargs::ScanArgs;
+use crate::scanner_quarantine::Quarantine;
+use crate::scanner_updater::ScannerUpdater;
 
 static RUNNING: AtomicBool = AtomicBool::new(false);
 
@@ -38,7 +42,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     ));
     info.push(Tuple2(
         RString::from("function"),
-        RString::from("start/stop/scan"),
+        RString::from("start/stop/scan/update/quarantine/restore/list"),
     ));
 
     RResult::ROk(info)
@@ -59,6 +63,10 @@ extern "C" fn handle_message(msg: RString) -> RString {
         handle_update()
     } else if let Some(path_str) = msg_str.strip_prefix("quarantine:") {
         handle_quarantine(path_str)
+    } else if let Some(path_str) = msg_str.strip_prefix("restore:") {
+        handle_restore(path_str)
+    } else if msg_str == "list" {
+        handle_list()
     } else {
         RString::from(format!("ACK LIBSCANNER {}\n", msg_str))
     }
@@ -139,9 +147,41 @@ fn handle_scan(path_str: &str) -> RString {
 }
 
 fn handle_update() -> RString {
-    RString::from("ACK: Update functionality not implemented yet")
+    let updater = ScannerUpdater::default();
+    match updater.update() {
+        Ok(_) => RString::from("ACK: Update completed successfully"),
+        Err(e) => RString::from(format!("ERR: Update failed: {}", e)),
+    }
 }
 
 fn handle_quarantine(path_str: &str) -> RString {
-    RString::from(format!("ACK: Quarantine requested for {}", path_str))
+    let quarantine = Quarantine::new(&Quarantine::default_dir());
+    match quarantine {
+        Ok(q) => {
+            let pathbuf = Path::new(path_str).to_path_buf();
+            match q.quarantine_file(&pathbuf) {
+                Ok(_) => RString::from(format!("ACK: {} quarantined successfully", path_str)),
+                Err(e) => RString::from(format!("ERR: Failed to quarantine {}: {}", path_str, e)),
+            }
+        }
+        Err(e) => RString::from(format!("ERR: Failed to initialize quarantine: {}", e)),
+    }
+}
+
+fn handle_restore(file_name: &str) -> RString {
+    RString::from(format!("ACK: Restore requested for {}", file_name))
+}
+
+fn handle_list() -> RString {
+    let quarantine = Quarantine::new(&Quarantine::default_dir());
+    match quarantine {
+        Ok(q) => {
+            let manifests = q.list_sorted();
+            match serde_json::to_string(&manifests) {
+                Ok(json) => RString::from(json),
+                Err(e) => RString::from(format!("ERR: Failed to serialize list: {}", e)),
+            }
+        }
+        Err(e) => RString::from(format!("ERR: Failed to initialize quarantine: {}", e)),
+    }
 }

@@ -11,14 +11,14 @@ fn check_virtual_path(path: &PathBuf) -> Option<PathBuf> {
         let real_path = PathBuf::from(&parts[0]);
 
         if real_path.exists() {
-            return Some(real_path);
+            Some(real_path)
         } else {
             log::warn!(
                 "Real path {} does not exist for virtual path {}",
                 real_path.display(),
                 path.display()
             );
-            return None;
+            None
         }
     } else {
         Some(path.clone())
