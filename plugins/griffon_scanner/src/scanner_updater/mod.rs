@@ -2,11 +2,13 @@ use std::path::PathBuf;
 
 use serde::Deserialize;
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 struct RuleEntry {
     filename: String,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 struct Manifest {
     version: String,
@@ -14,6 +16,7 @@ struct Manifest {
     rules: Vec<RuleEntry>,
 }
 
+#[allow(dead_code)]
 fn default_rules_dir() -> PathBuf {
     if cfg!(debug_assertions) {
         PathBuf::from("rules/")
@@ -25,11 +28,13 @@ fn default_rules_dir() -> PathBuf {
     }
 }
 
+#[allow(dead_code)]
 pub struct ScannerUpdater {
     pub rules_dir: PathBuf,
 }
 
 impl ScannerUpdater {
+    #[allow(dead_code)]
     pub fn new(dir: &PathBuf) -> std::io::Result<Self> {
         std::fs::create_dir_all(dir)?;
         log::info!("Updater directory: {}", dir.display());
@@ -38,13 +43,7 @@ impl ScannerUpdater {
         })
     }
 
-    pub fn default() -> Self {
-        let dir = default_rules_dir();
-        std::fs::create_dir_all(&dir).expect("Failed to create rules directory");
-        log::info!("Updater directory: {}", dir.display());
-        Self { rules_dir: dir }
-    }
-
+    #[allow(dead_code)]
     pub fn update(&self) -> Result<(), String> {
         let base_url = "https://raw.githubusercontent.com/GriffonAV/Griffon_scan_db/main";
 
@@ -100,5 +99,14 @@ impl ScannerUpdater {
         }
 
         Ok(())
+    }
+}
+
+impl Default for ScannerUpdater {
+    fn default() -> Self {
+        let dir = default_rules_dir();
+        std::fs::create_dir_all(&dir).expect("Failed to create rules directory");
+        log::info!("Updater directory: {}", dir.display());
+        Self { rules_dir: dir }
     }
 }

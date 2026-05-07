@@ -1,10 +1,11 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
 use crate::scanner_quarantine::{Quarantine, manifest::QuarantineManifest};
 
-fn check_virtual_path(path: &PathBuf) -> Option<PathBuf> {
+#[allow(dead_code)]
+fn check_virtual_path(path: &Path) -> Option<PathBuf> {
     if path.to_string_lossy().contains('!') {
         let s = path.to_string_lossy().into_owned();
         let parts: Vec<String> = s.split('!').map(|p| p.to_string()).collect();
@@ -21,11 +22,12 @@ fn check_virtual_path(path: &PathBuf) -> Option<PathBuf> {
             None
         }
     } else {
-        Some(path.clone())
+        Some(path.to_path_buf())
     }
 }
 
 impl Quarantine {
+    #[allow(dead_code)]
     pub fn quarantine_file(&self, path: &PathBuf) -> Result<PathBuf, String> {
         let real_path = check_virtual_path(path);
         if real_path.is_none() {
