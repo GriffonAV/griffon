@@ -22,6 +22,7 @@ pub use modules::CleanerModule;
 use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 pub use reports::*;
 pub use runner::*;
+use std::cmp::Reverse;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
@@ -100,8 +101,7 @@ pub fn print_cache_report(global: &GlobalReport) {
         println!("\nPar type :");
 
         let mut file_types: Vec<_> = cache_report.per_file_type.iter().collect();
-        file_types.sort_by(|a, b| b.1.bytes_freed.cmp(&a.1.bytes_freed));
-
+        file_types.sort_by_key(|file_type| Reverse(file_type.1.bytes_freed));
         for (file_type, stats) in file_types
             .into_iter()
             .filter(|(_, stats)| stats.files_touched >= 3 || stats.bytes_freed >= 1024 * 1024)
