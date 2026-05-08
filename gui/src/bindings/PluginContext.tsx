@@ -73,8 +73,9 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     const [isManifestLoading, setIsManifestLoading] = useState(false);
     const [currentManifest, setCurrentManifest] = useState<PluginManifest>({} as PluginManifest);
 
-    const pending = new Map<number, { resolve: Function; reject: Function }>();
-    
+    const pending = new Map<number, { resolve: (value: string) => void; reject: (reason: Error) => void }>();
+
+
     let requestCounter = 0;
 
     listen("plugin-call-result", (event) => {
@@ -89,19 +90,22 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         else entry.reject(new Error(output));
     });
 
-    async function callPluginFunction(fnName: string, args: string[]) {
+    async function callPluginFunction(
+        fnName: string,
+        args: string[]
+    ) : Promise<string> {
         requestCounter += 1;
         const requestId : number = requestCounter;
 
-        return new Promise(async (resolve, reject) => {
+        return new Promise<string>((resolve, reject) => {
             pending.set(requestId, { resolve, reject });
     
-            await invoke("call_plugin", {
+            invoke("call_plugin", {
                 pluginUuid: currentManifest.plugin.uuid,
                 fnName,
                 args,
                 requestId,
-            });
+            }).catch(reject);
         });
     }
 

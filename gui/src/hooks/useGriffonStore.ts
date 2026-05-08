@@ -57,6 +57,46 @@ function setByPath(
 }
 
 
+async function CallPlgFnStep(
+    step: InteractionStep,
+    next: GriffonStore,
+    callPluginFunction: (fnName: string, args: string[]) => Promise<any>
+): Promise<GriffonStore> {
+
+    if (step.fn === undefined) {
+        console.warn("fn param is required for execute_function step");
+        return next;
+    }
+    if (typeof step.fn !== "string") {
+        console.warn("fn param must be a string");
+        return next;
+    }
+
+    try {
+        const returnValue = await callPluginFunction(step.fn, step.args ?? []);
+        let result : string = returnValue;
+
+        if (step.returnType === "json") {
+            try {
+                result = JSON.parse(returnValue);
+            } catch {
+                result = returnValue;
+            }
+        }
+
+        if (step.key) {
+          setByPath(next, step.key, result);
+        }
+
+        return next;
+    } catch (err) {
+        console.error("Error executing plugin function:", err);
+        return next;
+    }
+}
+
+
+
 async function executeStep(
   draft: GriffonStore,
   step: InteractionStep,
@@ -108,30 +148,7 @@ async function executeStep(
     }
 
     case "execute_function": {
-      if (typeof step.fn !== "string") {
-        console.warn("Invalid function name in execute_function step");
-        return next;
-      }
-
-      try {
-        const jsonString = await callPluginFunction(step.fn, step.args ?? []);
-
-        let result;
-        try {
-          result = JSON.parse(jsonString);
-        } catch {
-          result = jsonString;
-        }
-
-        if (step.key) {
-          setByPath(next, step.key, result);
-        }
-
-        return next;
-      } catch (err) {
-        console.error("Error executing plugin function:", err);
-        return next;
-      }
+      return await CallPlgFnStep(step, next, callPluginFunction);
     }
 
     default: {
