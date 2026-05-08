@@ -3,9 +3,11 @@ pub mod api;
 pub mod cache_paths;
 pub mod config;
 pub mod context;
+pub mod front_report;
 pub mod modules;
 pub mod reports;
 pub mod runner;
+
 use abi_stable::{
     export_root_module,
     prefix_type::PrefixTypeTrait,
@@ -18,6 +20,7 @@ pub use cache_paths::*;
 use chrono::Utc;
 pub use config::*;
 pub use context::*;
+pub use front_report::*;
 pub use modules::CleanerModule;
 use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 pub use reports::*;
@@ -45,10 +48,51 @@ pub enum CleanerError {
 pub fn default_modules() -> Vec<Box<dyn CleanerModule>> {
     vec![
         Box::new(modules::cache::CacheCleaner::new()),
+        Box::new(modules::docker::DockerCleaner::new()),
         // Box::new(modules::logs::LogsCleaner::new()),
         // Box::new(modules::packages::PackagesCleaner::new()),
         // Box::new(modules::bigfiles::BigfilesScanner::new()),
     ]
+}
+
+pub fn print_module_summary(global: &GlobalReport) {
+    println!("\n=== Cleaner Modules Summary ===");
+    println!("Dry-run : {}", global.dry_run);
+    println!("Total touched : {}", global.total_files_touched);
+    println!(
+        "Total reclaimable/freed : {}",
+        human_readable(global.total_bytes_freed)
+    );
+    println!("Total warnings : {}", global.total_warnings);
+    println!("Total errors : {}", global.total_errors);
+    println!(
+        "Total permission denied : {}",
+        global.total_permission_denied
+    );
+    println!("Total duration : {} ms", global.total_duration_ms);
+
+    let mut modules: Vec<_> = global.per_module.iter().collect();
+    modules.sort_by_key(|(_, report)| std::cmp::Reverse(report.bytes_freed));
+
+    for (module_id, report) in modules {
+        println!("\n--- Module: {} ---", module_id);
+        println!("Touched : {}", report.files_touched);
+        println!("Freed/Reclaimable : {}", human_readable(report.bytes_freed));
+        println!("Warnings : {}", report.warnings.len());
+        println!("Errors : {}", report.errors.len());
+        println!("Permission denied : {}", report.permission_denied);
+        println!("Duration : {} ms", report.duration_ms);
+
+        for warning in report.warnings.iter().take(5) {
+            println!("Warning: {}", warning);
+        }
+
+        for error in report.errors.iter().take(5) {
+            println!("Error: {}", error);
+        }
+    }
+
+    println!("===============================");
 }
 
 fn human_readable(bytes: u64) -> String {
@@ -204,6 +248,7 @@ pub fn execute_cleaner_payload() -> CleanerResult<CleanerExportPayload> {
     let analysis = build_analysis_report(&report);
 
     print_cache_report(&report);
+    print_module_summary(&report);
     print_analysis_report(&analysis);
 
     if let Err(e) = write_analysis_report_to_file(&analysis, Path::new(&output_path)) {
@@ -234,6 +279,11 @@ pub fn execute_cleaner_payload() -> CleanerResult<CleanerExportPayload> {
     })
 }
 
+pub fn execute_cleaner_front_payload() -> CleanerResult<FrontCleanerPayload> {
+    let raw_payload = execute_cleaner_payload()?;
+    Ok(build_front_cleaner_payload(&raw_payload))
+}
+
 #[sabi_extern_fn]
 pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     let mut info = RVec::new();
@@ -252,7 +302,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     ));
     info.push(Tuple2(
         RString::from("function"),
-        RString::from("run/list_candidates/delete_selected"),
+        RString::from("run/run_raw/run_front/list_candidates/delete_selected"),
     ));
 
     RResult::ROk(info)
@@ -265,11 +315,21 @@ extern "C" fn handle_message(msg: RString) -> RString {
     println!("[LIBCLEAN](msg) Received message: {}", raw);
 
     match raw {
-        "fn:run" | "run" => {
+        "fn:run" | "run" | "fn:run_front" | "run_front" => {
+            return match execute_cleaner_front_payload() {
+                Ok(payload) => match serde_json::to_string(&payload) {
+                    Ok(json) => RString::from(json),
+                    Err(e) => RString::from(format!("ERR json serialize front payload: {e}")),
+                },
+                Err(err) => RString::from(format!("ERR cleaner: {}", err)),
+            };
+        }
+
+        "fn:run_raw" | "run_raw" => {
             return match execute_cleaner_payload() {
                 Ok(payload) => match serde_json::to_string(&payload) {
                     Ok(json) => RString::from(json),
-                    Err(e) => RString::from(format!("ERR json serialize analysis: {e}")),
+                    Err(e) => RString::from(format!("ERR json serialize raw payload: {e}")),
                 },
                 Err(err) => RString::from(format!("ERR cleaner: {}", err)),
             };
