@@ -7,13 +7,13 @@ pub mod front_report;
 pub mod modules;
 pub mod reports;
 pub mod runner;
-
 use abi_stable::{
     export_root_module,
     prefix_type::PrefixTypeTrait,
     sabi_extern_fn,
     std_types::{RResult, RString, RVec, Tuple2},
 };
+
 pub use analysis::*;
 pub use api::*;
 pub use cache_paths::*;
@@ -25,6 +25,7 @@ pub use modules::CleanerModule;
 use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 pub use reports::*;
 pub use runner::*;
+use std::cmp::Reverse;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
@@ -144,7 +145,7 @@ pub fn print_cache_report(global: &GlobalReport) {
         println!("\nPar type :");
 
         let mut file_types: Vec<_> = cache_report.per_file_type.iter().collect();
-        file_types.sort_by(|a, b| b.1.bytes_freed.cmp(&a.1.bytes_freed));
+        file_types.sort_by_key(|file_type| Reverse(file_type.1.bytes_freed));
 
         for (file_type, stats) in file_types
             .into_iter()

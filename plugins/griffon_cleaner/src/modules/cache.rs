@@ -4,6 +4,7 @@ use crate::PathStats;
 use crate::Profile;
 use crate::TypeStats;
 use crate::{CleanerModule, CleanerResult, ExecutionContext, ModuleReport};
+use std::cmp::Reverse;
 use std::collections::hash_map::Entry;
 use std::path::{Path, PathBuf};
 use std::{fs, io::ErrorKind};
@@ -212,7 +213,7 @@ impl CacheCleaner {
             }
         }
 
-        items.sort_by(|a, b| b.size.cmp(&a.size));
+        items.sort_by_key(|item| Reverse(item.size));
         Ok(items)
     }
 
