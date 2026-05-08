@@ -4,7 +4,7 @@ pub mod scanner_updater;
 
 use std::path::Path;
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicU8, Ordering};
 
 use abi_stable::std_types::{RVec, Tuple2};
 use abi_stable::{
