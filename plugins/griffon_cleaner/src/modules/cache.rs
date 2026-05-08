@@ -216,8 +216,90 @@ impl CacheCleaner {
         Ok(items)
     }
 
-    fn is_path_allowed(path: &Path, allowed_roots: &[PathBuf]) -> bool {
-        allowed_roots.iter().any(|root| path.starts_with(root))
+    fn is_dangerous_delete_target(path: &Path) -> bool {
+        let dangerous_paths = [
+            Path::new("/"),
+            Path::new("/bin"),
+            Path::new("/boot"),
+            Path::new("/dev"),
+            Path::new("/etc"),
+            Path::new("/home"),
+            Path::new("/lib"),
+            Path::new("/lib64"),
+            Path::new("/opt"),
+            Path::new("/proc"),
+            Path::new("/root"),
+            Path::new("/run"),
+            Path::new("/sbin"),
+            Path::new("/srv"),
+            Path::new("/sys"),
+            Path::new("/tmp"),
+            Path::new("/usr"),
+            Path::new("/var"),
+            Path::new("/var/cache"),
+            Path::new("/var/lib"),
+            Path::new("/var/log"),
+        ];
+
+        dangerous_paths.contains(&path)
+    }
+
+    fn canonicalize_allowed_roots(allowed_roots: &[PathBuf]) -> Vec<PathBuf> {
+        allowed_roots
+            .iter()
+            .filter_map(|root| root.canonicalize().ok())
+            .collect()
+    }
+
+    fn validate_delete_target(
+        raw_path: &Path,
+        allowed_roots: &[PathBuf],
+    ) -> Result<PathBuf, String> {
+        if raw_path.as_os_str().is_empty() {
+            return Err("Empty path is not allowed".to_string());
+        }
+
+        if !raw_path.exists() {
+            return Err("Path does not exist".to_string());
+        }
+
+        let link_metadata =
+            fs::symlink_metadata(raw_path).map_err(|e| format!("symlink metadata failed: {e}"))?;
+
+        if link_metadata.file_type().is_symlink() {
+            return Err("Refusing to delete symbolic link".to_string());
+        }
+
+        let canonical_path = raw_path
+            .canonicalize()
+            .map_err(|e| format!("canonicalize failed: {e}"))?;
+
+        if Self::is_dangerous_delete_target(&canonical_path) {
+            return Err("Refusing to delete dangerous top-level/system path".to_string());
+        }
+
+        let canonical_allowed_roots = Self::canonicalize_allowed_roots(allowed_roots);
+
+        if canonical_allowed_roots.is_empty() {
+            return Err("No valid allowed cleaner roots found".to_string());
+        }
+
+        let is_allowed = canonical_allowed_roots
+            .iter()
+            .any(|root| canonical_path.starts_with(root));
+
+        if !is_allowed {
+            return Err("Path is outside allowed cleaner scope".to_string());
+        }
+
+        if canonical_allowed_roots
+            .iter()
+            .any(|root| &canonical_path == root)
+        {
+            return Err("Refusing to delete an entire cleaner root directly".to_string());
+        }
+
+        Ok(canonical_path)
     }
 
     pub fn delete_selected_paths(
@@ -236,17 +318,20 @@ impl CacheCleaner {
             .collect();
 
         for item in items {
-            let path = Path::new(item);
+            let raw_path = Path::new(item);
 
-            if !Self::is_path_allowed(path, &allowed_roots) {
-                failed.push(DeleteFailure {
-                    path: item.clone(),
-                    error: "Path is outside allowed cleaner scope".to_string(),
-                });
-                continue;
-            }
+            let path = match Self::validate_delete_target(raw_path, &allowed_roots) {
+                Ok(path) => path,
+                Err(error) => {
+                    failed.push(DeleteFailure {
+                        path: item.clone(),
+                        error,
+                    });
+                    continue;
+                }
+            };
 
-            let metadata = match fs::metadata(path) {
+            let metadata = match fs::metadata(&path) {
                 Ok(m) => m,
                 Err(e) => {
                     failed.push(DeleteFailure {
@@ -260,7 +345,7 @@ impl CacheCleaner {
             let size = if metadata.is_file() {
                 metadata.len()
             } else if metadata.is_dir() {
-                match Self::dir_size(path) {
+                match Self::dir_size(&path) {
                     Ok(v) => v,
                     Err(e) => {
                         failed.push(DeleteFailure {
@@ -285,9 +370,9 @@ impl CacheCleaner {
             }
 
             let delete_result = if metadata.is_file() {
-                fs::remove_file(path)
+                fs::remove_file(&path)
             } else {
-                fs::remove_dir_all(path)
+                fs::remove_dir_all(&path)
             };
 
             match delete_result {
