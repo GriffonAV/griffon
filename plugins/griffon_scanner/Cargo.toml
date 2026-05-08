@@ -4,13 +4,16 @@ version = "0.1.0"
 edition = "2024"
 default-run = "griffon_scanner"
 
-
 [[bin]]
 name = "griffon_scanner"
-path = "src/main.rs"
+path = "src/bin/debug.rs"
+
+[[bin]]
+name = "bench_runner"
+path = "src/bin/bench_runner.rs"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 logger = { workspace = true }

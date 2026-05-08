@@ -1,11 +1,6 @@
-mod scanner_engine;
-mod scanner_quarantine;
-mod scanner_updater;
-
 use clap::Parser;
+use griffon_scanner::scanner_engine::{ScanEngine, scanargs::ScanArgs};
 use logger::Logger;
-
-use crate::scanner_engine::scanargs::ScanArgs;
 
 static SCANNER_LOGGER: Logger = Logger::new(
     "GRIFFON_SCANNER",
@@ -18,7 +13,7 @@ fn main() {
 
     SCANNER_LOGGER.debug(format!("Starting engine with args: {:?}", args));
 
-    let mut scanner = scanner_engine::ScanEngine::new();
+    let mut scanner = ScanEngine::new();
     let (hash_count, yara_count) = scanner
         .prepare(&args)
         .expect("Failed to prepare the scan engine");
