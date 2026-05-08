@@ -117,7 +117,7 @@ fn main() {
     let scan_args = ScanArgs {
         threads: threads.clone(),
         yara_only,
-        yara_rules: Some(rules_dir.into()),
+        yara_rules: Some(rules_dir),
         path: target.clone().into(),
 
         ..Default::default()
