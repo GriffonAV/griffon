@@ -3,12 +3,20 @@ mod scanner_quarantine;
 mod scanner_updater;
 
 use clap::Parser;
+use logger::Logger;
 
 use crate::scanner_engine::scanargs::ScanArgs;
 
+static SCANNER_LOGGER: Logger = Logger::new(
+    "GRIFFON_SCANNER",
+    logger::LogLevel::Debug,
+    Some("~/.local/share/griffon_scanner/scanner.log"),
+);
+
 fn main() {
-    env_logger::init();
     let args = ScanArgs::parse();
+
+    SCANNER_LOGGER.debug(format!("Starting engine with args: {:?}", args));
 
     let mut scanner = scanner_engine::ScanEngine::new();
     let (hash_count, yara_count) = scanner

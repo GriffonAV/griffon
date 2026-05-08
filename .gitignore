@@ -49,3 +49,5 @@ dist/
 /samples
 /target
 /eicar_files
+
+*.log

@@ -4,7 +4,7 @@ pub mod scanner_updater;
 
 use std::path::Path;
 use std::sync::Mutex;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 use abi_stable::std_types::{RVec, Tuple2};
 use abi_stable::{
@@ -20,7 +20,27 @@ use crate::scanner_engine::scanargs::ScanArgs;
 use crate::scanner_quarantine::Quarantine;
 use crate::scanner_updater::ScannerUpdater;
 
-static RUNNING: AtomicBool = AtomicBool::new(false);
+static ENGINE_STATE: AtomicU8 = AtomicU8::new(0);
+
+const STATE_STOPPED: u8 = 0;
+const STATE_LOADING: u8 = 1;
+const STATE_READY: u8 = 2;
+const STATE_ERROR: u8 = 3;
+
+macro_rules! require_ready {
+    () => {
+        match ENGINE_STATE.load(Ordering::SeqCst) {
+            STATE_LOADING => {
+                return RString::from(
+                    "NOT_READY: Engine is still loading signatures, try again shortly",
+                )
+            }
+            STATE_STOPPED => return RString::from("ERR: Engine is not running, call start first"),
+            STATE_ERROR => return RString::from("ERR: Engine failed to initialize"),
+            _ => {} // STATE_READY, continue
+        }
+    };
+}
 
 lazy_static::lazy_static! {
     static ref ENGINE: Mutex<Option<ScanEngine>> = Mutex::new(None);
@@ -29,6 +49,9 @@ lazy_static::lazy_static! {
 #[sabi_extern_fn]
 pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     let mut info = RVec::new();
+    std::thread::spawn(|| {
+        start_engine();
+    });
 
     info.push(Tuple2(RString::from("author"), RString::from("DiaboloAB")));
     info.push(Tuple2(RString::from("name"), RString::from("GriffonScan")));
@@ -42,7 +65,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     ));
     info.push(Tuple2(
         RString::from("function"),
-        RString::from("start/stop/scan/update/quarantine/restore/list"),
+        RString::from("start/stop/check/scan/update/quarantine/restore/list"),
     ));
 
     RResult::ROk(info)
@@ -53,22 +76,31 @@ extern "C" fn handle_message(msg: RString) -> RString {
     let msg_str = msg.as_str();
     log::info!("[LIBSCANNER] Received message: {}", msg_str);
 
-    if msg_str == "fn:start" {
-        start_engine()
+    if msg_str == "fn:check" {
+        check_engine()
     } else if msg_str == "fn:stop" {
         stop_engine()
     } else if let Some(path_str) = msg_str.strip_prefix("scan:") {
         handle_scan(path_str)
     } else if msg_str == "update" {
         handle_update()
-    } else if let Some(path_str) = msg_str.strip_prefix("quarantine:") {
+    } else if let Some(path_str) = msg_str.strip_prefix("fn:quarantine:") {
         handle_quarantine(path_str)
-    } else if let Some(path_str) = msg_str.strip_prefix("restore:") {
+    } else if let Some(path_str) = msg_str.strip_prefix("fn:restore:") {
         handle_restore(path_str)
     } else if msg_str == "list" {
         handle_list()
     } else {
         RString::from(format!("ACK LIBSCANNER {}\n", msg_str))
+    }
+}
+
+fn check_engine() -> RString {
+    match ENGINE_STATE.load(Ordering::SeqCst) {
+        STATE_READY => RString::from("ACK: Engine is ready"),
+        STATE_LOADING => RString::from("ACK: Engine is still loading signatures"),
+        STATE_ERROR => RString::from("ERR: Engine failed to initialize"),
+        _ => RString::from("ERR: Engine is not running"),
     }
 }
 
@@ -84,46 +116,49 @@ pub fn get_library() -> PluginRoot_Ref {
     .leak_into_prefix()
 }
 
-fn start_engine() -> RString {
-    if RUNNING.load(Ordering::SeqCst) {
-        log::warn!("[LIBSCANNER] Engine already running");
-        return RString::from("ACK: Already running");
+fn start_engine() {
+    if ENGINE_STATE.load(Ordering::SeqCst) == STATE_LOADING
+        || ENGINE_STATE.load(Ordering::SeqCst) == STATE_READY
+    {
+        log::warn!("[LIBSCANNER] Engine already starting or running");
+        return;
     }
 
-    log::info!("[LIBSCANNER] Starting engine, loading signatures into memory...");
+    ENGINE_STATE.store(STATE_LOADING, Ordering::SeqCst);
+    log::info!("[LIBSCANNER] Loading signatures into memory...");
+
     let mut engine = ScanEngine::new();
     let args = ScanArgs::default();
-    println!("[LIB1] Hi from plugin test 1!");
 
-    if let Err(e) = engine.prepare(&args) {
-        let err_msg = format!("ERR: Failed to prepare engine: {}", e);
-        log::error!("{}", err_msg);
-        return RString::from(err_msg);
+    match engine.prepare(&args) {
+        Ok((hashes, rules)) => {
+            log::info!("[LIBSCANNER] Ready — {} hashes, {} rulesets", hashes, rules);
+            *ENGINE.lock().unwrap() = Some(engine);
+            ENGINE_STATE.store(STATE_READY, Ordering::SeqCst);
+        }
+        Err(e) => {
+            log::error!("[LIBSCANNER] Failed to prepare engine: {}", e);
+            ENGINE_STATE.store(STATE_ERROR, Ordering::SeqCst);
+        }
     }
-
-    *ENGINE.lock().unwrap() = Some(engine);
-    RUNNING.store(true, Ordering::SeqCst);
-
-    RString::from("ACK: Engine started and rules loaded")
 }
 
 fn stop_engine() -> RString {
-    if !RUNNING.load(Ordering::SeqCst) {
-        return RString::from("ACK: Already stopped");
+    match ENGINE_STATE.load(Ordering::SeqCst) {
+        STATE_STOPPED => return RString::from("ACK: Already stopped"),
+        STATE_LOADING => return RString::from("ERR: Engine is still loading, wait for ready"),
+        _ => {}
     }
 
-    log::info!("[LIBSCANNER] Stopping engine, freeing memory...");
-    RUNNING.store(false, Ordering::SeqCst);
-
+    log::info!("[LIBSCANNER] Stopping engine...");
     *ENGINE.lock().unwrap() = None;
+    ENGINE_STATE.store(STATE_STOPPED, Ordering::SeqCst);
 
     RString::from("ACK: Engine stopped")
 }
 
 fn handle_scan(path_str: &str) -> RString {
-    if !RUNNING.load(Ordering::SeqCst) {
-        return RString::from("ERR: Scanner is not running. Call fn:start first.");
-    }
+    require_ready!();
 
     let path = Path::new(path_str);
     if !path.exists() {
