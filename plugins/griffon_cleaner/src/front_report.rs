@@ -94,12 +94,14 @@ pub fn build_front_cleaner_payload(payload: &CleanerExportPayload) -> FrontClean
 
     modules.sort_by_key(|module| std::cmp::Reverse(module.reclaimable_bytes));
 
+    let total_display_warnings = modules.iter().map(|module| module.warnings_count).sum();
+
     FrontCleanerPayload {
         summary: FrontCleanerSummary {
             dry_run: payload.report.dry_run,
             total_reclaimable_bytes: payload.report.total_bytes_freed,
             total_files_touched: payload.report.total_files_touched,
-            total_warnings: payload.report.total_warnings,
+            total_warnings: total_display_warnings,
             total_errors: payload.report.total_errors,
             total_permission_denied: payload.report.total_permission_denied,
             duration_ms: payload.report.total_duration_ms,
@@ -119,9 +121,36 @@ pub fn build_front_cleaner_payload(payload: &CleanerExportPayload) -> FrontClean
     }
 }
 
-fn build_front_module(module: &ModuleReport) -> FrontCleanerModule {
-    let warnings_preview = module
+fn display_warnings_for_module(module: &ModuleReport) -> Vec<String> {
+    if module.module_id != "docker" {
+        return module.warnings.clone();
+    }
+
+    module
         .warnings
+        .iter()
+        .filter(|warning| !is_docker_action_plan_line(warning))
+        .cloned()
+        .collect()
+}
+
+fn is_docker_action_plan_line(warning: &str) -> bool {
+    warning == "Docker action plan:"
+        || warning == "Docker commands that would be executed:"
+        || warning.starts_with("- Stopped containers:")
+        || warning.starts_with("- Dangling images:")
+        || warning.starts_with("- Build cache:")
+        || warning.starts_with("- Unused volumes:")
+        || warning.starts_with("- docker container prune")
+        || warning.starts_with("- docker image prune")
+        || warning.starts_with("- docker builder prune")
+        || warning.starts_with("- docker volume prune")
+}
+
+fn build_front_module(module: &ModuleReport) -> FrontCleanerModule {
+    let display_warnings = display_warnings_for_module(module);
+
+    let warnings_preview = display_warnings
         .iter()
         .take(WARNINGS_PREVIEW_LIMIT)
         .cloned()
@@ -141,7 +170,7 @@ fn build_front_module(module: &ModuleReport) -> FrontCleanerModule {
         files_touched: module.files_touched,
         duration_ms: module.duration_ms,
 
-        warnings_count: module.warnings.len() as u64,
+        warnings_count: display_warnings.len() as u64,
         errors_count: module.errors.len() as u64,
         permission_denied: module.permission_denied,
 
@@ -150,8 +179,7 @@ fn build_front_module(module: &ModuleReport) -> FrontCleanerModule {
         skipped_files_count: module.skipped_files_count,
 
         warnings_preview,
-        warnings_truncated: module.warnings.len() > WARNINGS_PREVIEW_LIMIT,
-
+        warnings_truncated: display_warnings.len() > WARNINGS_PREVIEW_LIMIT,
         errors_preview,
         errors_truncated: module.errors.len() > ERRORS_PREVIEW_LIMIT,
 
