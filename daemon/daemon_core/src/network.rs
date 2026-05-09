@@ -1,8 +1,10 @@
 use std::fs;
 use std::io;
+use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 use std::sync::mpsc;
+use nix::unistd::{chown, Gid, Group, Uid};
 
 use uuid::Uuid;
 
@@ -39,6 +41,43 @@ pub const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
     "/run/griffon/griffon.sock"
 };
 
+fn configure_socket_permissions(path: &Path) -> io::Result<()> {
+    let group = Group::from_name("griffon")
+        .map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::Other,
+                format!("failed to lookup group 'griffon': {e}"),
+            )
+        })?
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotFound,
+                "group 'griffon' does not exist",
+            )
+        })?;
+
+    chown(
+        path,
+        Some(Uid::from_raw(0)),
+        Some(Gid::from_raw(group.gid.as_raw())),
+    )
+        .map_err(|e| {
+            io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                format!("failed to chown socket to root:griffon: {e}"),
+            )
+        })?;
+
+    fs::set_permissions(path, fs::Permissions::from_mode(0o660))?;
+
+    LOGGER_NETWORK.debug(format!(
+        "Socket permissions set to root:griffon 660 for {}",
+        path.display()
+    ));
+
+    Ok(())
+}
+
 pub fn setup_listener() -> io::Result<UnixListener> {
     let path = Path::new(DAEMON_SOCK_PATH);
 
@@ -60,6 +99,17 @@ pub fn setup_listener() -> io::Result<UnixListener> {
 
     let listener = UnixListener::bind(path)?;
     LOGGER_NETWORK.debug(format!("Socket bound on {}", path.display()));
+
+    #[cfg(not(debug_assertions))]
+    configure_socket_permissions(path)?;
+
+    #[cfg(debug_assertions)]
+    if let Err(e) = configure_socket_permissions(path) {
+        LOGGER_NETWORK.warn(format!(
+            "Could not configure socket permissions in debug mode: {}",
+            e
+        ));
+    }
 
     Ok(listener)
 }
