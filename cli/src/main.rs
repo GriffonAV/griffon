@@ -16,6 +16,35 @@ const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
     "/run/griffon/griffon.sock"
 };
 
+fn print_help() {
+    println!();
+    println!("GriffonAV CLI");
+    println!();
+    println!("Usage:");
+    println!("  griffonav-cli");
+    println!();
+    println!("Commands:");
+    println!("  help");
+    println!("      Show this help message");
+    println!();
+    println!("  refresh");
+    println!("      Refresh and display the plugin list from the daemon");
+    println!();
+    println!("  switch_status <plugin_uuid>");
+    println!("      Enable or disable a plugin depending on its current status");
+    println!();
+    println!("  call <plugin_uuid> <fn_name> <arg1|arg2|...>");
+    println!("      Call a plugin function with optional arguments");
+    println!();
+    println!("      Example:");
+    println!("        call 550e8400-e29b-41d4-a716-446655440000 scan /tmp");
+    println!("        call 550e8400-e29b-41d4-a716-446655440000 clean cache|true");
+    println!();
+    println!("  exit | quit");
+    println!("      Exit the CLI");
+    println!();
+}
+
 fn start_reader_thread(mut read_sock: UnixStream) {
     thread::spawn(move || {
         LOGGER_NETWORK.debug("Reader thread started");
@@ -108,6 +137,9 @@ fn main() -> io::Result<()> {
         let cmd = parts.next().unwrap();
 
         match cmd {
+            "help" | "--help" | "-h" => {
+                print_help();
+            }
             "refresh" => {
                 LOGGER.debug("REFRESH");
                 let id_request_to_use = alloc_request_id(id_request);
