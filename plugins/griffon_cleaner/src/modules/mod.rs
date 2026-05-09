@@ -3,6 +3,7 @@
 // Déclaration des sous-modules
 pub mod bigfiles;
 pub mod cache;
+pub mod docker;
 pub mod logs;
 pub mod packages;
 
