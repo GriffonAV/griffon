@@ -327,7 +327,7 @@ impl PluginManager {
 
         let msg = Message::Call {
             request_id,
-            data: call,
+            data: call.clone(),
         };
 
         let plugin = self
@@ -337,8 +337,26 @@ impl PluginManager {
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "plugin not found"))?;
 
         if !plugin.enabled {
+            LOGGER_HISTORY.warn(format!(
+                "event=plugin_call_rejected reason=\"plugin_disabled\" name=\"{}\" uuid=\"{}\" request_id={} function=\"{}\"",
+                plugin.plugin_info.name,
+                format_uuid_bytes(&plugin.plugin_info.plugin_uuid),
+                request_id,
+                call.fn_name
+            ));
+
             return Err(io::Error::other("plugin is disabled"));
         }
+
+        LOGGER_HISTORY.info(format!(
+            "event=plugin_call_requested name=\"{}\" uuid=\"{}\" pid={} request_id={} function=\"{}\" args_count={}",
+            plugin.plugin_info.name,
+            format_uuid_bytes(&plugin.plugin_info.plugin_uuid),
+            plugin.plugin_info.pid,
+            request_id,
+            call.fn_name,
+            call.args.len()
+        ));
 
         let fd = plugin
             .fd
