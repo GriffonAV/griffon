@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { usePlugins } from "@/bindings/PluginContext.tsx";
 import { ModeToggle } from "./ModeToggle.tsx";
-import { Settings2, LayoutDashboard, Clock10 } from "lucide-react";
+import { Settings2, LayoutDashboard, Clock10, RefreshCw } from "lucide-react";
 import { SearchInput } from "./SearchInput.tsx";
 import { ContactButton } from "./ContactButton.tsx";
 import { SidebarButton } from "./SidebarButton.tsx";
@@ -118,6 +118,8 @@ export function Sidebar() {
 
             <div className="flex flex-row gap-2 justify-end">
                 <Button
+                    variant="outline"
+                    size="icon"
                     className="cursor-pointer"
                     onClick={async () => {
                         try {
@@ -127,7 +129,8 @@ export function Sidebar() {
                         }
                     }}
                 >
-                    R
+                    <RefreshCw />
+                    <span className="sr-only">Refresh plugins</span>
                 </Button>
 
                 <Link to="/settings">
