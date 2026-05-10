@@ -19,7 +19,7 @@ type PluginSwitchDonePayload = {
 export function Sidebar() {
     const { plugins } = usePlugins();
     const location = useLocation();
-
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const [pluginStatus, setPluginStatus] = useState<Record<string, boolean>>({});
     const pendingSwitchRequests = useRef<Record<number, string>>({});
 
@@ -121,15 +121,23 @@ export function Sidebar() {
                     variant="outline"
                     size="icon"
                     className="cursor-pointer"
+                    disabled={isRefreshing}
                     onClick={async () => {
                         try {
-                            await invoke("refresh_plugin");
+                            setIsRefreshing(true);
+
+                            await Promise.all([
+                                invoke("refresh_plugin"),
+                                new Promise((resolve) => setTimeout(resolve, 500)),
+                            ]);
                         } catch (error) {
                             console.error("Failed to refresh plugins:", error);
+                        } finally {
+                            setIsRefreshing(false);
                         }
                     }}
                 >
-                    <RefreshCw />
+                    <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
                     <span className="sr-only">Refresh plugins</span>
                 </Button>
 
