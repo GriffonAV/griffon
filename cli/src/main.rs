@@ -93,8 +93,10 @@ fn start_reader_thread(mut read_sock: UnixStream) {
                         LOGGER_NETWORK
                             .info(format!("Call {request_id} result={ok} output={output}"));
                     }
-                    InterfaceResponse::SwitchDone { request_id } => {
-                        LOGGER_NETWORK.info(format!("Switch done with request_id = {request_id}"));
+                    InterfaceResponse::SwitchDone { request_id, enable } => {
+                        LOGGER_NETWORK.info(format!(
+                            "Switch done with request_id = {request_id} enabled:{enable}"
+                        ));
                     }
                 },
                 Err(e) => {

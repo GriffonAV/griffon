@@ -54,6 +54,7 @@ pub enum InterfaceResponse {
     },
     SwitchDone {
         request_id: u32,
+        enable: bool, // true = on | false = off
     },
 }
 

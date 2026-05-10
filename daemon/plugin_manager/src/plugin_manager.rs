@@ -227,7 +227,7 @@ impl PluginManager {
         }
     }
 
-    pub fn switch_status_plugin(&mut self, uuid: [u8; 16]) -> io::Result<()> {
+    pub fn switch_status_plugin(&mut self, uuid: [u8; 16]) -> io::Result<bool> {
         let pos = self
             .plugins_list
             .iter()
@@ -258,7 +258,7 @@ impl PluginManager {
                 self.plugins_list[pos].plugin_info.path
             ));
 
-            return Ok(());
+            return Ok(false);
         }
 
         let plugin_path = PathBuf::from(self.plugins_list[pos].plugin_info.path.clone());
@@ -311,7 +311,7 @@ impl PluginManager {
 
         log_plugin_enabled(&self.plugins_list[pos]);
 
-        Ok(())
+        Ok(true)
     }
 
     pub fn is_plugin_enabled(&self, uuid: [u8; 16]) -> bool {
@@ -450,10 +450,7 @@ impl PluginManager {
                                     plugin_path.display()
                                 ));
 
-                                log_plugin_enable_failed(
-                                    &self.plugins_list[index],
-                                    &e.to_string(),
-                                );
+                                log_plugin_enable_failed(&self.plugins_list[index], &e.to_string());
 
                                 return;
                             }
@@ -544,7 +541,7 @@ impl PluginManager {
             None,
             SockFlag::empty(),
         )
-            .map_err(|e| format!("socketpair failed: {e}"))?;
+        .map_err(|e| format!("socketpair failed: {e}"))?;
 
         let mut cmd = Command::new(&self.runner_binary);
         cmd.arg(path);
