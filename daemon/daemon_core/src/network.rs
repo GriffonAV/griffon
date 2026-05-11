@@ -1,10 +1,10 @@
+use nix::unistd::{Gid, Group, Uid, chown};
 use std::fs;
 use std::io;
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 use std::sync::mpsc;
-use nix::unistd::{chown, Gid, Group, Uid};
 
 use uuid::Uuid;
 
@@ -49,24 +49,19 @@ fn configure_socket_permissions(path: &Path) -> io::Result<()> {
                 format!("failed to lookup group 'griffon': {e}"),
             )
         })?
-        .ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::NotFound,
-                "group 'griffon' does not exist",
-            )
-        })?;
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "group 'griffon' does not exist"))?;
 
     chown(
         path,
         Some(Uid::from_raw(0)),
         Some(Gid::from_raw(group.gid.as_raw())),
     )
-        .map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::PermissionDenied,
-                format!("failed to chown socket to root:griffon: {e}"),
-            )
-        })?;
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!("failed to chown socket to root:griffon: {e}"),
+        )
+    })?;
 
     fs::set_permissions(path, fs::Permissions::from_mode(0o660))?;
 
