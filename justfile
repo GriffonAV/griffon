@@ -17,10 +17,10 @@ build-workspace:
     cargo build --release --workspace --exclude griffonav-gui
 
 run-daemon:
-    sudo target/debug/daemon_core
+    sudo target/debug/griffonav-daemon
 
 run-cli:
-    sudo target/debug/cli
+    sudo target/debug/griffonav-cli
 
 run-gui-sudo:
     sudo target/debug/app

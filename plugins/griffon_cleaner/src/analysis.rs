@@ -3,7 +3,6 @@ use serde::Serialize;
 use std::cmp::Reverse;
 use std::fs;
 use std::path::Path;
-
 #[derive(Debug, Clone, Serialize)]
 pub struct CleanerSelectionSummary {
     pub profile: String,
