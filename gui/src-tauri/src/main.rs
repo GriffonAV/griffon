@@ -178,18 +178,19 @@ fn call_plugin_inner(
 fn switch_status_plugin(
     state: State<'_, DaemonConnection>,
     plugin_uuid: String,
-) -> Result<u32, String> {
-    switch_status_plugin_inner(&state, &plugin_uuid)
+    request_id: u32,
+) -> Result<(), String> {
+    switch_status_plugin_inner(&state, &plugin_uuid, request_id)
 }
 
 fn switch_status_plugin_inner(
     conn: &DaemonConnection,
     plugin_uuid_str: &str,
-) -> Result<u32, String> {
+    request_id: u32,
+) -> Result<(), String> {
     LOGGER.debug("SWITCH STATUS");
 
     let mut sock_guard = conn.0.lock().map_err(|e| e.to_string())?;
-    let mut id_guard = conn.1.lock().map_err(|e| e.to_string())?;
 
     let mut sock = sock_guard
         .as_mut()
@@ -200,22 +201,19 @@ fn switch_status_plugin_inner(
         "Invalid UUID".to_string()
     })?;
 
-    let next_request_id = alloc_request_id(*id_guard);
-
+    
     send_interface_request(
         &mut sock,
         &InterfaceRequest::SwitchStatusPlugin { plugin_uuid },
-        next_request_id,
+        request_id,
     )
     .map_err(|e| e.to_string())?;
 
     LOGGER_NETWORK.debug(format!(
-        "Switch status plugins sent with request_id={next_request_id}"
+        "Switch status plugins sent with request_id={request_id}"
     ));
 
-    *id_guard = next_request_id;
-
-    Ok(next_request_id)
+    Ok(())
 }
 
 #[tauri::command]

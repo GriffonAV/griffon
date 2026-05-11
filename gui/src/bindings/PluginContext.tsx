@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { error } from "@tauri-apps/plugin-log";
-import { listen } from "@tauri-apps/api/event";
+import { createPendingRequest } from "@/services/requestManager";
 
 export type Plugin = {
     file_name: string;
@@ -62,11 +62,6 @@ interface PluginContextType {
     callPluginFunction: (fnName: string, args: string[]) => Promise<any>;
 }
 
-interface PluginCallResult {
-    request_id: number;
-    ok: boolean;
-    output: any;
-}
 
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
@@ -77,40 +72,21 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     const [isManifestLoading, setIsManifestLoading] = useState(false);
     const [currentManifest, setCurrentManifest] = useState<PluginManifest>({} as PluginManifest);
 
-    const pending = new Map<number, { resolve: (value: string) => void; reject: (reason: Error) => void }>();
-
-
-    let requestCounter = 0;
-
-    listen("plugin-call-result", (event) => {
-        const { request_id, ok, output } = event.payload as PluginCallResult;
-
-        const entry = pending.get(request_id);
-        if (!entry) return;
-
-        pending.delete(request_id);
-
-        if (ok) entry.resolve(output);
-        else entry.reject(new Error(output));
-    });
-
     async function callPluginFunction(
         fnName: string,
         args: string[]
     ) : Promise<string> {
-        requestCounter += 1;
-        const requestId : number = requestCounter;
+        const { requestId, promise } = createPendingRequest();
 
-        return new Promise<string>((resolve, reject) => {
-            pending.set(requestId, { resolve, reject });
-    
-            invoke("call_plugin", {
-                pluginUuid: currentManifest.plugin.uuid,
-                fnName,
-                args,
-                requestId,
-            }).catch(reject);
+        await invoke("call_plugin", {
+            pluginUuid: currentManifest.plugin.uuid,
+            fnName,
+            args,
+            requestId,
         });
+
+        const result = await promise;
+        return result;
     }
 
     async function refreshPlugins() {
