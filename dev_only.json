@@ -1,0 +1,373 @@
+{
+  "report": {
+    "dry_run": true,
+    "per_module": {
+      "cache": {
+        "module_id": "cache",
+        "files_touched": 66857,
+        "bytes_freed": 6055739344,
+        "warnings": [
+          "Path skipped (requires root): /var/cache",
+          "Path skipped (requires root): /var/tmp",
+          "Path skipped (requires root): /var/log/journal",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-systemd-oomd.service-vcl1A2: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-bluetooth.service-lTh1L5: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-systemd-resolved.service-2Mcgor: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-ModemManager.service-kSx8ka: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-power-profiles-daemon.service-FsufQR: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/snap-private-tmp: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-systemd-logind.service-JtIMij: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-polkit.service-fnXJyW: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-upower.service-8cWDSh: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-switcheroo-control.service-gMt9gy: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-bolt.service-cHUMET: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-fwupd.service-mN5dC8: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-colord.service-BdwHXD: Permission denied (os error 13)",
+          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-259ced5517f64ec88f012b1c2b338f5d-systemd-timesyncd.service-u7VX8m: Permission denied (os error 13)"
+        ],
+        "errors": [],
+        "permission_denied": 14,
+        "per_root_path": {
+          "~/.cache/pip": {
+            "files_touched": 753,
+            "bytes_freed": 2883717237
+          },
+          "~/.cargo/git/db": {
+            "files_touched": 14,
+            "bytes_freed": 66427709
+          },
+          "~/.npm": {
+            "files_touched": 15465,
+            "bytes_freed": 1753452391
+          },
+          "/tmp": {
+            "files_touched": 163,
+            "bytes_freed": 2932569
+          },
+          "~/.rustup/toolchains": {
+            "files_touched": 49601,
+            "bytes_freed": 1254862526
+          },
+          "~/.cargo/registry/cache": {
+            "files_touched": 861,
+            "bytes_freed": 94346912
+          }
+        },
+        "per_file_type": {
+          "css": {
+            "files_touched": 195,
+            "bytes_freed": 1060793
+          },
+          "md": {
+            "files_touched": 471,
+            "bytes_freed": 3632850
+          },
+          "sample": {
+            "files_touched": 1,
+            "bytes_freed": 177
+          },
+          "log": {
+            "files_touched": 21,
+            "bytes_freed": 106012
+          },
+          "ts": {
+            "files_touched": 2725,
+            "bytes_freed": 13718044
+          },
+          "markdown": {
+            "files_touched": 2,
+            "bytes_freed": 8163
+          },
+          "json": {
+            "files_touched": 586,
+            "bytes_freed": 1707574
+          },
+          "crate": {
+            "files_touched": 861,
+            "bytes_freed": 94346912
+          },
+          "idx": {
+            "files_touched": 3,
+            "bytes_freed": 797548
+          },
+          "a": {
+            "files_touched": 7,
+            "bytes_freed": 22198234
+          },
+          "rlib": {
+            "files_touched": 27,
+            "bytes_freed": 32014294
+          },
+          "svelte": {
+            "files_touched": 4,
+            "bytes_freed": 5631
+          },
+          "mts": {
+            "files_touched": 147,
+            "bytes_freed": 220054
+          },
+          "flow": {
+            "files_touched": 2,
+            "bytes_freed": 180437
+          },
+          "js": {
+            "files_touched": 6455,
+            "bytes_freed": 110820106
+          },
+          "png": {
+            "files_touched": 68,
+            "bytes_freed": 3619836
+          },
+          "pack": {
+            "files_touched": 3,
+            "bytes_freed": 65629548
+          },
+          "no_ext": {
+            "files_touched": 5801,
+            "bytes_freed": 1780246202
+          },
+          "jpeg": {
+            "files_touched": 1,
+            "bytes_freed": 100961
+          },
+          "html": {
+            "files_touched": 46293,
+            "bytes_freed": 548295809
+          },
+          "jpg": {
+            "files_touched": 1,
+            "bytes_freed": 259494
+          },
+          "rs": {
+            "files_touched": 1,
+            "bytes_freed": 6214
+          },
+          "toml": {
+            "files_touched": 4,
+            "bytes_freed": 974381
+          },
+          "tsbuildinfo": {
+            "files_touched": 5,
+            "bytes_freed": 236026
+          },
+          "yml": {
+            "files_touched": 40,
+            "bytes_freed": 22628
+          },
+          "lld": {
+            "files_touched": 2,
+            "bytes_freed": 767104
+          },
+          "cts": {
+            "files_touched": 137,
+            "bytes_freed": 480012
+          },
+          "woff2": {
+            "files_touched": 223,
+            "bytes_freed": 10761872
+          },
+          "0-stable": {
+            "files_touched": 1,
+            "bytes_freed": 186846192
+          },
+          "svg": {
+            "files_touched": 136,
+            "bytes_freed": 804161
+          },
+          "tsx": {
+            "files_touched": 8,
+            "bytes_freed": 14136
+          },
+          "1": {
+            "files_touched": 40,
+            "bytes_freed": 386303
+          },
+          "rmeta": {
+            "files_touched": 27,
+            "bytes_freed": 105101690
+          },
+          "mjs": {
+            "files_touched": 311,
+            "bytes_freed": 2933369
+          },
+          "cjs": {
+            "files_touched": 146,
+            "bytes_freed": 1368889
+          },
+          "bsd": {
+            "files_touched": 1,
+            "bytes_freed": 1303
+          },
+          "txt": {
+            "files_touched": 72,
+            "bytes_freed": 452019
+          },
+          "vue": {
+            "files_touched": 4,
+            "bytes_freed": 5848
+          },
+          "bnf": {
+            "files_touched": 1,
+            "bytes_freed": 619
+          },
+          "map": {
+            "files_touched": 1631,
+            "bytes_freed": 23430139
+          },
+          "py": {
+            "files_touched": 6,
+            "bytes_freed": 78797
+          },
+          "so": {
+            "files_touched": 3,
+            "bytes_freed": 158895434
+          },
+          "body": {
+            "files_touched": 376,
+            "bytes_freed": 2883189411
+          },
+          "jsx": {
+            "files_touched": 8,
+            "bytes_freed": 14118
+          }
+        },
+        "candidate_files_count": 66857,
+        "deleted_files_count": 0,
+        "skipped_files_count": 66857,
+        "missing_paths_count": 2,
+        "existing_paths_count": 7,
+        "duration_ms": 1413,
+        "warning_count": 14
+      }
+    },
+    "total_files_touched": 66857,
+    "total_bytes_freed": 6055739344,
+    "total_warnings": 17,
+    "total_errors": 0,
+    "total_permission_denied": 14,
+    "total_duration_ms": 1413
+  },
+  "analysis": {
+    "events": [],
+    "per_module_metrics": {},
+    "dry_run": true,
+    "total_duration_ms": 1413,
+    "total_files_touched": 66857,
+    "total_bytes_freed": 6055739344,
+    "total_warnings": 17,
+    "total_errors": 0,
+    "total_permission_denied": 14,
+    "modules_by_bytes_freed": [
+      {
+        "module_id": "cache",
+        "duration_ms": 1413,
+        "files_touched": 66857,
+        "bytes_freed": 6055739344,
+        "warnings_count": 17,
+        "errors_count": 0,
+        "permission_denied": 14,
+        "candidate_files_count": 66857,
+        "deleted_files_count": 0,
+        "skipped_files_count": 66857,
+        "missing_paths_count": 2,
+        "existing_paths_count": 7,
+        "delete_success_rate": 0.0,
+        "warning_rate": 0.025427404759411878,
+        "avg_bytes_per_file": 90577.49142199021,
+        "bytes_per_second": 4285732019.8159943
+      }
+    ],
+    "modules_by_duration": [
+      {
+        "module_id": "cache",
+        "duration_ms": 1413,
+        "files_touched": 66857,
+        "bytes_freed": 6055739344,
+        "warnings_count": 17,
+        "errors_count": 0,
+        "permission_denied": 14,
+        "candidate_files_count": 66857,
+        "deleted_files_count": 0,
+        "skipped_files_count": 66857,
+        "missing_paths_count": 2,
+        "existing_paths_count": 7,
+        "delete_success_rate": 0.0,
+        "warning_rate": 0.025427404759411878,
+        "avg_bytes_per_file": 90577.49142199021,
+        "bytes_per_second": 4285732019.8159943
+      }
+    ],
+    "modules_by_warnings": [
+      {
+        "module_id": "cache",
+        "duration_ms": 1413,
+        "files_touched": 66857,
+        "bytes_freed": 6055739344,
+        "warnings_count": 17,
+        "errors_count": 0,
+        "permission_denied": 14,
+        "candidate_files_count": 66857,
+        "deleted_files_count": 0,
+        "skipped_files_count": 66857,
+        "missing_paths_count": 2,
+        "existing_paths_count": 7,
+        "delete_success_rate": 0.0,
+        "warning_rate": 0.025427404759411878,
+        "avg_bytes_per_file": 90577.49142199021,
+        "bytes_per_second": 4285732019.8159943
+      }
+    ],
+    "modules_by_efficiency": [
+      {
+        "module_id": "cache",
+        "duration_ms": 1413,
+        "files_touched": 66857,
+        "bytes_freed": 6055739344,
+        "warnings_count": 17,
+        "errors_count": 0,
+        "permission_denied": 14,
+        "candidate_files_count": 66857,
+        "deleted_files_count": 0,
+        "skipped_files_count": 66857,
+        "missing_paths_count": 2,
+        "existing_paths_count": 7,
+        "delete_success_rate": 0.0,
+        "warning_rate": 0.025427404759411878,
+        "avg_bytes_per_file": 90577.49142199021,
+        "bytes_per_second": 4285732019.8159943
+      }
+    ],
+    "modules_by_delete_success_rate": [
+      {
+        "module_id": "cache",
+        "duration_ms": 1413,
+        "files_touched": 66857,
+        "bytes_freed": 6055739344,
+        "warnings_count": 17,
+        "errors_count": 0,
+        "permission_denied": 14,
+        "candidate_files_count": 66857,
+        "deleted_files_count": 0,
+        "skipped_files_count": 66857,
+        "missing_paths_count": 2,
+        "existing_paths_count": 7,
+        "delete_success_rate": 0.0,
+        "warning_rate": 0.025427404759411878,
+        "avg_bytes_per_file": 90577.49142199021,
+        "bytes_per_second": 4285732019.8159943
+      }
+    ]
+  },
+  "selected_scope": {
+    "profile": "full",
+    "enabled_categories": [
+      "system",
+      "devtools"
+    ],
+    "dry_run": true
+  },
+  "generated_at": "2026-05-08T04:50:54.426199373+00:00",
+  "plugin_name": "griffon_cleaner",
+  "plugin_version": "0.1.0",
+  "run_id": "eb0c28a8-8b77-4293-8d66-e02dd471769c"
+}

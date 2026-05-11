@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { usePlugins } from "@/bindings/PluginContext.tsx";
 import { ModeToggle } from "./ModeToggle.tsx";
@@ -9,45 +9,57 @@ import { SidebarButton } from "./SidebarButton.tsx";
 import { Button } from "../ui/button.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { createPendingRequest } from "@/services/requestManager";
 
 type PluginSwitchDonePayload = {
-    request_id: number;
+    request_id: string;
     enable: boolean;
 };
+
+async function switchPluginStatus(
+    pluginUuid: string
+): Promise<PluginSwitchDonePayload> {
+
+    const { requestId, promise } = createPendingRequest();
+
+    await invoke("switch_status_plugin", {
+        pluginUuid,
+        requestId,
+    });
+
+    return promise;
+}
 
 export function Sidebar() {
     const { plugins } = usePlugins();
     const location = useLocation();
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [pluginStatus, setPluginStatus] = useState<Record<string, boolean>>({});
-    const pendingSwitchRequests = useRef<Record<number, string>>({});
+    const [switchingPlugins, setSwitchingPlugins] = useState<Record<string, boolean>>({});
 
-    useEffect(() => {
-        const unlistenPromise = listen<PluginSwitchDonePayload>(
-            "plugin-switch-done",
-            (event) => {
-                const { request_id, enable } = event.payload;
-                const pluginUuid = pendingSwitchRequests.current[request_id];
+    async function handleSwitchPlugin(pluginUuid: string) {
+        try {
+            setSwitchingPlugins((prev) => ({
+                ...prev,
+                [pluginUuid]: true,
+            }));
 
-                if (!pluginUuid) {
-                    console.warn("Unknown switch request:", request_id);
-                    return;
-                }
+            const result = await switchPluginStatus(pluginUuid);
 
-                setPluginStatus((previous) => ({
-                    ...previous,
-                    [pluginUuid]: enable,
-                }));
+            setPluginStatus((prev) => ({
+                ...prev,
+                [pluginUuid]: result.enable,
+            }));
 
-                delete pendingSwitchRequests.current[request_id];
-            }
-        );
-
-        return () => {
-            unlistenPromise.then((unlisten) => unlisten());
-        };
-    }, []);
+        } catch (error) {
+            console.error("Failed to switch plugin status:", error);
+        } finally {
+            setSwitchingPlugins((prev) => ({
+                ...prev,
+                [pluginUuid]: false,
+            }));
+        }
+    }
 
     return (
         <aside className="flex flex-col w-48 m-2">
@@ -71,11 +83,12 @@ export function Sidebar() {
             <Separator />
 
             <span className="text-xs text-muted-foreground px-2 my-2 select-none">
-        Plugins
-      </span>
+                Plugins
+            </span>
 
             {plugins.map((plugin) => {
                 const isEnabled = pluginStatus[plugin.uuid] ?? true;
+                const isSwitching = switchingPlugins[plugin.uuid] ?? false;
 
                 return (
                     <div key={plugin.uuid} className="flex items-center gap-1">
@@ -90,23 +103,16 @@ export function Sidebar() {
                         <Button
                             variant="ghost"
                             size="icon"
+                            disabled={isSwitching}
                             className={`h-8 w-8 shrink-0 cursor-pointer ${
                                 isEnabled
                                     ? "text-green-500 hover:text-green-600"
                                     : "text-red-500 hover:text-red-600"
                             }`}
                             title={isEnabled ? "Disable plugin" : "Enable plugin"}
-                            onClick={async () => {
-                                try {
-                                    const requestId = await invoke<number>("switch_status_plugin", {
-                                        pluginUuid: plugin.uuid,
-                                    });
-
-                                    pendingSwitchRequests.current[requestId] = plugin.uuid;
-                                } catch (error) {
-                                    console.error("Failed to switch plugin status:", error);
-                                }
-                            }}
+                            onClick={() =>
+                                handleSwitchPlugin(plugin.uuid)
+                            }
                         >
                             ●
                         </Button>

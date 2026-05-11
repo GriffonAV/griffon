@@ -11,9 +11,12 @@ import { ThemeInitializer } from "./components/layout/ModeToggle";
 import { PluginProvider } from "@/bindings/PluginContext";
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useDaemonNotifications } from "@/hooks/useDaemonNotifications";
+import { initializeRequestManager } from "./services/requestManager";
 
 export default function App() {
-  useDaemonNotifications()
+  useDaemonNotifications();
+  initializeRequestManager();
+
   return (
     <PluginProvider>
       <TooltipProvider>

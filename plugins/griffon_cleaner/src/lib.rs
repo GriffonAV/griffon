@@ -305,6 +305,10 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
         RString::from("function"),
         RString::from("run/run_raw/run_front/list_candidates/delete_selected"),
     ));
+    info.push(Tuple2(
+        RString::from("UUID"),
+        RString::from("123e4567-e23b-12d3-a456-426614174000"),
+    ));
 
     RResult::ROk(info)
 }
@@ -360,14 +364,44 @@ extern "C" fn handle_message(msg: RString) -> RString {
         _ => {}
     }
 
-    if raw.starts_with("fn:delete_selected") {
-        let parts: Vec<&str> = raw.split_whitespace().collect();
+    if raw.starts_with("fn:delete_selected") || raw.starts_with("delete_selected") {
+        println!("[LIBCLEAN] delete_selected raw command: {}", raw);
 
-        if parts.len() < 2 {
+        let args = raw
+            .strip_prefix("fn:delete_selected")
+            .or_else(|| raw.strip_prefix("delete_selected"))
+            .unwrap_or("")
+            .trim();
+
+        if args.is_empty() {
             return RString::from("ERR delete_selected requires at least one path");
         }
 
-        let items: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+        println!("[LIBCLEAN] delete_selected args: {}", args);
+
+        let items: Vec<String> = if args.starts_with('[') {
+            match serde_json::from_str(args) {
+                Ok(v) => v,
+                Err(e) => {
+                    return RString::from(format!("ERR delete_selected invalid JSON args: {}", e));
+                }
+            }
+        } else {
+            args.split_whitespace().map(|s| s.to_string()).collect()
+        };
+
+        if items.is_empty() {
+            return RString::from("ERR delete_selected requires at least one path");
+        }
+
+        println!(
+            "[LIBCLEAN] delete_selected received {} path(s)",
+            items.len()
+        );
+
+        for item in &items {
+            println!("[LIBCLEAN] selected path: {}", item);
+        }
 
         let (ctx, _) = match build_execution_context() {
             Ok(v) => v,
@@ -376,7 +410,7 @@ extern "C" fn handle_message(msg: RString) -> RString {
 
         let cleaner = modules::cache::CacheCleaner::new();
 
-        let resp = cleaner.delete_selected_paths(&ctx, &items);
+        let resp = cleaner.delete_selected_paths(&ctx, &items, true);
 
         return match serde_json::to_string(&resp) {
             Ok(json) => RString::from(json),
@@ -437,7 +471,7 @@ extern "C" fn handle_message(msg: RString) -> RString {
             };
 
             let cleaner = modules::cache::CacheCleaner::new();
-            let resp = cleaner.delete_selected_paths(&ctx, &delete_req.items);
+            let resp = cleaner.delete_selected_paths(&ctx, &delete_req.items, true);
 
             match serde_json::to_string(&resp) {
                 Ok(json) => RString::from(json),
