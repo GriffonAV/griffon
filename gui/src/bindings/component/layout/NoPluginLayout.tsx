@@ -4,11 +4,7 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import type { ReactNode } from "react";
 
 export function NoPluginLayout({ children }: { children: ReactNode }) {
-    const { plugins, isLoading } = usePlugins();
-
-    if (isLoading) {
-        return <div>Loading plugins...</div>;
-    }
+    const { plugins } = usePlugins();
 
     const openfolder = () => {
         openPath("~/Downloads").catch((err) => {

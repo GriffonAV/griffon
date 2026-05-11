@@ -233,6 +233,20 @@ export type GriffonManifest = {
   interactions?: GriffonInteraction[];
 };
 
+export type CleanerCandidateListValue = {
+  paths: string[];
+};
+
+export type CleanerCandidateListElement = {
+  type: "cleaner_candidate_list";
+  id: string;
+  title?: string;
+  from?: string;
+  selectedFrom?: string;
+  action?: string;
+  value?: CleanerCandidateListValue;
+};
+
 export type GriffonActionHandler = (
   action: string,
   element: GriffonElement
@@ -254,4 +268,5 @@ export type GriffonElement =
   | TableElement
   | GroupElement
   | RowElement
-  | ColumnElement;
+  | ColumnElement
+  | CleanerCandidateListElement;
