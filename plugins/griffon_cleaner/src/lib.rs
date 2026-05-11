@@ -305,6 +305,10 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
         RString::from("function"),
         RString::from("run/run_raw/run_front/list_candidates/delete_selected"),
     ));
+    info.push(Tuple2(
+        RString::from("UUID"),
+        RString::from("123e4567-e23b-12d3-a456-426614174000"),
+    ));
 
     RResult::ROk(info)
 }
@@ -362,6 +366,11 @@ extern "C" fn handle_message(msg: RString) -> RString {
 
     if raw.starts_with("fn:delete_selected") {
         let parts: Vec<&str> = raw.split_whitespace().collect();
+
+        println!(
+            "[LIBCLEAN] delete_selected command received with {} parts",
+            parts.len()
+        );
 
         if parts.len() < 2 {
             return RString::from("ERR delete_selected requires at least one path");

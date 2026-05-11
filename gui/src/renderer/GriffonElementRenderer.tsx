@@ -15,6 +15,7 @@ import GriffonRow from "@/components/griffon/GriffonRow";
 import GriffonColumn from "@/components/griffon/GriffonColumn";
 import GriffonFileSelect from "@/components/griffon/GriffonFileSelect";
 import CleanerTable from "@/components/griffon/CleanerTable";
+import CleanerCandidateList from "@/components/griffon/CleanerCandidateList";
 
 interface GriffonElementRendererProps {
   element: any;
@@ -84,6 +85,9 @@ export default function GriffonElementRenderer({
 
     case "cleaner_table":
         return <CleanerTable {...commonProps} />;
+
+    case "cleaner_candidate_list":
+        return <CleanerCandidateList {...commonProps} />;
 
     default:
       return null;
