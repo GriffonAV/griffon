@@ -201,7 +201,6 @@ fn switch_status_plugin_inner(
         "Invalid UUID".to_string()
     })?;
 
-    
     send_interface_request(
         &mut sock,
         &InterfaceRequest::SwitchStatusPlugin { plugin_uuid },
