@@ -70,8 +70,8 @@ contents:
     file_info:
       mode: 0644
 
-  - src: ./plugins/griffon_cleaner/griffon_cleaner.toml
-    dst: /usr/lib/griffonav/plugins/griffon_cleaner.toml
+  - src: ./plugins/griffon_cleaner/libgriffon_cleaner.toml
+    dst: /usr/lib/griffonav/plugins/libgriffon_cleaner.toml
     file_info:
       mode: 0644
 
