@@ -17,11 +17,15 @@ import type { GriffonActionHandler } from "../types";
 
 interface CleanerCandidateListProps {
     element: {
+        type: "cleaner_candidate_list";
         id: string;
         title?: string;
         from?: string;
         selectedFrom?: string;
         action?: string;
+        value?: {
+            paths: string[];
+        };
     };
     store?: Record<string, any>;
     onAction?: GriffonActionHandler;
