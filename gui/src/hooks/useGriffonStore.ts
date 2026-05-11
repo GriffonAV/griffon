@@ -81,7 +81,7 @@ async function CallPlgFnStep(
     }
 
     try {
-        const args = step.from ? resolveFromPath(step.from, { store: next }) : step.args;
+        const args = step.from ? Object.values(resolveFromPath(step.from, { store: next }))[0] : step.args;
 
         if (args && !Array.isArray(args)) {
             console.warn(`the value of ${step.from} must be an array to be used as arguments for the function "${step.fn}"`);
