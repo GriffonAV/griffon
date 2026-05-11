@@ -37,7 +37,7 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                     ));
 
                     let response = match pm.switch_status_plugin(plugin_uuid) {
-                        Ok(_) => InterfaceResponse::SwitchDone { request_id },
+                        Ok(enable) => InterfaceResponse::SwitchDone { request_id, enable },
                         Err(e) => InterfaceResponse::Error {
                             request_id,
                             message: format!(

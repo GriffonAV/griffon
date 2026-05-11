@@ -4,10 +4,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { error } from "@tauri-apps/plugin-log";
 import { listen } from "@tauri-apps/api/event";
 
-export interface Plugin {
-    pid: number;
-    name: string;
-}
+export type Plugin = {
+    file_name: string;
+    uuid: string;
+    display_name: string;
+    version: string;
+    author: string;
+    description: string;
+};
 
 export interface InteractionStep {
     type: string;

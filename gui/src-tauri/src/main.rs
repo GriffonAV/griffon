@@ -28,8 +28,12 @@ const PLUGIN_MANIFEST_DIR: &str = if cfg!(debug_assertions) {
 
 #[derive(Serialize)]
 struct Plugin {
-    uuid: u32, // I will have to take this value from somewhere
-    name: String,
+    file_name: String,
+    uuid: String,
+    display_name: String,
+    version: String,
+    author: String,
+    description: String,
 }
 
 const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
@@ -56,28 +60,65 @@ fn list_plugins() -> Result<Vec<Plugin>, String> {
         "Listing plugins from directory: {}",
         PLUGIN_MANIFEST_DIR
     ));
+
     let entries = std::fs::read_dir(PLUGIN_MANIFEST_DIR).map_err(|e| e.to_string())?;
     let mut plugins = Vec::new();
+
     for entry in entries {
         let entry = entry.map_err(|e| e.to_string())?;
         let path = entry.path();
-        if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("toml") {
-            if let Some(stem) = path.file_stem().and_then(|s| s.to_str()) {
-                plugins.push(Plugin {
-                    uuid: 0, // populate if you have a real pid
-                    name: stem.to_string(),
-                });
-            }
+
+        if !path.is_file() {
+            continue;
         }
+
+        if path.extension().and_then(|s| s.to_str()) != Some("toml") {
+            continue;
+        }
+
+        let Some(stem) = path.file_stem().and_then(|s| s.to_str()) else {
+            continue;
+        };
+
+        let Some(path_str) = path.to_str() else {
+            LOGGER.error(format!("Invalid manifest path: {:?}", path));
+            continue;
+        };
+
+        let manifest = match load_plugin_manifest(path_str) {
+            Ok(manifest) => manifest,
+            Err(e) => {
+                LOGGER.error(format!(
+                    "Failed to load plugin manifest {}: {}",
+                    path.display(),
+                    e
+                ));
+                continue;
+            }
+        };
+
+        plugins.push(Plugin {
+            file_name: stem.to_string(),
+            uuid: manifest.plugin.id.clone(),
+            display_name: manifest.plugin.name.clone(),
+            version: manifest.plugin.version.clone(),
+            author: manifest.plugin.author.clone(),
+            description: manifest.plugin.description.clone(),
+        });
     }
+
     LOGGER.debug(format!(
         "Found plugins: {:?}",
-        plugins.iter().map(|p| &p.name).collect::<Vec<_>>()
+        plugins
+            .iter()
+            .map(|p| format!("{} ({})", p.display_name, p.file_name))
+            .collect::<Vec<_>>()
     ));
-    plugins.sort_by(|a, b| a.name.cmp(&b.name));
+
+    plugins.sort_by(|a, b| a.display_name.cmp(&b.display_name));
+
     Ok(plugins)
 }
-
 #[tauri::command]
 fn call_plugin(
     state: State<'_, DaemonConnection>,
@@ -137,14 +178,14 @@ fn call_plugin_inner(
 fn switch_status_plugin(
     state: State<'_, DaemonConnection>,
     plugin_uuid: String,
-) -> Result<(), String> {
+) -> Result<u32, String> {
     switch_status_plugin_inner(&state, &plugin_uuid)
 }
 
 fn switch_status_plugin_inner(
     conn: &DaemonConnection,
     plugin_uuid_str: &str,
-) -> Result<(), String> {
+) -> Result<u32, String> {
     LOGGER.debug("SWITCH STATUS");
 
     let mut sock_guard = conn.0.lock().map_err(|e| e.to_string())?;
@@ -174,7 +215,7 @@ fn switch_status_plugin_inner(
 
     *id_guard = next_request_id;
 
-    Ok(())
+    Ok(next_request_id)
 }
 
 #[tauri::command]
@@ -218,8 +259,19 @@ fn start_reader_thread(mut read_sock: UnixStream, app_handle: tauri::AppHandle) 
         loop {
             match recv_interface_response(&mut read_sock) {
                 Ok(resp) => match resp {
-                    InterfaceResponse::SwitchDone { request_id } => {
-                        LOGGER_NETWORK.info(format!("SwitchDone received {}", request_id))
+                    InterfaceResponse::SwitchDone { request_id, enable } => {
+                        LOGGER_NETWORK.info(format!(
+                            "SwitchDone received {} enable:{}",
+                            request_id, enable
+                        ));
+
+                        let _ = app_handle.emit(
+                            "plugin-switch-done",
+                            serde_json::json!({
+                                "request_id": request_id,
+                                "enable": enable
+                            }),
+                        );
                     }
                     InterfaceResponse::Ok { request_id } => {
                         LOGGER_NETWORK.info(format!("Ok received {}", request_id));
@@ -334,13 +386,13 @@ fn main() {
                             //     LOGGER_NETWORK
                             //         .error(format!("Failed to switch status plugins: {e}"));
                             // }
-                            if let Err(e) = switch_status_plugin_inner(
-                                &state,
-                                "6e9e800a-0d0c-4f74-8265-7b9ab0234582",
-                            ) {
-                                LOGGER_NETWORK
-                                    .error(format!("Failed to switch status plugins: {e}"));
-                            }
+                            // if let Err(e) = switch_status_plugin_inner(
+                            //     &state,
+                            //     "6e9e800a-0d0c-4f74-8265-7b9ab0234582",
+                            // ) {
+                            //     LOGGER_NETWORK
+                            //         .error(format!("Failed to switch status plugins: {e}"));
+                            // }
                             // END OF TMP FOR TEST
                         }
                         Err(e) => {

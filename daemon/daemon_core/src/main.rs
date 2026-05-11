@@ -34,12 +34,12 @@ fn main() -> io::Result<()> {
                 let tx = task_tx.clone();
                 std::thread::spawn(move || {
                     if let Err(e) = network::handle_client(stream, tx) {
-                        LOGGER_NETWORK.error(format!("[DAEMON](ERROR) client error: {e}"));
+                        LOGGER_NETWORK.error(format!("client error: {e}"));
                     }
                 });
             }
             Err(e) => {
-                LOGGER_NETWORK.error(format!("[DAEMON](ERROR) stream error: {e}"));
+                LOGGER_NETWORK.error(format!("stream error: {e}"));
             }
         }
     }
