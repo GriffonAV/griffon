@@ -117,7 +117,6 @@ fn call_plugin_inner(
         return Err("Function name cannot be empty".to_string());
     }
 
-
     send_interface_request(
         &mut sock,
         &InterfaceRequest::CallPlugin {
@@ -129,9 +128,7 @@ fn call_plugin_inner(
     )
     .map_err(|e| e.to_string())?;
 
-    LOGGER_NETWORK.debug(format!(
-        "Call request sent with request_id={request_id}"
-    ));
+    LOGGER_NETWORK.debug(format!("Call request sent with request_id={request_id}"));
 
     Ok(())
 }
@@ -271,11 +268,14 @@ fn start_reader_thread(mut read_sock: UnixStream, app_handle: tauri::AppHandle) 
                     } => {
                         LOGGER_NETWORK
                             .info(format!("Call {request_id} result={ok} output={output}"));
-                        let _ = app_handle.emit("plugin-call-result", serde_json::json!({
-                            "request_id": request_id,
-                            "ok": ok,
-                            "output": output
-                        }));
+                        let _ = app_handle.emit(
+                            "plugin-call-result",
+                            serde_json::json!({
+                                "request_id": request_id,
+                                "ok": ok,
+                                "output": output
+                            }),
+                        );
                     }
                 },
                 Err(e) => {

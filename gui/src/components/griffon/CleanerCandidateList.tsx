@@ -41,7 +41,7 @@ type CleanerCandidatesData = {
 };
 
 type FilesSelectedData = {
-    files: CleanerCandidate[];
+    paths: string[];
 };
 
 function formatBytes(bytes: number): string {
@@ -58,31 +58,31 @@ function formatBytes(bytes: number): string {
 
 function isSelected(
     candidate: CleanerCandidate,
-    selectedFiles: CleanerCandidate[]
+    selectedPaths: string[]
 ): boolean {
-    return selectedFiles.some((item) => item.path === candidate.path);
+    return selectedPaths.includes(candidate.path);
 }
 
 function toggleCandidate(
     candidate: CleanerCandidate,
     element: CleanerCandidateListProps["element"],
     onAction?: GriffonActionHandler,
-    selectedFiles: CleanerCandidate[] = []
+    selectedPaths: string[] = []
 ) {
     if (!element?.action || !onAction) {
         return;
     }
 
-    const exists = isSelected(candidate, selectedFiles);
+    const exists = selectedPaths.includes(candidate.path);
 
     const nextSelected = exists
-        ? selectedFiles.filter((item) => item.path !== candidate.path)
-        : [...selectedFiles, candidate];
+        ? selectedPaths.filter((path) => path !== candidate.path)
+        : [...selectedPaths, candidate.path];
 
     onAction(element.action, {
         ...element,
         value: {
-            files: nextSelected,
+            paths: nextSelected,
         },
     });
 }
@@ -99,7 +99,7 @@ function selectAll(
     onAction(element.action, {
         ...element,
         value: {
-            files: candidates,
+            paths: candidates.map((candidate) => candidate.path),
         },
     });
 }
@@ -115,7 +115,7 @@ function clearSelection(
     onAction(element.action, {
         ...element,
         value: {
-            files: [],
+            paths: [],
         },
     });
 }
@@ -133,15 +133,15 @@ export default function CleanerCandidateList({
 
     const selectedData: FilesSelectedData = element.selectedFrom
         ? resolveFromPath(element.selectedFrom, context)
-        : { files: [] };
+        : { paths: [] };
+
+    const selectedPaths = selectedData?.paths ?? [];
 
     const candidates = data?.items ?? [];
-    const selectedFiles = selectedData?.files ?? [];
 
-    const selectedTotalSize = selectedFiles.reduce(
-        (total, item) => total + (item.size ?? 0),
-        0
-    );
+    const selectedTotalSize = candidates
+        .filter((candidate) => selectedPaths.includes(candidate.path))
+        .reduce((total, item) => total + (item.size ?? 0), 0);
 
     return (
         <div id={element.id} className="w-full space-y-4">
@@ -169,7 +169,7 @@ export default function CleanerCandidateList({
                     <Button
                         variant="outline"
                         size="sm"
-                        disabled={selectedFiles.length === 0}
+                        disabled={selectedPaths.length === 0}
                         onClick={() => clearSelection(element, onAction)}
                     >
                         Clear
@@ -181,7 +181,7 @@ export default function CleanerCandidateList({
                 <p className="text-sm">
                     Selected:{" "}
                     <span className="font-semibold">
-                        {selectedFiles.length}
+                        {selectedPaths.length}
                     </span>{" "}
                     item(s)
                 </p>
@@ -217,7 +217,7 @@ export default function CleanerCandidateList({
                             {candidates.map((candidate, index) => {
                                 const selected = isSelected(
                                     candidate,
-                                    selectedFiles
+                                    selectedPaths
                                 );
 
                                 return (
@@ -231,7 +231,7 @@ export default function CleanerCandidateList({
                                                 candidate,
                                                 element,
                                                 onAction,
-                                                selectedFiles
+                                                selectedPaths
                                             )
                                         }
                                     >
@@ -247,7 +247,7 @@ export default function CleanerCandidateList({
                                                         candidate,
                                                         element,
                                                         onAction,
-                                                        selectedFiles
+                                                        selectedPaths
                                                     )
                                                 }
                                             />
