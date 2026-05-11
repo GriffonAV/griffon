@@ -255,6 +255,7 @@ impl CacheCleaner {
     fn validate_delete_target(
         raw_path: &Path,
         allowed_roots: &[PathBuf],
+        allow_cleaner_roots: bool,
     ) -> Result<PathBuf, String> {
         if raw_path.as_os_str().is_empty() {
             return Err("Empty path is not allowed".to_string());
@@ -293,10 +294,11 @@ impl CacheCleaner {
             return Err("Path is outside allowed cleaner scope".to_string());
         }
 
-        if canonical_allowed_roots
+        let is_cleaner_root = canonical_allowed_roots
             .iter()
-            .any(|root| &canonical_path == root)
-        {
+            .any(|root| &canonical_path == root);
+
+        if is_cleaner_root && !allow_cleaner_roots {
             return Err("Refusing to delete an entire cleaner root directly".to_string());
         }
 
@@ -307,6 +309,7 @@ impl CacheCleaner {
         &self,
         ctx: &ExecutionContext,
         items: &[String],
+        allow_cleaner_roots: bool,
     ) -> DeleteSelectedResponse {
         let mut deleted_count = 0;
         let mut deleted_bytes = 0;
@@ -321,16 +324,17 @@ impl CacheCleaner {
         for item in items {
             let raw_path = Path::new(item);
 
-            let path = match Self::validate_delete_target(raw_path, &allowed_roots) {
-                Ok(path) => path,
-                Err(error) => {
-                    failed.push(DeleteFailure {
-                        path: item.clone(),
-                        error,
-                    });
-                    continue;
-                }
-            };
+            let path =
+                match Self::validate_delete_target(raw_path, &allowed_roots, allow_cleaner_roots) {
+                    Ok(path) => path,
+                    Err(error) => {
+                        failed.push(DeleteFailure {
+                            path: item.clone(),
+                            error,
+                        });
+                        continue;
+                    }
+                };
 
             let metadata = match fs::metadata(&path) {
                 Ok(m) => m,
