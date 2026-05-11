@@ -1,6 +1,6 @@
 [plugin]
 name = "libgriffon_cleaner"
-id = "org.griffon.libgriffon_cleaner"
+id = "123e4567-e23b-12d3-a456-426614174000"
 version = "1.0.0"
 author = "Ewen"
 description = "Cleaner plugin for listing and deleting selected cache candidates."
