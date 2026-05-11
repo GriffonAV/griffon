@@ -11,7 +11,7 @@ pub struct HelloOkPayload {
     pub functions: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct CallPayload {
     pub fn_name: String,
     pub args: Vec<String>,

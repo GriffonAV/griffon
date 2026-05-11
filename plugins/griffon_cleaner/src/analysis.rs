@@ -1,5 +1,6 @@
 use crate::{GlobalReport, ModuleReport};
 use serde::Serialize;
+use std::cmp::Reverse;
 use std::fs;
 use std::path::Path;
 
@@ -211,13 +212,13 @@ pub fn build_analysis_report(global: &GlobalReport) -> AnalysisReport {
     let total_permission_denied = summaries.iter().map(|m| m.permission_denied).sum();
 
     let mut modules_by_bytes_freed = summaries.clone();
-    modules_by_bytes_freed.sort_by(|a, b| b.bytes_freed.cmp(&a.bytes_freed));
+    modules_by_bytes_freed.sort_by_key(|module| Reverse(module.bytes_freed));
 
     let mut modules_by_duration = summaries.clone();
-    modules_by_duration.sort_by(|a, b| b.duration_ms.cmp(&a.duration_ms));
+    modules_by_duration.sort_by_key(|module| Reverse(module.duration_ms));
 
     let mut modules_by_warnings = summaries.clone();
-    modules_by_warnings.sort_by(|a, b| b.warnings_count.cmp(&a.warnings_count));
+    modules_by_warnings.sort_by_key(|module| Reverse(module.warnings_count));
 
     let mut modules_by_efficiency = summaries.clone();
     modules_by_efficiency.sort_by(|a, b| {
