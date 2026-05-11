@@ -71,9 +71,24 @@ async function CallPlgFnStep(
         console.warn("fn param must be a string");
         return next;
     }
+    if (step.from && typeof step.from !== "string") {
+        console.warn("from param must be a string for execute_function step");
+        return next;
+    }
+    if (step.args && !Array.isArray(step.args)) {
+        console.warn("args param must be an array for execute_function step");
+        return next;
+    }
 
     try {
-        const returnValue = await callPluginFunction(step.fn, step.args ?? []);
+        const args = step.from ? resolveFromPath(step.from, { store: next }) : step.args;
+
+        if (args && !Array.isArray(args)) {
+            console.warn(`the value of ${step.from} must be an array to be used as arguments for the function "${step.fn}"`);
+            return next;
+        }
+
+        const returnValue = await callPluginFunction(step.fn, args ?? []);
         let result : string = returnValue;
 
         if (step.returnType === "json") {
