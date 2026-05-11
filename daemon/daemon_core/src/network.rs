@@ -44,8 +44,7 @@ pub const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
 fn configure_socket_permissions(path: &Path) -> io::Result<()> {
     let group = Group::from_name("griffon")
         .map_err(|e| {
-            io::Error::new(
-                io::ErrorKind::Other,
+            io::Error::other(
                 format!("failed to lookup group 'griffon': {e}"),
             )
         })?
