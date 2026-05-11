@@ -1,0 +1,105 @@
+[plugin]
+name = "libgriffon_cleaner"
+id = "org.griffon.libgriffon_cleaner"
+version = "1.0.0"
+author = "Ewen"
+description = "Cleaner plugin for listing and deleting selected cache candidates."
+tabs = ["main"]
+uuid = "123e4567-e23b-12d3-a456-426614174000"
+
+[store]
+
+[store.data.candidates]
+ok = false
+items = []
+
+[store.data.files_selected]
+paths = []
+
+[store.data.delete_result]
+ok = false
+dry_run = true
+deleted_count = 0
+deleted_bytes = 0
+failed = []
+
+[ui]
+
+[[ui.sections]]
+id = "file_main"
+tab = "main"
+
+[[ui.sections.contents]]
+type = "button"
+id = "load_candidates_bt"
+name = "Refresh candidates"
+action = "load_candidates_bt.pressed"
+
+[[ui.sections.contents]]
+type = "cleaner_candidate_list"
+id = "cleaner_candidates"
+from = "store.data.candidates"
+selectedFrom = "store.data.files_selected"
+action = "set_files_selected"
+
+[[ui.sections.contents]]
+type = "cleaner_size_calculator"
+id = "cleaner_size_calculator"
+from = "store.data.files_selected"
+
+[[ui.sections.contents]]
+type = "button"
+id = "delete_selected_bt"
+name = "Delete selected"
+action = "delete_selected_bt.pressed"
+
+[[ui.sections.contents]]
+type = "cleaner_delete_result"
+id = "cleaner_delete_result"
+from = "store.data.delete_result"
+
+[[interactions]]
+id = "load_candidates"
+on = "load_candidates_bt.pressed"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.candidates"
+fn = "list_candidates"
+returnType = "json"
+
+[[interactions]]
+id = "set_files_selected"
+on = "set_files_selected"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.files_selected"
+from = "event.value"
+
+[[interactions]]
+id = "delete_selected"
+on = "delete_selected_bt.pressed"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.delete_result"
+from = "store.data.files_selected"
+fn = "delete_selected"
+returnType = "json"
+
+[[interactions]]
+id = "delete_selected"
+on = "delete_selected_bt.pressed"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.delete_result"
+from = "store.data.files_selected"
+fn = "delete_selected"
+returnType = "json"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.files_selected"
+value = { paths = [] }
