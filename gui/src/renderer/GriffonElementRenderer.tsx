@@ -18,6 +18,7 @@ import CleanerTable from "@/components/griffon/CleanerTable";
 import CleanerCandidateList from "@/components/griffon/CleanerCandidateList";
 import CleanerDeleteResult from "@/components/griffon/CleanerDeleteResult.tsx";
 import CleanerRunOverview from "@/components/griffon/CleanerRunOverview.tsx";
+import CleanerFileTypeSelector from "@/components/griffon/CleanerFileTypeSelector";
 
 interface GriffonElementRendererProps {
   element: any;
@@ -96,6 +97,8 @@ export default function GriffonElementRenderer({
 
     case "cleaner_run_overview":
         return <CleanerRunOverview {...commonProps} />;
+    case "cleaner_file_type_selector":
+        return <CleanerFileTypeSelector {...commonProps} />;
 
     default:
       return null;

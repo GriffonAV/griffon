@@ -37,6 +37,7 @@ type CleanerCandidate = {
     category: string;
     kind: "file" | "directory";
     size: number;
+    file_type?: string;
 };
 
 type CleanerCandidatesData = {
@@ -214,6 +215,8 @@ export default function CleanerCandidateList({
                                 <TableHead>Kind</TableHead>
                                 <TableHead>Size</TableHead>
                                 <TableHead>Path</TableHead>
+                                <TableHead>File type</TableHead>
+                                <TableHead>Kind</TableHead>
                             </TableRow>
                         </TableHeader>
 
@@ -288,6 +291,16 @@ export default function CleanerCandidateList({
 
                                         <TableCell className="max-w-[420px] truncate text-xs text-muted-foreground">
                                             {candidate.path}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline">
+                                                {candidate.file_type ?? "unknown"}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline">
+                                                {candidate.kind}
+                                            </Badge>
                                         </TableCell>
                                     </TableRow>
                                 );

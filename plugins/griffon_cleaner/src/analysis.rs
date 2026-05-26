@@ -7,6 +7,7 @@ use std::path::Path;
 #[derive(Debug, Clone, Serialize)]
 pub struct CleanerSelectionSummary {
     pub profile: String,
+    pub selected_file_types: Vec<String>,
     pub enabled_categories: Vec<String>,
     pub dry_run: bool,
 }

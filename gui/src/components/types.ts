@@ -252,6 +252,16 @@ export type GriffonActionHandler = (
   element: GriffonElement
 ) => void;
 
+export type CleanerFileTypeSelectorElement = {
+  type: "cleaner_file_type_selector";
+  id: string;
+  title?: string;
+  description?: string;
+  from?: string;
+  selectedFrom?: string;
+  action?: string;
+};
+
 export type GriffonElement =
   | TextElement
   | ButtonElement
@@ -269,4 +279,5 @@ export type GriffonElement =
   | GroupElement
   | RowElement
   | ColumnElement
-  | CleanerCandidateListElement;
+  | CleanerCandidateListElement
+  | CleanerFileTypeSelectorElement;
