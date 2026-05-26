@@ -245,6 +245,8 @@ export type CleanerCandidateListElement = {
   selectedFrom?: string;
   action?: string;
   value?: CleanerCandidateListValue;
+  optionsFrom?: string;
+  deleteAction?: string;
 };
 
 export type GriffonActionHandler = (
@@ -259,6 +261,15 @@ export type CleanerFileTypeSelectorElement = {
   description?: string;
   from?: string;
   selectedFrom?: string;
+  action?: string;
+};
+
+export type CleanerDryRunToggleElement = {
+  type: "cleaner_dry_run_toggle";
+  id: string;
+  title?: string;
+  description?: string;
+  from?: string;
   action?: string;
 };
 
@@ -280,4 +291,5 @@ export type GriffonElement =
   | RowElement
   | ColumnElement
   | CleanerCandidateListElement
-  | CleanerFileTypeSelectorElement;
+  | CleanerFileTypeSelectorElement
+  | CleanerDryRunToggleElement;

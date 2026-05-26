@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 pub struct CleanerFilters {
     #[serde(default)]
     pub file_types: Vec<String>,
-}
 
+    #[serde(default)]
+    pub dry_run: Option<bool>,
+}
 impl CleanerFilters {
     pub fn has_file_type_filter(&self) -> bool {
         !self.file_types.is_empty()
@@ -52,13 +54,16 @@ pub struct ListCandidatesResponse {
     pub items: Vec<CleanerCandidate>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DeleteSelectedRequest {
     #[serde(default)]
     pub items: Vec<String>,
 
     #[serde(default)]
     pub paths: Vec<String>,
+
+    #[serde(default)]
+    pub dry_run: Option<bool>,
 
     #[serde(default)]
     pub file_types: Vec<String>,
@@ -71,6 +76,13 @@ impl DeleteSelectedRequest {
         }
 
         self.items.clone()
+    }
+
+    pub fn to_filters(&self) -> CleanerFilters {
+        CleanerFilters {
+            file_types: self.file_types.clone(),
+            dry_run: self.dry_run,
+        }
     }
 }
 

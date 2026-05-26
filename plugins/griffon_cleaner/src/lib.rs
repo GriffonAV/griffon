@@ -220,6 +220,7 @@ fn parse_arg(flag: &str) -> Option<String> {
             return args.next();
         }
     }
+
     None
 }
 
@@ -235,9 +236,11 @@ pub fn build_execution_context_with_filters(
 
     let file_cfg = FileCleanerConfig::load_from_file(PathBuf::from(&config_path).as_path())?;
 
+    let dry_run = filters.dry_run.unwrap_or(file_cfg.dry_run);
+
     let ctx = ExecutionContext {
         config: file_cfg.to_runtime_config(),
-        dry_run: file_cfg.dry_run,
+        dry_run,
         root_paths: file_cfg.root_paths.iter().map(PathBuf::from).collect(),
         filters,
     };
@@ -289,6 +292,8 @@ pub fn execute_cleaner_payload_with_filters(
         selected_scope.selected_file_types
     );
 
+    println!("Selected dry-run mode: {}", selected_scope.dry_run);
+
     Ok(CleanerExportPayload {
         generated_at: Utc::now().to_rfc3339(),
         plugin_name: env!("CARGO_PKG_NAME").to_string(),
@@ -311,6 +316,41 @@ pub fn execute_cleaner_front_payload_with_filters(
     Ok(build_front_cleaner_payload(&raw_payload))
 }
 
+fn parse_bool_value(value: &serde_json::Value) -> Result<Option<bool>, String> {
+    if value.is_null() {
+        return Ok(None);
+    }
+
+    if let Some(boolean) = value.as_bool() {
+        return Ok(Some(boolean));
+    }
+
+    if let Some(text) = value.as_str() {
+        let normalized = text.trim().to_lowercase();
+
+        return match normalized.as_str() {
+            "" => Ok(None),
+            "true" | "1" | "yes" | "on" => Ok(Some(true)),
+            "false" | "0" | "no" | "off" => Ok(Some(false)),
+            _ => Err(format!("invalid dry_run value: {text}")),
+        };
+    }
+
+    Err(format!("invalid dry_run value type: {value}"))
+}
+
+fn parse_dry_run_from_object(value: &serde_json::Value) -> Result<Option<bool>, String> {
+    let dry_run_value = value
+        .get("dry_run")
+        .or_else(|| value.get("dryRun"))
+        .or_else(|| value.get("dry-run"));
+
+    match dry_run_value {
+        Some(value) => parse_bool_value(value),
+        None => Ok(None),
+    }
+}
+
 fn parse_string_list_from_value(value: serde_json::Value) -> Result<Vec<String>, String> {
     if value.is_null() {
         return Ok(Vec::new());
@@ -326,6 +366,29 @@ fn parse_string_list_from_value(value: serde_json::Value) -> Result<Vec<String>,
 
     if let Some(file_types_value) = value.get("file_types") {
         return parse_string_list_from_value(file_types_value.clone());
+    }
+
+    if let Some(array) = value.as_array() {
+        let mut items = Vec::new();
+
+        for item in array {
+            if let Some(text) = item.as_str() {
+                items.push(text.trim().to_string());
+                continue;
+            }
+
+            if let Some(id) = item.get("id").and_then(|id| id.as_str()) {
+                items.push(id.trim().to_string());
+                continue;
+            }
+
+            return Err(format!("invalid file_types item: {item}"));
+        }
+
+        return Ok(items
+            .into_iter()
+            .filter(|item| !item.trim().is_empty())
+            .collect());
     }
 
     if let Some(text) = value.as_str() {
@@ -358,28 +421,65 @@ fn parse_filters_from_value(value: serde_json::Value) -> Result<CleanerFilters, 
 
     if value.is_array() || value.is_string() {
         let file_types = parse_string_list_from_value(value)?;
-        return Ok(CleanerFilters { file_types });
+
+        return Ok(CleanerFilters {
+            file_types,
+            ..Default::default()
+        });
     }
 
+    if !value.is_object() {
+        return serde_json::from_value(value).map_err(|e| format!("invalid cleaner filters: {e}"));
+    }
+
+    let outer_dry_run = parse_dry_run_from_object(&value)?;
+
     if let Some(filters_value) = value.get("filters") {
-        return parse_filters_from_value(filters_value.clone());
+        let mut filters = parse_filters_from_value(filters_value.clone())?;
+
+        if outer_dry_run.is_some() {
+            filters.dry_run = outer_dry_run;
+        }
+
+        return Ok(filters);
+    }
+
+    if let Some(value_value) = value.get("value") {
+        let mut filters = parse_filters_from_value(value_value.clone())?;
+
+        if outer_dry_run.is_some() {
+            filters.dry_run = outer_dry_run;
+        }
+
+        return Ok(filters);
     }
 
     if let Some(file_types_value) = value.get("file_types") {
         let file_types = parse_string_list_from_value(file_types_value.clone())?;
-        return Ok(CleanerFilters { file_types });
+
+        return Ok(CleanerFilters {
+            file_types,
+            dry_run: outer_dry_run,
+        });
     }
 
     if let Some(items_value) = value.get("items") {
         let file_types = parse_string_list_from_value(items_value.clone())?;
-        return Ok(CleanerFilters { file_types });
+
+        return Ok(CleanerFilters {
+            file_types,
+            dry_run: outer_dry_run,
+        });
     }
 
-    if let Some(value_value) = value.get("value") {
-        return parse_filters_from_value(value_value.clone());
+    let mut filters: CleanerFilters =
+        serde_json::from_value(value).map_err(|e| format!("invalid cleaner filters: {e}"))?;
+
+    if outer_dry_run.is_some() {
+        filters.dry_run = outer_dry_run;
     }
 
-    serde_json::from_value(value).map_err(|e| format!("invalid cleaner filters: {e}"))
+    Ok(filters)
 }
 
 fn parse_filters_from_payload(
@@ -401,6 +501,7 @@ fn parse_filters_from_command_args(args: &str) -> Result<CleanerFilters, String>
     if args.starts_with('{') || args.starts_with('[') {
         let value: serde_json::Value =
             serde_json::from_str(args).map_err(|e| format!("invalid filters json: {e}"))?;
+
         return parse_filters_from_value(value);
     }
 
@@ -410,6 +511,7 @@ fn parse_filters_from_command_args(args: &str) -> Result<CleanerFilters, String>
             .filter(|item| !item.trim().is_empty())
             .map(|item| item.trim().to_string())
             .collect(),
+        ..Default::default()
     })
 }
 
@@ -478,6 +580,81 @@ fn execute_list_candidates_with_args(args: &str) -> RString {
     }
 }
 
+fn execute_delete_selected_from_request(delete_req: DeleteSelectedRequest) -> RString {
+    let selected_paths = delete_req.selected_paths();
+
+    if selected_paths.is_empty() {
+        return RString::from("ERR delete_selected requires at least one path");
+    }
+
+    let filters = delete_req.to_filters();
+
+    let (ctx, _) = match build_execution_context_with_filters(filters) {
+        Ok(v) => v,
+        Err(e) => return RString::from(format!("ERR context: {}", e)),
+    };
+
+    let cleaner = modules::cache::CacheCleaner::new();
+    let resp = cleaner.delete_selected_paths(&ctx, &selected_paths, true);
+
+    match serde_json::to_string(&resp) {
+        Ok(json) => RString::from(json),
+        Err(e) => RString::from(format!("ERR json serialize: {e}")),
+    }
+}
+
+fn execute_delete_selected_with_args(args: &str) -> RString {
+    let args = args.trim();
+
+    if args.is_empty() {
+        return RString::from("ERR delete_selected requires at least one path");
+    }
+
+    println!("[LIBCLEAN] delete_selected args: {}", args);
+
+    if args.starts_with('{') {
+        let delete_req: DeleteSelectedRequest = match serde_json::from_str(args) {
+            Ok(req) => req,
+            Err(e) => {
+                return RString::from(format!("ERR delete_selected invalid JSON object: {e}"));
+            }
+        };
+
+        return execute_delete_selected_from_request(delete_req);
+    }
+
+    let items: Vec<String> = if args.starts_with('[') {
+        match serde_json::from_str(args) {
+            Ok(v) => v,
+            Err(e) => {
+                return RString::from(format!("ERR delete_selected invalid JSON args: {}", e));
+            }
+        }
+    } else {
+        args.split_whitespace().map(|s| s.to_string()).collect()
+    };
+
+    if items.is_empty() {
+        return RString::from("ERR delete_selected requires at least one path");
+    }
+
+    println!(
+        "[LIBCLEAN] delete_selected received {} path(s)",
+        items.len()
+    );
+
+    for item in &items {
+        println!("[LIBCLEAN] selected path: {}", item);
+    }
+
+    let delete_req = DeleteSelectedRequest {
+        items,
+        ..Default::default()
+    };
+
+    execute_delete_selected_from_request(delete_req)
+}
+
 #[sabi_extern_fn]
 pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     let mut info = RVec::new();
@@ -534,6 +711,18 @@ extern "C" fn handle_message(msg: RString) -> RString {
         _ => {}
     }
 
+    if raw.starts_with("fn:delete_selected") || raw.starts_with("delete_selected") {
+        println!("[LIBCLEAN] delete_selected raw command: {}", raw);
+
+        let args = raw
+            .strip_prefix("fn:delete_selected")
+            .or_else(|| raw.strip_prefix("delete_selected"))
+            .unwrap_or("")
+            .trim();
+
+        return execute_delete_selected_with_args(args);
+    }
+
     if raw.starts_with("fn:run_front") || raw.starts_with("run_front") {
         let args = raw
             .strip_prefix("fn:run_front")
@@ -572,60 +761,6 @@ extern "C" fn handle_message(msg: RString) -> RString {
             .trim();
 
         return execute_list_candidates_with_args(args);
-    }
-
-    if raw.starts_with("fn:delete_selected") || raw.starts_with("delete_selected") {
-        println!("[LIBCLEAN] delete_selected raw command: {}", raw);
-
-        let args = raw
-            .strip_prefix("fn:delete_selected")
-            .or_else(|| raw.strip_prefix("delete_selected"))
-            .unwrap_or("")
-            .trim();
-
-        if args.is_empty() {
-            return RString::from("ERR delete_selected requires at least one path");
-        }
-
-        println!("[LIBCLEAN] delete_selected args: {}", args);
-
-        let items: Vec<String> = if args.starts_with('[') {
-            match serde_json::from_str(args) {
-                Ok(v) => v,
-                Err(e) => {
-                    return RString::from(format!("ERR delete_selected invalid JSON args: {}", e));
-                }
-            }
-        } else {
-            args.split_whitespace().map(|s| s.to_string()).collect()
-        };
-
-        if items.is_empty() {
-            return RString::from("ERR delete_selected requires at least one path");
-        }
-
-        println!(
-            "[LIBCLEAN] delete_selected received {} path(s)",
-            items.len()
-        );
-
-        for item in &items {
-            println!("[LIBCLEAN] selected path: {}", item);
-        }
-
-        let (ctx, _) = match build_execution_context() {
-            Ok(v) => v,
-            Err(e) => return RString::from(format!("ERR context: {}", e)),
-        };
-
-        let cleaner = modules::cache::CacheCleaner::new();
-
-        let resp = cleaner.delete_selected_paths(&ctx, &items, true);
-
-        return match serde_json::to_string(&resp) {
-            Ok(json) => RString::from(json),
-            Err(e) => RString::from(format!("ERR json serialize: {e}")),
-        };
     }
 
     let req: CleanerPluginRequest = match serde_json::from_str(raw) {
@@ -693,22 +828,11 @@ extern "C" fn handle_message(msg: RString) -> RString {
             let delete_req: DeleteSelectedRequest = match serde_json::from_value(payload) {
                 Ok(v) => v,
                 Err(e) => {
-                    return RString::from(format!("ERR invalid delete_selected payload: {e}"))
+                    return RString::from(format!("ERR invalid delete_selected payload: {e}"));
                 }
             };
 
-            let (ctx, _) = match build_execution_context() {
-                Ok(v) => v,
-                Err(e) => return RString::from(format!("ERR context: {}", e)),
-            };
-
-            let cleaner = modules::cache::CacheCleaner::new();
-            let resp = cleaner.delete_selected_paths(&ctx, &delete_req.items, true);
-
-            match serde_json::to_string(&resp) {
-                Ok(json) => RString::from(json),
-                Err(e) => RString::from(format!("ERR json serialize: {e}")),
-            }
+            execute_delete_selected_from_request(delete_req)
         }
 
         other => RString::from(format!("ERR unknown function: {other}")),

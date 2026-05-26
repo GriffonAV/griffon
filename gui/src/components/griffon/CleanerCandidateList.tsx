@@ -10,8 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Folder, File } from "lucide-react";
-
+import { Folder, File, Trash2 } from "lucide-react";
 import { resolveFromPath } from "@/lib/utils";
 import type { GriffonActionHandler } from "../types";
 
@@ -22,7 +21,9 @@ interface CleanerCandidateListProps {
         title?: string;
         from?: string;
         selectedFrom?: string;
+        optionsFrom?: string;
         action?: string;
+        deleteAction?: string;
         value?: {
             paths: string[];
         };
@@ -30,6 +31,11 @@ interface CleanerCandidateListProps {
     store?: Record<string, any>;
     onAction?: GriffonActionHandler;
 }
+
+type CleanerOptionsData = {
+    dry_run?: boolean;
+    file_types?: string[];
+};
 
 type CleanerCandidate = {
     path: string;
@@ -47,6 +53,8 @@ type CleanerCandidatesData = {
 
 type FilesSelectedData = {
     paths: string[];
+    dry_run?: boolean;
+    file_types?: string[];
 };
 
 function formatBytes(bytes: number): string {
@@ -72,7 +80,9 @@ function toggleCandidate(
     candidate: CleanerCandidate,
     element: CleanerCandidateListProps["element"],
     onAction?: GriffonActionHandler,
-    selectedPaths: string[] = []
+    selectedPaths: string[] = [],
+    dryRun: boolean = true,
+    fileTypes: string[] = []
 ) {
     if (!element?.action || !onAction) {
         return;
@@ -88,6 +98,8 @@ function toggleCandidate(
         ...element,
         value: {
             paths: nextSelected,
+            dry_run: dryRun,
+            file_types: fileTypes,
         },
     });
 }
@@ -95,7 +107,9 @@ function toggleCandidate(
 function selectAll(
     candidates: CleanerCandidate[],
     element: CleanerCandidateListProps["element"],
-    onAction?: GriffonActionHandler
+    onAction?: GriffonActionHandler,
+    dryRun: boolean = true,
+    fileTypes: string[] = []
 ) {
     if (!element?.action || !onAction) {
         return;
@@ -105,13 +119,17 @@ function selectAll(
         ...element,
         value: {
             paths: candidates.map((candidate) => candidate.path),
+            dry_run: dryRun,
+            file_types: fileTypes,
         },
     });
 }
 
 function clearSelection(
     element: CleanerCandidateListProps["element"],
-    onAction?: GriffonActionHandler
+    onAction?: GriffonActionHandler,
+    dryRun: boolean = true,
+    fileTypes: string[] = []
 ) {
     if (!element?.action || !onAction) {
         return;
@@ -121,6 +139,29 @@ function clearSelection(
         ...element,
         value: {
             paths: [],
+            dry_run: dryRun,
+            file_types: fileTypes,
+        },
+    });
+}
+
+function deleteCandidateNow(
+    candidate: CleanerCandidate,
+    element: CleanerCandidateListProps["element"],
+    onAction?: GriffonActionHandler,
+    dryRun: boolean = true,
+    fileTypes: string[] = []
+) {
+    if (!element.deleteAction || !onAction) {
+        return;
+    }
+
+    onAction(element.deleteAction, {
+        ...element,
+        value: {
+            paths: [candidate.path],
+            dry_run: dryRun,
+            file_types: fileTypes,
         },
     });
 }
@@ -139,6 +180,13 @@ export default function CleanerCandidateList({
     const selectedData: FilesSelectedData = element.selectedFrom
         ? resolveFromPath(element.selectedFrom, context)
         : { paths: [] };
+
+    const optionsData: CleanerOptionsData = element.optionsFrom
+        ? resolveFromPath(element.optionsFrom, context)
+        : { dry_run: true, file_types: [] };
+
+    const dryRun = optionsData?.dry_run ?? true;
+    const fileTypes = optionsData?.file_types ?? [];
 
     const selectedPaths = selectedData?.paths ?? [];
 
@@ -166,8 +214,9 @@ export default function CleanerCandidateList({
                         variant="outline"
                         size="sm"
                         disabled={candidates.length === 0}
-                        onClick={() => selectAll(candidates, element, onAction)}
-                    >
+                        onClick={() =>
+                            selectAll(candidates, element, onAction, dryRun, fileTypes)
+                        }                    >
                         Select all
                     </Button>
 
@@ -175,7 +224,7 @@ export default function CleanerCandidateList({
                         variant="outline"
                         size="sm"
                         disabled={selectedPaths.length === 0}
-                        onClick={() => clearSelection(element, onAction)}
+                        onClick={() => clearSelection(element, onAction, dryRun, fileTypes)}
                     >
                         Clear
                     </Button>
@@ -217,6 +266,7 @@ export default function CleanerCandidateList({
                                 <TableHead>Path</TableHead>
                                 <TableHead>File type</TableHead>
                                 <TableHead>Kind</TableHead>
+                                <TableHead>Action</TableHead>
                             </TableRow>
                         </TableHeader>
 
@@ -238,7 +288,8 @@ export default function CleanerCandidateList({
                                                 candidate,
                                                 element,
                                                 onAction,
-                                                selectedPaths
+                                                selectedPaths,
+                                                dryRun
                                             )
                                         }
                                     >
@@ -254,7 +305,8 @@ export default function CleanerCandidateList({
                                                         candidate,
                                                         element,
                                                         onAction,
-                                                        selectedPaths
+                                                        selectedPaths,
+                                                        dryRun
                                                     )
                                                 }
                                             />
@@ -301,6 +353,23 @@ export default function CleanerCandidateList({
                                             <Badge variant="outline">
                                                 {candidate.kind}
                                             </Badge>
+                                        </TableCell>
+                                        <TableCell onClick={(event) => event.stopPropagation()}>
+                                            <Button
+                                                variant={dryRun ? "outline" : "destructive"}
+                                                size="sm"
+                                                onClick={() =>
+                                                    deleteCandidateNow(
+                                                        candidate,
+                                                        element,
+                                                        onAction,
+                                                        dryRun,
+                                                        fileTypes
+                                                    )
+                                                }
+                                            >
+                                                {dryRun ? "Test delete" : "Delete now"}
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 );

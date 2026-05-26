@@ -21,8 +21,11 @@ items = []
 
 [store.data.files_selected]
 paths = []
+dry_run = true
+file_types = []
 
-[store.data.selected_file_types]
+[store.data.cleaner_options]
+dry_run = true
 file_types = []
 
 [store.data.file_type_options]
@@ -82,13 +85,21 @@ icon = "refresh"
 action = "cleaner.run_analysis"
 
 [[ui.sections.contents]]
+type = "cleaner_dry_run_toggle"
+id = "cleaner_dashboard_dry_run_toggle"
+title = "Dry-run mode"
+description = "Keep this enabled to preview what would be deleted. Disable it to actually remove files."
+from = "store.data.cleaner_options"
+action = "cleaner.set_cleaner_options"
+
+[[ui.sections.contents]]
 type = "cleaner_file_type_selector"
 id = "cleaner_dashboard_file_type_selector"
 title = "Targeted file types"
 description = "Select the file types to include in the analysis. If none are selected, all file types are included."
 from = "store.data.file_type_options"
-selectedFrom = "store.data.selected_file_types"
-action = "cleaner.set_selected_file_types"
+selectedFrom = "store.data.cleaner_options"
+action = "cleaner.set_cleaner_options"
 
 [[ui.sections.contents]]
 type = "cleaner_run_overview"
@@ -125,13 +136,21 @@ icon = "refresh"
 action = "cleaner.load_candidates"
 
 [[ui.sections.contents]]
+type = "cleaner_dry_run_toggle"
+id = "cleaner_main_dry_run_toggle"
+title = "Dry-run mode"
+description = "Keep this enabled to preview what would be deleted. Disable it to actually remove files."
+from = "store.data.cleaner_options"
+action = "cleaner.set_cleaner_options"
+
+[[ui.sections.contents]]
 type = "cleaner_file_type_selector"
 id = "cleaner_main_file_type_selector"
 title = "Targeted file types"
 description = "Filter candidates by file type before loading or deleting them."
 from = "store.data.file_type_options"
-selectedFrom = "store.data.selected_file_types"
-action = "cleaner.set_selected_file_types"
+selectedFrom = "store.data.cleaner_options"
+action = "cleaner.set_cleaner_options"
 
 [[ui.sections.contents]]
 type = "button"
@@ -149,7 +168,9 @@ type = "cleaner_candidate_list"
 id = "cleaner_candidates"
 from = "store.data.candidates"
 selectedFrom = "store.data.files_selected"
+optionsFrom = "store.data.cleaner_options"
 action = "cleaner.set_files_selected"
+deleteAction = "cleaner.delete_candidate"
 
 [[ui.sections.contents]]
 type = "cleaner_delete_result"
@@ -167,7 +188,7 @@ on = "cleaner.run_analysis"
 [[interactions.steps]]
 type = "execute_function"
 key = "store.data.run_result"
-from = "store.data.selected_file_types"
+from = "store.data.cleaner_options"
 fn = "run_front"
 returnType = "json"
 
@@ -178,17 +199,17 @@ on = "cleaner.load_candidates"
 [[interactions.steps]]
 type = "execute_function"
 key = "store.data.candidates"
-from = "store.data.selected_file_types"
+from = "store.data.cleaner_options"
 fn = "list_candidates"
 returnType = "json"
 
 [[interactions]]
-id = "set_selected_file_types"
-on = "cleaner.set_selected_file_types"
+id = "set_cleaner_options"
+on = "cleaner.set_cleaner_options"
 
 [[interactions.steps]]
 type = "set"
-key = "store.data.selected_file_types"
+key = "store.data.cleaner_options"
 from = "event.value"
 
 [[interactions.steps]]
@@ -214,6 +235,36 @@ type = "execute_function"
 key = "store.data.delete_result"
 from = "store.data.files_selected"
 fn = "delete_selected"
+returnType = "json"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.candidates"
+from = "store.data.cleaner_options"
+fn = "list_candidates"
+returnType = "json"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.files_selected"
+value = { paths = [] }
+
+[[interactions]]
+id = "delete_candidate"
+on = "cleaner.delete_candidate"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.delete_result"
+from = "event.value"
+fn = "delete_selected"
+returnType = "json"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.candidates"
+from = "store.data.cleaner_options"
+fn = "list_candidates"
 returnType = "json"
 
 [[interactions.steps]]

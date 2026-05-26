@@ -19,6 +19,7 @@ import CleanerCandidateList from "@/components/griffon/CleanerCandidateList";
 import CleanerDeleteResult from "@/components/griffon/CleanerDeleteResult.tsx";
 import CleanerRunOverview from "@/components/griffon/CleanerRunOverview.tsx";
 import CleanerFileTypeSelector from "@/components/griffon/CleanerFileTypeSelector";
+import CleanerDryRunToggle from "@/components/griffon/CleanerDryRunToggle.tsx";
 
 interface GriffonElementRendererProps {
   element: any;
@@ -99,7 +100,8 @@ export default function GriffonElementRenderer({
         return <CleanerRunOverview {...commonProps} />;
     case "cleaner_file_type_selector":
         return <CleanerFileTypeSelector {...commonProps} />;
-
+    case "cleaner_dry_run_toggle":
+        return <CleanerDryRunToggle {...commonProps} />;
     default:
       return null;
   }
