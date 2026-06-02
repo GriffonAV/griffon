@@ -95,6 +95,7 @@ type CleanerDockerAction = {
 type CleanerSelectedScope = {
     profile?: string;
     enabled_categories?: string[];
+    selected_file_types?: string[];
     dry_run?: boolean;
 };
 
@@ -424,6 +425,9 @@ export default function CleanerRunOverview({
                             <CardDescription>
                                 {scope.profile ?? "unknown"} profile ·{" "}
                                 {summary.dry_run ? "Dry-run" : "Cleanup mode"} ·{" "}
+                                {(scope.selected_file_types?.length ?? 0) === 0
+                                    ? "All file types"
+                                    : `${scope.selected_file_types?.length} file type(s)`} ·{" "}
                                 {formatDate(metadata.generated_at)}
                             </CardDescription>
                         </div>

@@ -28,6 +28,7 @@ pub struct FrontCleanerSummary {
 pub struct FrontCleanerSelectedScope {
     pub profile: String,
     pub enabled_categories: Vec<String>,
+    pub selected_file_types: Vec<String>,
     pub dry_run: bool,
 }
 
@@ -110,6 +111,7 @@ pub fn build_front_cleaner_payload(payload: &CleanerExportPayload) -> FrontClean
         selected_scope: FrontCleanerSelectedScope {
             profile: payload.selected_scope.profile.clone(),
             enabled_categories: payload.selected_scope.enabled_categories.clone(),
+            selected_file_types: payload.selected_scope.selected_file_types.clone(),
             dry_run: payload.selected_scope.dry_run,
         },
         metadata: FrontCleanerMetadata {

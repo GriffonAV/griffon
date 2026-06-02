@@ -5,91 +5,118 @@ import { resolveFromPath } from "@/lib/utils";
 
 export type GriffonStore = Record<string, any>;
 
-
 function setByPath(
-  obj: Record<string, any>,
-  path: string | null | undefined,
-  value: any
+    obj: Record<string, any>,
+    path: string | null | undefined,
+    value: any
 ) {
-  if (typeof path !== "string") return false;
+    if (typeof path !== "string") return false;
 
-  let trimmed = path.trim();
-  if (!trimmed) return false;
+    let trimmed = path.trim();
+    if (!trimmed) return false;
 
-  if (trimmed.startsWith("event.")) {
-    console.warn(`setByPath: cannot write to event ("${path}")`);
-    return false;
-  }
-
-  if (trimmed.startsWith("store.")) {
-    trimmed = trimmed.slice("store.".length);
-  }
-
-  const parts = trimmed.split(".").filter(Boolean);
-  if (!parts.length) return false;
-
-  let current: any = obj;
-
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-
-    if (
-      current[part] === undefined ||
-      typeof current[part] !== "object" ||
-      current[part] === null
-    ) {
-      console.warn(`setByPath: path does not exist ("${path}")`);
-      return false;
+    if (trimmed.startsWith("event.")) {
+        console.warn(`setByPath: cannot write to event ("${path}")`);
+        return false;
     }
 
-    current = current[part];
-  }
+    if (trimmed.startsWith("store.")) {
+        trimmed = trimmed.slice("store.".length);
+    }
 
-  const lastKey = parts[parts.length - 1];
+    const parts = trimmed.split(".").filter(Boolean);
+    if (!parts.length) return false;
 
-  if (!(lastKey in current)) {
-    console.warn(`setByPath: key does not exist ("${path}")`);
-    return false;
-  }
+    let current: any = obj;
 
-  current[lastKey] = value;
-  return true;
+    for (let i = 0; i < parts.length - 1; i++) {
+        const part = parts[i];
+
+        if (
+            current[part] === undefined ||
+            typeof current[part] !== "object" ||
+            current[part] === null
+        ) {
+            console.warn(`setByPath: path does not exist ("${path}")`);
+            return false;
+        }
+
+        current = current[part];
+    }
+
+    const lastKey = parts[parts.length - 1];
+
+    if (!(lastKey in current)) {
+        console.warn(`setByPath: key does not exist ("${path}")`);
+        return false;
+    }
+
+    current[lastKey] = value;
+    return true;
 }
 
+function buildPluginArgs(value: unknown): string[] {
+    if (value === undefined || value === null) {
+        return [];
+    }
+
+    if (Array.isArray(value)) {
+        return value.map((item) =>
+            typeof item === "string" ? item : JSON.stringify(item)
+        );
+    }
+
+    if (typeof value === "object") {
+        return [JSON.stringify(value)];
+    }
+
+    return [String(value)];
+}
 
 async function CallPlgFnStep(
     step: InteractionStep,
     next: GriffonStore,
-    callPluginFunction: (fnName: string, args: string[]) => Promise<any>
+    callPluginFunction: (fnName: string, args: string[]) => Promise<any>,
+    event?: any
 ): Promise<GriffonStore> {
-
     if (step.fn === undefined) {
         console.warn("fn param is required for execute_function step");
         return next;
     }
+
     if (typeof step.fn !== "string") {
         console.warn("fn param must be a string");
         return next;
     }
+
     if (step.from && typeof step.from !== "string") {
         console.warn("from param must be a string for execute_function step");
         return next;
     }
+
     if (step.args && !Array.isArray(step.args)) {
         console.warn("args param must be an array for execute_function step");
         return next;
     }
 
     try {
-        const args = step.from ? Object.values(resolveFromPath(step.from, { store: next }))[0] : step.args;
+        const resolvedValue = step.from
+            ? resolveFromPath(step.from, { store: next, event })
+            : step.args;
 
-        if (args && !Array.isArray(args)) {
-            console.warn(`the value of ${step.from} must be an array to be used as arguments for the function "${step.fn}"`);
-            return next;
-        }
+        const args = buildPluginArgs(resolvedValue);
 
-        const returnValue = await callPluginFunction(step.fn, args ?? []);
-        let result : string = returnValue;
+        console.debug(
+            `[GRIFFON-STORE] execute_function fn=${step.fn}`,
+            {
+                from: step.from,
+                resolvedValue,
+                args,
+            }
+        );
+
+        const returnValue = await callPluginFunction(step.fn, args);
+        let result: any = returnValue;
 
         if (step.returnType === "json") {
             try {
@@ -100,7 +127,7 @@ async function CallPlgFnStep(
         }
 
         if (step.key) {
-          setByPath(next, step.key, result);
+            setByPath(next, step.key, result);
         }
 
         return next;
@@ -110,77 +137,75 @@ async function CallPlgFnStep(
     }
 }
 
-
-
 async function executeStep(
-  draft: GriffonStore,
-  step: InteractionStep,
-  callPluginFunction: (fnName: string, args: string[]) => Promise<any>,
-  event?: any,
+    draft: GriffonStore,
+    step: InteractionStep,
+    callPluginFunction: (fnName: string, args: string[]) => Promise<any>,
+    event?: any
 ): Promise<GriffonStore> {
-  const next = { ...draft };
+    const next = { ...draft };
 
-  switch (step.type) {
-    case "set": {
-      if (!step.key) return next;
+    switch (step.type) {
+        case "set": {
+            if (!step.key) return next;
 
-      const hasFrom = typeof step.from === "string" && step.from.trim().length > 0;
+            const hasFrom = typeof step.from === "string" && step.from.trim().length > 0;
 
-      const value = hasFrom
-        ? resolveFromPath(step.from, { store: next, event })
-        : step.value;
+            const value = hasFrom
+                ? resolveFromPath(step.from, { store: next, event })
+                : step.value;
 
-      setByPath(next, step.key, value);
-      return next;
+            setByPath(next, step.key, value);
+            return next;
+        }
+
+        case "increment": {
+            if (!step.key) return next;
+
+            const current = Number(resolveFromPath(step.key, { store: next }) ?? 0);
+            const amount = Number(step.amount ?? 1);
+
+            setByPath(next, step.key, current + amount);
+            return next;
+        }
+
+        case "decrement": {
+            if (!step.key) return next;
+
+            const current = Number(resolveFromPath(step.key, { store: next }) ?? 0);
+            const amount = Number(step.amount ?? 1);
+
+            setByPath(next, step.key, current - amount);
+            return next;
+        }
+
+        case "toggle": {
+            if (!step.key) return next;
+
+            const current = !!resolveFromPath(step.key, { store: next });
+            setByPath(next, step.key, !current);
+            return next;
+        }
+
+        case "execute_function": {
+            return await CallPlgFnStep(step, next, callPluginFunction, event);
+        }
+
+        default: {
+            console.warn(`Unknown step type: ${(step as any).type}`);
+            return next;
+        }
     }
-
-    case "increment": {
-      if (!step.key) return next;
-
-      const current = Number(resolveFromPath(step.key, { store: next }) ?? 0);
-      const amount = Number(step.amount ?? 1);
-
-      setByPath(next, step.key, current + amount);
-      return next;
-    }
-
-    case "decrement": {
-      if (!step.key) return next;
-
-      const current = Number(resolveFromPath(step.key, { store: next }) ?? 0);
-      const amount = Number(step.amount ?? 1);
-
-      setByPath(next, step.key, current - amount);
-      return next;
-    }
-
-    case "toggle": {
-      if (!step.key) return next;
-
-      const current = !!resolveFromPath(step.key, { store: next });
-      setByPath(next, step.key, !current);
-      return next;
-    }
-
-    case "execute_function": {
-      return await CallPlgFnStep(step, next, callPluginFunction);
-    }
-
-    default: {
-      console.warn(`Unknown step type: ${(step as any).type}`);
-      return next;
-    }
-  }
 }
 
 export function useGriffonStore(manifest: PluginManifest | null) {
-  const initialStore = useMemo(() => manifest?.store ?? {}, [manifest]);
-  const [store, setStore] = useState<GriffonStore>(initialStore);
-  const { callPluginFunction } = usePlugins();
+    const initialStore = useMemo(() => manifest?.store ?? {}, [manifest]);
+    const [store, setStore] = useState<GriffonStore>(initialStore);
+    const { callPluginFunction } = usePlugins();
 
-  useEffect(() => {
-    setStore(manifest?.store ?? {});
-  }, [manifest]);
+    useEffect(() => {
+        setStore(manifest?.store ?? {});
+    }, [manifest]);
 
     async function handleAction(action: string, event?: any) {
         if (!manifest?.interactions?.length) return;
@@ -191,7 +216,7 @@ export function useGriffonStore(manifest: PluginManifest | null) {
 
         if (!matching.length) return;
 
-        const prev = store; // current snapshot
+        const prev = store;
         let next = { ...prev };
 
         for (const interaction of matching) {
@@ -203,16 +228,16 @@ export function useGriffonStore(manifest: PluginManifest | null) {
         setStore(next);
     }
 
-  function setValue(key: string, value: any) {
-    setStore((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  }
+    function setValue(key: string, value: any) {
+        setStore((prev) => ({
+            ...prev,
+            [key]: value,
+        }));
+    }
 
-  return {
-    store,
-    handleAction,
-    setValue,
-  };
+    return {
+        store,
+        handleAction,
+        setValue,
+    };
 }
