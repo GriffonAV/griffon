@@ -245,12 +245,33 @@ export type CleanerCandidateListElement = {
   selectedFrom?: string;
   action?: string;
   value?: CleanerCandidateListValue;
+  optionsFrom?: string;
+  deleteAction?: string;
 };
 
 export type GriffonActionHandler = (
   action: string,
   element: GriffonElement
 ) => void;
+
+export type CleanerFileTypeSelectorElement = {
+  type: "cleaner_file_type_selector";
+  id: string;
+  title?: string;
+  description?: string;
+  from?: string;
+  selectedFrom?: string;
+  action?: string;
+};
+
+export type CleanerDryRunToggleElement = {
+  type: "cleaner_dry_run_toggle";
+  id: string;
+  title?: string;
+  description?: string;
+  from?: string;
+  action?: string;
+};
 
 export type GriffonElement =
   | TextElement
@@ -269,4 +290,6 @@ export type GriffonElement =
   | GroupElement
   | RowElement
   | ColumnElement
-  | CleanerCandidateListElement;
+  | CleanerCandidateListElement
+  | CleanerFileTypeSelectorElement
+  | CleanerDryRunToggleElement;

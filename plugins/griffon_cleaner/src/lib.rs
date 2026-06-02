@@ -7,6 +7,7 @@ pub mod front_report;
 pub mod modules;
 pub mod reports;
 pub mod runner;
+
 use abi_stable::{
     export_root_module,
     prefix_type::PrefixTypeTrait,
@@ -28,19 +29,8 @@ pub use runner::*;
 use std::cmp::Reverse;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
-use logger::{LogLevel, Logger};
 
 pub type CleanerResult<T> = Result<T, CleanerError>;
-
-static LOGGER_CLEANER: Logger = if cfg!(debug_assertions) {
-    Logger::new("PLUGIN-CLEANER", logger::LogLevel::Debug, None)
-} else {
-    Logger::new(
-        "DAEMON-INTERFACE-NETWORK",
-        LogLevel::Debug,
-        Some("/var/log/griffon/griffon_cleaner.log"),
-    )
-};
 
 #[derive(thiserror::Error, Debug)]
 pub enum CleanerError {
@@ -84,7 +74,7 @@ pub fn print_module_summary(global: &GlobalReport) {
     println!("Total duration : {} ms", global.total_duration_ms);
 
     let mut modules: Vec<_> = global.per_module.iter().collect();
-    modules.sort_by_key(|(_, report)| std::cmp::Reverse(report.bytes_freed));
+    modules.sort_by_key(|(_, report)| Reverse(report.bytes_freed));
 
     for (module_id, report) in modules {
         println!("\n--- Module: {} ---", module_id);
@@ -230,159 +220,443 @@ fn parse_arg(flag: &str) -> Option<String> {
             return args.next();
         }
     }
+
     None
 }
 
 pub fn build_execution_context() -> CleanerResult<(ExecutionContext, String)> {
-    let default_config_path = if cfg!(debug_assertions) {
-        "bench/configs/light.json"
-    } else {
-        "/etc/griffon/plugins/griffon_cleaner/config.json"
-    };
+    build_execution_context_with_filters(CleanerFilters::default())
+}
 
-    let config_path = parse_arg("--config").unwrap_or_else(|| default_config_path.to_string());
+pub fn build_execution_context_with_filters(
+    filters: CleanerFilters,
+) -> CleanerResult<(ExecutionContext, String)> {
+    let config_path =
+        parse_arg("--config").unwrap_or_else(|| "bench/configs/light.json".to_string());
 
-    LOGGER_CLEANER.debug(format!(
-        "Building execution context with config path: {}",
-        config_path
-    ));
+    let file_cfg = FileCleanerConfig::load_from_file(PathBuf::from(&config_path).as_path())?;
 
-    let file_cfg = match FileCleanerConfig::load_from_file(Path::new(&config_path)) {
-        Ok(cfg) => {
-            LOGGER_CLEANER.debug("Cleaner config file loaded successfully");
-            cfg
-        }
-        Err(e) => {
-            LOGGER_CLEANER.error(format!(
-                "Failed to load cleaner config from {}: {}",
-                config_path, e
-            ));
-            return Err(e);
-        }
-    };
+    let dry_run = filters.dry_run.unwrap_or(file_cfg.dry_run);
 
     let ctx = ExecutionContext {
         config: file_cfg.to_runtime_config(),
-        dry_run: file_cfg.dry_run,
+        dry_run,
         root_paths: file_cfg.root_paths.iter().map(PathBuf::from).collect(),
+        filters,
     };
 
-    if let Err(e) = ctx.config.validate() {
-        LOGGER_CLEANER.error(format!("Cleaner config validation failed: {}", e));
-        return Err(e);
-    }
-
-    LOGGER_CLEANER.info(format!(
-        "Execution context ready: profile={}, dry_run={}, root_paths={}",
-        ctx.config.profile.as_str(),
-        ctx.dry_run,
-        ctx.root_paths.len()
-    ));
+    ctx.config.validate()?;
 
     Ok((ctx, config_path))
 }
+
 pub fn execute_cleaner_payload() -> CleanerResult<CleanerExportPayload> {
-    LOGGER_CLEANER.info("Starting cleaner payload execution");
+    execute_cleaner_payload_with_filters(CleanerFilters::default())
+}
 
-    let (ctx, config_path) = build_execution_context()?;
-
+pub fn execute_cleaner_payload_with_filters(
+    filters: CleanerFilters,
+) -> CleanerResult<CleanerExportPayload> {
+    let (ctx, _config_path) = build_execution_context_with_filters(filters)?;
     let output_path =
         parse_arg("--output").unwrap_or_else(|| "griffon_cleaner_report.json".to_string());
 
-    LOGGER_CLEANER.debug(format!(
-        "Cleaner execution parameters: config={}, output={}",
-        config_path, output_path
-    ));
-
     let modules = default_modules();
-
-    LOGGER_CLEANER.debug(format!(
-        "Loaded {} cleaner module(s)",
-        modules.len()
-    ));
-
-    let report = match run_modules(&ctx, &modules) {
-        Ok(report) => {
-            LOGGER_CLEANER.info(format!(
-                "Cleaner modules completed: touched={}, bytes={}, warnings={}, errors={}, permission_denied={}, duration_ms={}",
-                report.total_files_touched,
-                report.total_bytes_freed,
-                report.total_warnings,
-                report.total_errors,
-                report.total_permission_denied,
-                report.total_duration_ms
-            ));
-            report
-        }
-        Err(e) => {
-            LOGGER_CLEANER.error(format!("Cleaner modules execution failed: {}", e));
-            return Err(e);
-        }
-    };
-
+    let report = run_modules(&ctx, &modules)?;
     let analysis = build_analysis_report(&report);
-
-    LOGGER_CLEANER.debug("Analysis report built successfully");
 
     print_cache_report(&report);
     print_module_summary(&report);
     print_analysis_report(&analysis);
 
     if let Err(e) = write_analysis_report_to_file(&analysis, Path::new(&output_path)) {
-        LOGGER_CLEANER.error(format!(
-            "Failed to export cleaner analysis report to {}: {:?}",
-            output_path, e
-        ));
+        eprintln!("Erreur lors de l'export JSON de l'analyse : {:?}", e);
     } else {
-        LOGGER_CLEANER.info(format!(
-            "Cleaner analysis report exported to {}",
-            output_path
-        ));
+        println!("Report exporté dans {}", output_path);
     }
 
     let selected_scope = CleanerSelectionSummary {
         profile: ctx.config.profile.as_str().to_string(),
         enabled_categories: selected_cache_categories(&ctx.config),
+        selected_file_types: ctx.filters.file_types.clone(),
         dry_run: ctx.dry_run,
     };
 
-    LOGGER_CLEANER.debug(format!(
+    println!(
         "Selected cache categories: {:?}",
         selected_scope.enabled_categories
-    ));
+    );
 
-    let generated_at = Utc::now().to_rfc3339();
-    let run_id = Uuid::new_v4().to_string();
+    println!(
+        "Selected file types: {:?}",
+        selected_scope.selected_file_types
+    );
 
-    LOGGER_CLEANER.info(format!(
-        "Cleaner payload execution completed: run_id={}",
-        run_id
-    ));
+    println!("Selected dry-run mode: {}", selected_scope.dry_run);
 
     Ok(CleanerExportPayload {
-        generated_at,
+        generated_at: Utc::now().to_rfc3339(),
         plugin_name: env!("CARGO_PKG_NAME").to_string(),
         plugin_version: env!("CARGO_PKG_VERSION").to_string(),
-        run_id,
+        run_id: Uuid::new_v4().to_string(),
         selected_scope,
         report,
         analysis,
     })
 }
+
 pub fn execute_cleaner_front_payload() -> CleanerResult<FrontCleanerPayload> {
-    LOGGER_CLEANER.info("Building front cleaner payload");
+    execute_cleaner_front_payload_with_filters(CleanerFilters::default())
+}
 
-    let raw_payload = execute_cleaner_payload()?;
-    let front_payload = build_front_cleaner_payload(&raw_payload);
+pub fn execute_cleaner_front_payload_with_filters(
+    filters: CleanerFilters,
+) -> CleanerResult<FrontCleanerPayload> {
+    let raw_payload = execute_cleaner_payload_with_filters(filters)?;
+    Ok(build_front_cleaner_payload(&raw_payload))
+}
 
-    LOGGER_CLEANER.info("Front cleaner payload built successfully");
+fn parse_bool_value(value: &serde_json::Value) -> Result<Option<bool>, String> {
+    if value.is_null() {
+        return Ok(None);
+    }
 
-    Ok(front_payload)
+    if let Some(boolean) = value.as_bool() {
+        return Ok(Some(boolean));
+    }
+
+    if let Some(text) = value.as_str() {
+        let normalized = text.trim().to_lowercase();
+
+        return match normalized.as_str() {
+            "" => Ok(None),
+            "true" | "1" | "yes" | "on" => Ok(Some(true)),
+            "false" | "0" | "no" | "off" => Ok(Some(false)),
+            _ => Err(format!("invalid dry_run value: {text}")),
+        };
+    }
+
+    Err(format!("invalid dry_run value type: {value}"))
+}
+
+fn parse_dry_run_from_object(value: &serde_json::Value) -> Result<Option<bool>, String> {
+    let dry_run_value = value
+        .get("dry_run")
+        .or_else(|| value.get("dryRun"))
+        .or_else(|| value.get("dry-run"));
+
+    match dry_run_value {
+        Some(value) => parse_bool_value(value),
+        None => Ok(None),
+    }
+}
+
+fn parse_string_list_from_value(value: serde_json::Value) -> Result<Vec<String>, String> {
+    if value.is_null() {
+        return Ok(Vec::new());
+    }
+
+    if let Some(items_value) = value.get("items") {
+        return parse_string_list_from_value(items_value.clone());
+    }
+
+    if let Some(value_value) = value.get("value") {
+        return parse_string_list_from_value(value_value.clone());
+    }
+
+    if let Some(file_types_value) = value.get("file_types") {
+        return parse_string_list_from_value(file_types_value.clone());
+    }
+
+    if let Some(array) = value.as_array() {
+        let mut items = Vec::new();
+
+        for item in array {
+            if let Some(text) = item.as_str() {
+                items.push(text.trim().to_string());
+                continue;
+            }
+
+            if let Some(id) = item.get("id").and_then(|id| id.as_str()) {
+                items.push(id.trim().to_string());
+                continue;
+            }
+
+            return Err(format!("invalid file_types item: {item}"));
+        }
+
+        return Ok(items
+            .into_iter()
+            .filter(|item| !item.trim().is_empty())
+            .collect());
+    }
+
+    if let Some(text) = value.as_str() {
+        let cleaned = text.trim();
+
+        if cleaned.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        if cleaned.starts_with('[') {
+            return serde_json::from_str::<Vec<String>>(cleaned)
+                .map_err(|e| format!("invalid stringified file_types array: {e}"));
+        }
+
+        return Ok(cleaned
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|item| !item.trim().is_empty())
+            .map(|item| item.trim().to_string())
+            .collect());
+    }
+
+    serde_json::from_value::<Vec<String>>(value)
+        .map_err(|e| format!("invalid file_types array: {e}"))
+}
+
+fn parse_filters_from_value(value: serde_json::Value) -> Result<CleanerFilters, String> {
+    if value.is_null() {
+        return Ok(CleanerFilters::default());
+    }
+
+    if value.is_array() || value.is_string() {
+        let file_types = parse_string_list_from_value(value)?;
+
+        return Ok(CleanerFilters {
+            file_types,
+            ..Default::default()
+        });
+    }
+
+    if !value.is_object() {
+        return serde_json::from_value(value).map_err(|e| format!("invalid cleaner filters: {e}"));
+    }
+
+    let outer_dry_run = parse_dry_run_from_object(&value)?;
+
+    if let Some(filters_value) = value.get("filters") {
+        let mut filters = parse_filters_from_value(filters_value.clone())?;
+
+        if outer_dry_run.is_some() {
+            filters.dry_run = outer_dry_run;
+        }
+
+        return Ok(filters);
+    }
+
+    if let Some(value_value) = value.get("value") {
+        let mut filters = parse_filters_from_value(value_value.clone())?;
+
+        if outer_dry_run.is_some() {
+            filters.dry_run = outer_dry_run;
+        }
+
+        return Ok(filters);
+    }
+
+    if let Some(file_types_value) = value.get("file_types") {
+        let file_types = parse_string_list_from_value(file_types_value.clone())?;
+
+        return Ok(CleanerFilters {
+            file_types,
+            dry_run: outer_dry_run,
+        });
+    }
+
+    if let Some(items_value) = value.get("items") {
+        let file_types = parse_string_list_from_value(items_value.clone())?;
+
+        return Ok(CleanerFilters {
+            file_types,
+            dry_run: outer_dry_run,
+        });
+    }
+
+    let mut filters: CleanerFilters =
+        serde_json::from_value(value).map_err(|e| format!("invalid cleaner filters: {e}"))?;
+
+    if outer_dry_run.is_some() {
+        filters.dry_run = outer_dry_run;
+    }
+
+    Ok(filters)
+}
+
+fn parse_filters_from_payload(
+    payload: Option<serde_json::Value>,
+) -> Result<CleanerFilters, String> {
+    match payload {
+        Some(value) => parse_filters_from_value(value),
+        None => Ok(CleanerFilters::default()),
+    }
+}
+
+fn parse_filters_from_command_args(args: &str) -> Result<CleanerFilters, String> {
+    let args = args.trim();
+
+    if args.is_empty() {
+        return Ok(CleanerFilters::default());
+    }
+
+    if args.starts_with('{') || args.starts_with('[') {
+        let value: serde_json::Value =
+            serde_json::from_str(args).map_err(|e| format!("invalid filters json: {e}"))?;
+
+        return parse_filters_from_value(value);
+    }
+
+    Ok(CleanerFilters {
+        file_types: args
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .filter(|item| !item.trim().is_empty())
+            .map(|item| item.trim().to_string())
+            .collect(),
+        ..Default::default()
+    })
+}
+
+fn serialize_front_payload(payload: FrontCleanerPayload) -> RString {
+    match serde_json::to_string(&payload) {
+        Ok(json) => RString::from(json),
+        Err(e) => RString::from(format!("ERR json serialize front payload: {e}")),
+    }
+}
+
+fn serialize_raw_payload(payload: CleanerExportPayload) -> RString {
+    match serde_json::to_string(&payload) {
+        Ok(json) => RString::from(json),
+        Err(e) => RString::from(format!("ERR json serialize raw payload: {e}")),
+    }
+}
+
+fn execute_run_front_with_args(args: &str) -> RString {
+    let filters = match parse_filters_from_command_args(args) {
+        Ok(filters) => filters,
+        Err(e) => return RString::from(format!("ERR invalid run_front filters: {e}")),
+    };
+
+    match execute_cleaner_front_payload_with_filters(filters) {
+        Ok(payload) => serialize_front_payload(payload),
+        Err(err) => RString::from(format!("ERR cleaner: {}", err)),
+    }
+}
+
+fn execute_run_raw_with_args(args: &str) -> RString {
+    let filters = match parse_filters_from_command_args(args) {
+        Ok(filters) => filters,
+        Err(e) => return RString::from(format!("ERR invalid run_raw filters: {e}")),
+    };
+
+    match execute_cleaner_payload_with_filters(filters) {
+        Ok(payload) => serialize_raw_payload(payload),
+        Err(err) => RString::from(format!("ERR cleaner: {}", err)),
+    }
+}
+
+fn execute_list_candidates_with_args(args: &str) -> RString {
+    let filters = match parse_filters_from_command_args(args) {
+        Ok(filters) => filters,
+        Err(e) => return RString::from(format!("ERR invalid list_candidates filters: {e}")),
+    };
+
+    let (ctx, _) = match build_execution_context_with_filters(filters) {
+        Ok(v) => v,
+        Err(e) => return RString::from(format!("ERR context: {}", e)),
+    };
+
+    let cleaner = modules::cache::CacheCleaner::new();
+
+    match cleaner.collect_cache_candidates(&ctx) {
+        Ok(items) => {
+            let resp = ListCandidatesResponse { ok: true, items };
+            println!("[LIBCLEAN] Found {} cache candidates", resp.items.len());
+
+            match serde_json::to_string(&resp) {
+                Ok(json) => RString::from(json),
+                Err(e) => RString::from(format!("ERR json serialize: {e}")),
+            }
+        }
+        Err(e) => RString::from(format!("ERR list_candidates: {}", e)),
+    }
+}
+
+fn execute_delete_selected_from_request(delete_req: DeleteSelectedRequest) -> RString {
+    let selected_paths = delete_req.selected_paths();
+
+    if selected_paths.is_empty() {
+        return RString::from("ERR delete_selected requires at least one path");
+    }
+
+    let filters = delete_req.to_filters();
+
+    let (ctx, _) = match build_execution_context_with_filters(filters) {
+        Ok(v) => v,
+        Err(e) => return RString::from(format!("ERR context: {}", e)),
+    };
+
+    let cleaner = modules::cache::CacheCleaner::new();
+    let resp = cleaner.delete_selected_paths(&ctx, &selected_paths, true);
+
+    match serde_json::to_string(&resp) {
+        Ok(json) => RString::from(json),
+        Err(e) => RString::from(format!("ERR json serialize: {e}")),
+    }
+}
+
+fn execute_delete_selected_with_args(args: &str) -> RString {
+    let args = args.trim();
+
+    if args.is_empty() {
+        return RString::from("ERR delete_selected requires at least one path");
+    }
+
+    println!("[LIBCLEAN] delete_selected args: {}", args);
+
+    if args.starts_with('{') {
+        let delete_req: DeleteSelectedRequest = match serde_json::from_str(args) {
+            Ok(req) => req,
+            Err(e) => {
+                return RString::from(format!("ERR delete_selected invalid JSON object: {e}"));
+            }
+        };
+
+        return execute_delete_selected_from_request(delete_req);
+    }
+
+    let items: Vec<String> = if args.starts_with('[') {
+        match serde_json::from_str(args) {
+            Ok(v) => v,
+            Err(e) => {
+                return RString::from(format!("ERR delete_selected invalid JSON args: {}", e));
+            }
+        }
+    } else {
+        args.split_whitespace().map(|s| s.to_string()).collect()
+    };
+
+    if items.is_empty() {
+        return RString::from("ERR delete_selected requires at least one path");
+    }
+
+    println!(
+        "[LIBCLEAN] delete_selected received {} path(s)",
+        items.len()
+    );
+
+    for item in &items {
+        println!("[LIBCLEAN] selected path: {}", item);
+    }
+
+    let delete_req = DeleteSelectedRequest {
+        items,
+        ..Default::default()
+    };
+
+    execute_delete_selected_from_request(delete_req)
 }
 
 #[sabi_extern_fn]
 pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
-    LOGGER_CLEANER.debug("Plugin init called");
     let mut info = RVec::new();
 
     info.push(Tuple2(
@@ -413,151 +687,31 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 extern "C" fn handle_message(msg: RString) -> RString {
     let raw = msg.as_str().trim();
 
-    LOGGER_CLEANER.debug(format!("Received plugin message: {}", raw));
+    println!("[LIBCLEAN](msg) Received message: {}", raw);
 
     match raw {
         "fn:run" | "run" | "fn:run_front" | "run_front" => {
-            LOGGER_CLEANER.debug("Matched direct command: run_front");
-            LOGGER_CLEANER.info("Command received: run_front");
-
             return match execute_cleaner_front_payload() {
-                Ok(payload) => {
-                    LOGGER_CLEANER.debug("Front payload generated successfully");
-
-                    match serde_json::to_string(&payload) {
-                        Ok(json) => {
-                            LOGGER_CLEANER.debug("Front payload serialized successfully");
-                            LOGGER_CLEANER.info("run_front completed successfully");
-                            RString::from(json)
-                        }
-                        Err(e) => {
-                            LOGGER_CLEANER.debug(format!(
-                                "Front payload serialization failed: {}",
-                                e
-                            ));
-                            LOGGER_CLEANER.error(format!(
-                                "Failed to serialize front payload: {}",
-                                e
-                            ));
-                            RString::from(format!("ERR json serialize front payload: {e}"))
-                        }
-                    }
-                }
-                Err(err) => {
-                    LOGGER_CLEANER.debug(format!("execute_cleaner_front_payload failed: {}", err));
-                    LOGGER_CLEANER.error(format!("Cleaner run_front failed: {}", err));
-                    RString::from(format!("ERR cleaner: {}", err))
-                }
+                Ok(payload) => serialize_front_payload(payload),
+                Err(err) => RString::from(format!("ERR cleaner: {}", err)),
             };
         }
 
         "fn:run_raw" | "run_raw" => {
-            LOGGER_CLEANER.debug("Matched direct command: run_raw");
-            LOGGER_CLEANER.info("Command received: run_raw");
-
             return match execute_cleaner_payload() {
-                Ok(payload) => {
-                    LOGGER_CLEANER.debug("Raw cleaner payload generated successfully");
-
-                    match serde_json::to_string(&payload) {
-                        Ok(json) => {
-                            LOGGER_CLEANER.debug("Raw cleaner payload serialized successfully");
-                            LOGGER_CLEANER.info("run_raw completed successfully");
-                            RString::from(json)
-                        }
-                        Err(e) => {
-                            LOGGER_CLEANER.debug(format!(
-                                "Raw payload serialization failed: {}",
-                                e
-                            ));
-                            LOGGER_CLEANER.error(format!(
-                                "Failed to serialize raw payload: {}",
-                                e
-                            ));
-                            RString::from(format!("ERR json serialize raw payload: {e}"))
-                        }
-                    }
-                }
-                Err(err) => {
-                    LOGGER_CLEANER.debug(format!("execute_cleaner_payload failed: {}", err));
-                    LOGGER_CLEANER.error(format!("Cleaner run_raw failed: {}", err));
-                    RString::from(format!("ERR cleaner: {}", err))
-                }
+                Ok(payload) => serialize_raw_payload(payload),
+                Err(err) => RString::from(format!("ERR cleaner: {}", err)),
             };
         }
 
         "fn:list_candidates" | "list_candidates" => {
-            LOGGER_CLEANER.debug("Matched direct command: list_candidates");
-            LOGGER_CLEANER.info("Command received: list_candidates");
-
-            let (ctx, _) = match build_execution_context() {
-                Ok(v) => {
-                    LOGGER_CLEANER.debug("Execution context built for list_candidates");
-                    v
-                }
-                Err(e) => {
-                    LOGGER_CLEANER.debug(format!(
-                        "build_execution_context failed for list_candidates: {}",
-                        e
-                    ));
-                    LOGGER_CLEANER.error(format!(
-                        "Failed to build context for list_candidates: {}",
-                        e
-                    ));
-                    return RString::from(format!("ERR context: {}", e));
-                }
-            };
-
-            LOGGER_CLEANER.debug("Creating CacheCleaner for list_candidates");
-            let cleaner = modules::cache::CacheCleaner::new();
-
-            return match cleaner.collect_cache_candidates(&ctx) {
-                Ok(items) => {
-                    LOGGER_CLEANER.debug(format!(
-                        "collect_cache_candidates returned {} item(s)",
-                        items.len()
-                    ));
-
-                    let resp = ListCandidatesResponse { ok: true, items };
-
-                    LOGGER_CLEANER.info(format!(
-                        "Found {} cache candidate(s)",
-                        resp.items.len()
-                    ));
-
-                    match serde_json::to_string(&resp) {
-                        Ok(json) => {
-                            LOGGER_CLEANER.debug("list_candidates response serialized successfully");
-                            RString::from(json)
-                        }
-                        Err(e) => {
-                            LOGGER_CLEANER.debug(format!(
-                                "list_candidates response serialization failed: {}",
-                                e
-                            ));
-                            LOGGER_CLEANER.error(format!(
-                                "Failed to serialize list_candidates response: {}",
-                                e
-                            ));
-                            RString::from(format!("ERR json serialize: {e}"))
-                        }
-                    }
-                }
-                Err(e) => {
-                    LOGGER_CLEANER.debug(format!("collect_cache_candidates failed: {}", e));
-                    LOGGER_CLEANER.error(format!("list_candidates failed: {}", e));
-                    RString::from(format!("ERR list_candidates: {}", e))
-                }
-            };
+            return execute_list_candidates_with_args("");
         }
 
-        _ => {
-            LOGGER_CLEANER.debug("No direct command matched");
-        }
+        _ => {}
     }
 
     if raw.starts_with("fn:delete_selected") || raw.starts_with("delete_selected") {
-        LOGGER_CLEANER.debug("Matched raw delete_selected command");
         println!("[LIBCLEAN] delete_selected raw command: {}", raw);
 
         let args = raw
@@ -566,95 +720,48 @@ extern "C" fn handle_message(msg: RString) -> RString {
             .unwrap_or("")
             .trim();
 
-        LOGGER_CLEANER.debug(format!("delete_selected parsed args: {}", args));
-
-        if args.is_empty() {
-            LOGGER_CLEANER.debug("delete_selected failed: empty args");
-            return RString::from("ERR delete_selected requires at least one path");
-        }
-
-        println!("[LIBCLEAN] delete_selected args: {}", args);
-
-        let items: Vec<String> = if args.starts_with('[') {
-            LOGGER_CLEANER.debug("delete_selected args format detected: JSON array");
-
-            match serde_json::from_str(args) {
-                Ok(v) => {
-                    LOGGER_CLEANER.debug("delete_selected JSON args parsed successfully");
-                    v
-                }
-                Err(e) => {
-                    LOGGER_CLEANER.debug(format!(
-                        "delete_selected JSON args parsing failed: {}",
-                        e
-                    ));
-                    return RString::from(format!("ERR delete_selected invalid JSON args: {}", e));
-                }
-            }
-        } else {
-            LOGGER_CLEANER.debug("delete_selected args format detected: whitespace separated paths");
-            args.split_whitespace().map(|s| s.to_string()).collect()
-        };
-
-        LOGGER_CLEANER.debug(format!(
-            "delete_selected parsed {} item(s)",
-            items.len()
-        ));
-
-        if items.is_empty() {
-            LOGGER_CLEANER.debug("delete_selected failed: items list is empty");
-            return RString::from("ERR delete_selected requires at least one path");
-        }
-
-        println!(
-            "[LIBCLEAN] delete_selected received {} path(s)",
-            items.len()
-        );
-
-        for item in &items {
-            LOGGER_CLEANER.debug(format!("delete_selected selected path: {}", item));
-            println!("[LIBCLEAN] selected path: {}", item);
-        }
-
-        LOGGER_CLEANER.debug("Building execution context for delete_selected");
-
-        let (ctx, _) = match build_execution_context() {
-            Ok(v) => {
-                LOGGER_CLEANER.debug("Execution context built for delete_selected");
-                v
-            }
-            Err(e) => {
-                LOGGER_CLEANER.debug(format!(
-                    "build_execution_context failed for delete_selected: {}",
-                    e
-                ));
-                return RString::from(format!("ERR context: {}", e));
-            }
-        };
-
-        LOGGER_CLEANER.debug("Creating CacheCleaner for delete_selected");
-        let cleaner = modules::cache::CacheCleaner::new();
-
-        LOGGER_CLEANER.debug("Calling delete_selected_paths");
-        let resp = cleaner.delete_selected_paths(&ctx, &items, true);
-        LOGGER_CLEANER.debug("delete_selected_paths completed");
-
-        return match serde_json::to_string(&resp) {
-            Ok(json) => {
-                LOGGER_CLEANER.debug("delete_selected response serialized successfully");
-                RString::from(json)
-            }
-            Err(e) => {
-                LOGGER_CLEANER.debug(format!(
-                    "delete_selected response serialization failed: {}",
-                    e
-                ));
-                RString::from(format!("ERR json serialize: {e}"))
-            }
-        };
+        return execute_delete_selected_with_args(args);
     }
 
-    LOGGER_CLEANER.debug("Trying to parse message as CleanerPluginRequest JSON");
+    if raw.starts_with("fn:run_front") || raw.starts_with("run_front") {
+        let args = raw
+            .strip_prefix("fn:run_front")
+            .or_else(|| raw.strip_prefix("run_front"))
+            .unwrap_or("")
+            .trim();
+
+        return execute_run_front_with_args(args);
+    }
+
+    if raw.starts_with("fn:run_raw") || raw.starts_with("run_raw") {
+        let args = raw
+            .strip_prefix("fn:run_raw")
+            .or_else(|| raw.strip_prefix("run_raw"))
+            .unwrap_or("")
+            .trim();
+
+        return execute_run_raw_with_args(args);
+    }
+
+    if raw.starts_with("fn:run") || raw.starts_with("run") {
+        let args = raw
+            .strip_prefix("fn:run")
+            .or_else(|| raw.strip_prefix("run"))
+            .unwrap_or("")
+            .trim();
+
+        return execute_run_front_with_args(args);
+    }
+
+    if raw.starts_with("fn:list_candidates") || raw.starts_with("list_candidates") {
+        let args = raw
+            .strip_prefix("fn:list_candidates")
+            .or_else(|| raw.strip_prefix("list_candidates"))
+            .unwrap_or("")
+            .trim();
+
+        return execute_list_candidates_with_args(args);
+    }
 
     let req: CleanerPluginRequest = match serde_json::from_str(raw) {
         Ok(req) => req,
@@ -662,151 +769,73 @@ extern "C" fn handle_message(msg: RString) -> RString {
     };
 
     match req.function.as_str() {
-        "run" => {
-            LOGGER_CLEANER.debug("Matched JSON command: run");
+        "run" | "run_raw" => {
+            let filters = match parse_filters_from_payload(req.payload) {
+                Ok(filters) => filters,
+                Err(e) => return RString::from(format!("ERR invalid cleaner filters: {e}")),
+            };
 
-            match execute_cleaner_payload() {
-                Ok(payload) => {
-                    LOGGER_CLEANER.debug("JSON run payload generated successfully");
+            match execute_cleaner_payload_with_filters(filters) {
+                Ok(payload) => serialize_raw_payload(payload),
+                Err(err) => RString::from(format!("ERR cleaner: {}", err)),
+            }
+        }
 
-                    match serde_json::to_string(&payload) {
-                        Ok(json) => {
-                            LOGGER_CLEANER.debug("JSON run payload serialized successfully");
-                            RString::from(json)
-                        }
-                        Err(e) => {
-                            LOGGER_CLEANER.debug(format!(
-                                "JSON run payload serialization failed: {}",
-                                e
-                            ));
-                            RString::from(format!("ERR json serialize analysis: {e}"))
-                        }
-                    }
-                }
-                Err(err) => {
-                    LOGGER_CLEANER.debug(format!("JSON run failed: {}", err));
-                    RString::from(format!("ERR cleaner: {}", err))
-                }
+        "run_front" => {
+            let filters = match parse_filters_from_payload(req.payload) {
+                Ok(filters) => filters,
+                Err(e) => return RString::from(format!("ERR invalid cleaner filters: {e}")),
+            };
+
+            match execute_cleaner_front_payload_with_filters(filters) {
+                Ok(payload) => serialize_front_payload(payload),
+                Err(err) => RString::from(format!("ERR cleaner: {}", err)),
             }
         }
 
         "list_candidates" => {
-            LOGGER_CLEANER.debug("Matched JSON command: list_candidates");
-
-            let (ctx, _) = match build_execution_context() {
-                Ok(v) => {
-                    LOGGER_CLEANER.debug("Execution context built for JSON list_candidates");
-                    v
-                }
-                Err(e) => {
-                    LOGGER_CLEANER.debug(format!(
-                        "build_execution_context failed for JSON list_candidates: {}",
-                        e
-                    ));
-                    return RString::from(format!("ERR context: {}", e));
-                }
+            let filters = match parse_filters_from_payload(req.payload) {
+                Ok(filters) => filters,
+                Err(e) => return RString::from(format!("ERR invalid cleaner filters: {e}")),
             };
 
-            LOGGER_CLEANER.debug("Creating CacheCleaner for JSON list_candidates");
+            let (ctx, _) = match build_execution_context_with_filters(filters) {
+                Ok(v) => v,
+                Err(e) => return RString::from(format!("ERR context: {}", e)),
+            };
+
             let cleaner = modules::cache::CacheCleaner::new();
 
             match cleaner.collect_cache_candidates(&ctx) {
                 Ok(items) => {
-                    LOGGER_CLEANER.debug(format!(
-                        "JSON list_candidates returned {} item(s)",
-                        items.len()
-                    ));
-
                     let resp = ListCandidatesResponse { ok: true, items };
 
                     match serde_json::to_string(&resp) {
-                        Ok(json) => {
-                            LOGGER_CLEANER.debug(
-                                "JSON list_candidates response serialized successfully",
-                            );
-                            RString::from(json)
-                        }
-                        Err(e) => {
-                            LOGGER_CLEANER.debug(format!(
-                                "JSON list_candidates response serialization failed: {}",
-                                e
-                            ));
-                            RString::from(format!("ERR json serialize: {e}"))
-                        }
+                        Ok(json) => RString::from(json),
+                        Err(e) => RString::from(format!("ERR json serialize: {e}")),
                     }
                 }
-                Err(e) => {
-                    LOGGER_CLEANER.debug(format!("JSON list_candidates failed: {}", e));
-                    RString::from(format!("ERR list_candidates: {}", e))
-                }
+                Err(e) => RString::from(format!("ERR list_candidates: {}", e)),
             }
         }
 
         "delete_selected" => {
-            LOGGER_CLEANER.debug("Matched JSON command: delete_selected");
-
             let payload = match req.payload {
-                Some(value) => {
-                    LOGGER_CLEANER.debug("JSON delete_selected payload found");
-                    value
-                }
-                None => {
-                    LOGGER_CLEANER.debug("JSON delete_selected failed: missing payload");
-                    return RString::from("ERR missing payload");
-                }
+                Some(value) => value,
+                None => return RString::from("ERR missing payload"),
             };
 
-            let delete_req: DeleteSelectedRequest = match serde_json::from_value::<DeleteSelectedRequest>(payload) {
+            let delete_req: DeleteSelectedRequest = match serde_json::from_value(payload) {
                 Ok(v) => v,
                 Err(e) => {
-                    return RString::from(format!("ERR invalid delete_selected payload: {e}"))
+                    return RString::from(format!("ERR invalid delete_selected payload: {e}"));
                 }
             };
 
-            LOGGER_CLEANER.debug("Building execution context for JSON delete_selected");
-
-            let (ctx, _) = match build_execution_context() {
-                Ok(v) => {
-                    LOGGER_CLEANER.debug("Execution context built for JSON delete_selected");
-                    v
-                }
-                Err(e) => {
-                    LOGGER_CLEANER.debug(format!(
-                        "build_execution_context failed for JSON delete_selected: {}",
-                        e
-                    ));
-                    return RString::from(format!("ERR context: {}", e));
-                }
-            };
-
-            LOGGER_CLEANER.debug("Creating CacheCleaner for JSON delete_selected");
-            let cleaner = modules::cache::CacheCleaner::new();
-
-            LOGGER_CLEANER.debug("Calling delete_selected_paths from JSON delete_selected");
-            let resp = cleaner.delete_selected_paths(&ctx, &delete_req.items, true);
-            LOGGER_CLEANER.debug("JSON delete_selected delete_selected_paths completed");
-
-            match serde_json::to_string(&resp) {
-                Ok(json) => {
-                    LOGGER_CLEANER.debug(
-                        "JSON delete_selected response serialized successfully",
-                    );
-                    RString::from(json)
-                }
-                Err(e) => {
-                    LOGGER_CLEANER.debug(format!(
-                        "JSON delete_selected response serialization failed: {}",
-                        e
-                    ));
-                    RString::from(format!("ERR json serialize: {e}"))
-                }
-            }
+            execute_delete_selected_from_request(delete_req)
         }
 
-        other => {
-            LOGGER_CLEANER.debug(format!("Unknown JSON function received: {}", other));
-            RString::from(format!("ERR unknown function: {other}"))
-        }
+        other => RString::from(format!("ERR unknown function: {other}")),
     }
 }
 
