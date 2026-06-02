@@ -235,6 +235,8 @@ export type GriffonManifest = {
 
 export type CleanerCandidateListValue = {
   paths: string[];
+  dry_run?: boolean;
+  file_types?: string[];
 };
 
 export type CleanerCandidateListElement = {
@@ -262,6 +264,9 @@ export type CleanerFileTypeSelectorElement = {
   from?: string;
   selectedFrom?: string;
   action?: string;
+  value?: {
+    file_types: string[];
+  };
 };
 
 export type CleanerDryRunToggleElement = {
@@ -271,6 +276,9 @@ export type CleanerDryRunToggleElement = {
   description?: string;
   from?: string;
   action?: string;
+  value?: {
+    dry_run: boolean;
+  };
 };
 
 export type GriffonElement =
