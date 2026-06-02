@@ -75,6 +75,21 @@ contents:
     file_info:
       mode: 0644
 
+  - src: "./bench/configs/light.json"
+    dst: /etc/griffon/plugins/griffon_cleaner/light.json
+    file_info:
+      mode: 0644
+
+  - src: "./bench/configs/medium.json"
+    dst: /etc/griffon/plugins/griffon_cleaner/medium.json
+    file_info:
+      mode: 0644
+
+  - src: "./bench/configs/stress.json"
+    dst: /etc/griffon/plugins/griffon_cleaner/stress.json
+    file_info:
+      mode: 0644
+
   # Le service Systemd pour le daemon
   - src: ./daemon/griffon-daemon.service
     dst: /lib/systemd/system/griffon-daemon.service

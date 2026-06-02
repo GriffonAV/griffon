@@ -231,8 +231,14 @@ pub fn build_execution_context() -> CleanerResult<(ExecutionContext, String)> {
 pub fn build_execution_context_with_filters(
     filters: CleanerFilters,
 ) -> CleanerResult<(ExecutionContext, String)> {
+    let default_config_path = if cfg!(debug_assertions) {
+        "bench/configs/light.json"
+    } else {
+        "/etc/griffon/plugins/griffon_cleaner/light.json"
+    };
+
     let config_path =
-        parse_arg("--config").unwrap_or_else(|| "bench/configs/light.json".to_string());
+        parse_arg("--config").unwrap_or_else(|| default_config_path.to_string());
 
     let file_cfg = FileCleanerConfig::load_from_file(PathBuf::from(&config_path).as_path())?;
 
