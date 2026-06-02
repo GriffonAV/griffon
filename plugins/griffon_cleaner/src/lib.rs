@@ -237,8 +237,7 @@ pub fn build_execution_context_with_filters(
         "/etc/griffon/plugins/griffon_cleaner/light.json"
     };
 
-    let config_path =
-        parse_arg("--config").unwrap_or_else(|| default_config_path.to_string());
+    let config_path = parse_arg("--config").unwrap_or_else(|| default_config_path.to_string());
 
     let file_cfg = FileCleanerConfig::load_from_file(PathBuf::from(&config_path).as_path())?;
 
