@@ -6,7 +6,7 @@ import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
     title: "Griffon",
-    tagline: "GriffonAV - Linux Antivirus",
+    tagline: "Griffon - Linux Antivirus",
     favicon: "img/favicon.ico",
 
     // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -23,7 +23,7 @@ const config: Config = {
     // GitHub pages deployment config.
     // If you aren't using GitHub pages, you don't need these.
     organizationName: "Griffon-org", // Usually your GitHub org/user name.
-    projectName: "GriffonAV", // Usually your repo name.
+    projectName: "Griffon", // Usually your repo name.
 
     onBrokenLinks: "throw",
     onBrokenMarkdownLinks: "warn",
@@ -87,7 +87,7 @@ const config: Config = {
                 },
                 { to: "/blog", label: "Blog", position: "left" },
                 {
-                    href: "https://github.com/GriffonAV/GriffonAV",
+                    href: "https://github.com/Griffon/Griffon",
                     label: "GitHub",
                     position: "right",
                 },
@@ -131,7 +131,7 @@ const config: Config = {
                         },
                         {
                             label: "GitHub",
-                            href: "https://github.com/GriffonAV/GriffonAV",
+                            href: "https://github.com/Griffon/Griffon",
                         },
                     ],
                 },

@@ -12,12 +12,12 @@ if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
     echo "User '$SUDO_USER' has been added to the griffon group."
 fi
 
-mkdir -p /usr/lib/griffonav/plugins
+mkdir -p /usr/lib/griffon/plugins
 
 if command -v systemctl >/dev/null 2>&1; then
     systemctl daemon-reload || true
-    systemctl enable griffonav-daemon || true
-    systemctl restart griffonav-daemon || true
+    systemctl enable griffon-daemon || true
+    systemctl restart griffon-daemon || true
 fi
 
 if command -v gtk-update-icon-cache >/dev/null 2>&1; then
@@ -29,9 +29,9 @@ if command -v update-desktop-database >/dev/null 2>&1; then
 fi
 
 echo ""
-echo "GriffonAV installed successfully."
+echo "Griffon installed successfully."
 echo ""
-echo "The GriffonAV GUI and CLI require your user to be in the 'griffon' group"
+echo "The Griffon GUI and CLI require your user to be in the 'griffon' group"
 echo "to communicate with the daemon without sudo."
 
 if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then

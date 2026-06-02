@@ -25,7 +25,7 @@ function TitleBar() {
   }, []);
 
   const openGitHub = () => {
-    openUrl("https://github.com/GriffonAV/GriffonAV");
+    openUrl("https://github.com/Griffon/Griffon");
   };
 
   useEffect(() => {

@@ -1,8 +1,8 @@
 [package]
-name = "griffonav-daemon"
+name = "griffon-daemon"
 version = "0.1.0"
 edition = "2024"
-default-run = "griffonav-daemon"
+default-run = "griffon-daemon"
 
 [dependencies]
 plugin_manager = { workspace = true }

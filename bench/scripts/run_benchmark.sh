@@ -11,12 +11,12 @@ fi
 source /home/vagrant/.cargo/env
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-RESULT_DIR="/home/vagrant/GriffonAV/bench/results/${SCENARIO}_${TIMESTAMP}"
-CONFIG_PATH="/home/vagrant/GriffonAV/bench/configs/${SCENARIO}.json"
+RESULT_DIR="/home/vagrant/Griffon/bench/results/${SCENARIO}_${TIMESTAMP}"
+CONFIG_PATH="/home/vagrant/Griffon/bench/configs/${SCENARIO}.json"
 
 mkdir -p "$RESULT_DIR"
 
-cd /home/vagrant/GriffonAV
+cd /home/vagrant/Griffon
 
 cargo build --release -p griffon_cleaner
 

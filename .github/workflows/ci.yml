@@ -1,4 +1,4 @@
-name: GriffonAV CI
+name: Griffon CI
 
 on:
   push:

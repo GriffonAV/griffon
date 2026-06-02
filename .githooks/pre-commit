@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo "🦀 GriffonAV: checking workspace quality..."
+echo "🦀 Griffon: checking workspace quality..."
 
 # 1. Formatting Check
 if ! cargo fmt --all --check > /dev/null 2>&1; then
