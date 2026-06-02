@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Folder, File, Trash2 } from "lucide-react";
+import { Folder, File } from "lucide-react";
 import { resolveFromPath } from "@/lib/utils";
 import type { GriffonActionHandler } from "../types";
 
@@ -26,6 +26,8 @@ interface CleanerCandidateListProps {
         deleteAction?: string;
         value?: {
             paths: string[];
+            dry_run?: boolean;
+            file_types?: string[];
         };
     };
     store?: Record<string, any>;

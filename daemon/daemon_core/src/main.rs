@@ -19,7 +19,7 @@ static LOGGER_NETWORK: Logger = if cfg!(debug_assertions) {
 pub const PLUGIN_DIR_PATH: &str = if cfg!(debug_assertions) {
     ".config/griffon"
 } else {
-    "/usr/lib/griffonav/plugins"
+    "/usr/lib/griffon/plugins"
 };
 
 fn main() -> io::Result<()> {

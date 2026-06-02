@@ -23,7 +23,7 @@ static LOGGER_NETWORK: Logger = Logger::new("GUI-NETWORK", LogLevel::Debug, None
 const PLUGIN_MANIFEST_DIR: &str = if cfg!(debug_assertions) {
     "../../.config/griffon"
 } else {
-    "/usr/lib/griffonav/plugins"
+    "/usr/lib/griffon/plugins"
 };
 
 #[derive(Serialize)]

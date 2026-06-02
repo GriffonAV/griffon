@@ -5,6 +5,7 @@ id = "6e9e800a-0d0c-4f74-8265-7b9ab0234582"
 version = "1.0.0"
 author = "Raphael"
 description = "Demonstrates all currently supported Griffon UI elements"
+uuid = "6e9e800a-0d0c-4f74-8265-7b9ab0234582"
 tabs = ["overview", "form", "layout", "data"]
 
 [ui]

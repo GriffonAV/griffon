@@ -20,7 +20,7 @@ export function NoPluginLayout({ children }: { children: ReactNode }) {
                 It looks like you don't have any plugins installed. Please install a plugin to continue.
                 <br />
                 <br />
-                Add your plugin folder in <Button onClick={openfolder} variant={"ghost"}>/usr/lib/griffonav/plugins/</Button> and refresh.
+                Add your plugin folder in <Button onClick={openfolder} variant={"ghost"}>/usr/lib/griffon/plugins/</Button> and refresh.
                 < br />
                 <br />
                 <Button>Refresh plugins</Button>

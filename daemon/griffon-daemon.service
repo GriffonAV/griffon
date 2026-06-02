@@ -1,10 +1,10 @@
 [Unit]
-Description=GriffonAV Daemon
+Description=Griffon Daemon
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/griffonav-daemon
+ExecStart=/usr/bin/griffon-daemon
 Restart=on-failure
 RestartSec=5
 User=root

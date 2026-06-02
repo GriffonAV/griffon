@@ -106,9 +106,9 @@ fn resolve_runner_binary() -> Result<PathBuf, String> {
         exe_dir
             .join("../")
             .join("debug")
-            .join("griffonav-daemon-runner")
+            .join("griffon-daemon-runner")
     } else {
-        PathBuf::from("/usr/bin/griffonav-daemon-runner")
+        PathBuf::from("/usr/bin/griffon-daemon-runner")
     };
 
     if candidate.exists() {
