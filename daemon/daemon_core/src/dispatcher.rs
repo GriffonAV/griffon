@@ -1,3 +1,4 @@
+use notify_rust::Notification;
 use std::sync::mpsc;
 use std::thread;
 
@@ -5,6 +6,7 @@ use ipc_protocol::ipc_payload_interface::{InterfaceResponse, format_uuid_bytes};
 use ipc_protocol::ipc_payload_runner::CallPayload;
 use logger::Logger;
 
+use crate::notification::{NotificationConfig, send_plugin_response_notification};
 use crate::types::DaemonTask;
 
 static LOGGER_DISPATCHER: Logger = if cfg!(debug_assertions) {
@@ -23,6 +25,7 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
 
         let mut pm = plugin_manager::PluginManager::new(plugin_dir_path);
         pm.scan_dir();
+        let notification_config = NotificationConfig::load();
 
         while let Ok(task) = task_rx.recv() {
             match task {
@@ -53,6 +56,7 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                         ));
                     }
                 }
+
                 DaemonTask::RefreshPlugins {
                     request_id,
                     reply_tx,
@@ -86,12 +90,23 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                         args
                     ));
 
+                    let function_name = fn_name.clone();
+                    let plugin_name = pm.get_plugin_name(plugin_uuid).unwrap_or_else(|| format_uuid_bytes(&plugin_uuid));
                     let call = CallPayload { fn_name, args };
 
                     let response = match pm.send_call(plugin_uuid, call) {
                         Ok(plugin_request_id) => match pm.wait_for_response(plugin_request_id) {
                             Ok(plugin_event) => match plugin_event {
                                 plugin_manager::PluginEvent::Result { ok, output, .. } => {
+                                    if let Err(e) = send_plugin_response_notification(
+                                        plugin_uuid,
+                                        &plugin_name,
+                                        &function_name,
+                                        ok,
+                                    ) {
+                                        LOGGER_DISPATCHER.error(format!("Failed to send notification: {e}"));
+                                    }
+
                                     InterfaceResponse::CallResult {
                                         request_id,
                                         ok,
@@ -99,6 +114,14 @@ pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'
                                     }
                                 }
                                 plugin_manager::PluginEvent::Error { message, .. } => {
+                                    if let Err(e) = send_plugin_response_notification(
+                                        plugin_uuid,
+                                        &plugin_name,
+                                        &function_name,
+                                        false,
+                                    ) {
+                                        LOGGER_DISPATCHER.error(format!("Failed to send notification: {e}"));
+                                    }
                                     InterfaceResponse::CallResult {
                                         request_id,
                                         ok: false,

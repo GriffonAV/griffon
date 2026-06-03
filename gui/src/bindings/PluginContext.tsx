@@ -89,9 +89,22 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         return result;
     }
 
-    async function refreshPlugins() {
+    /*async function refreshPlugins() {
         try {
             const result = await invoke<Plugin[]>("list_plugins");
+            setPlugins(result);
+        } catch (err) {
+            error("Failed to load plugins:" + err);
+        }
+    }*/
+    async function refreshPlugins() {
+        try {
+            console.log("[PluginProvider] refreshPlugins called");
+
+            const result = await invoke<Plugin[]>("list_plugins");
+
+            console.log("[PluginProvider] plugins received:", result);
+
             setPlugins(result);
         } catch (err) {
             error("Failed to load plugins:" + err);

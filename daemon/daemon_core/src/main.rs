@@ -5,6 +5,7 @@ use std::sync::mpsc;
 mod dispatcher;
 mod network;
 mod types;
+mod notification;
 
 static LOGGER_NETWORK: Logger = if cfg!(debug_assertions) {
     Logger::new("DAEMON-INTERFACE-NETWORK", logger::LogLevel::Debug, None)

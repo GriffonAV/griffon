@@ -90,9 +90,14 @@ contents:
     file_info:
       mode: 0644
 
-  # Le service Systemd pour le daemon
+  # Les config pour le daemon
   - src: ./daemon/griffon-daemon.service
     dst: /lib/systemd/system/griffon-daemon.service
+    file_info:
+      mode: 0644
+
+  - src: ./daemon/config_griffon_daemon.json
+    dst: /etc/griffon/config_griffon_daemon.json
     file_info:
       mode: 0644
 

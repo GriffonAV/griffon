@@ -1,3 +1,5 @@
+mod settings;
+
 use nix::libc;
 use nix::sys::socket::{AddressFamily, SockFlag, SockType, socketpair};
 use std::collections::VecDeque;
@@ -14,6 +16,7 @@ use ipc_protocol::ipc_payload_runner::{
     CallPayload, Message, format_uuid_bytes, recv_message, send_message,
 };
 use logger::Logger;
+use settings::DaemonConfig;
 
 // LOGGER_PM / LOGGER_PM_NETWORK = technical logs for daemon debugging.
 // LOGGER_HISTORY = business/user history
@@ -309,6 +312,7 @@ impl PluginManager {
             format_uuid_bytes(&self.plugins_list[pos].plugin_info.plugin_uuid)
         ));
 
+        ensure_plugin_exists_in_config(&self.plugins_list[pos]);
         log_plugin_enabled(&self.plugins_list[pos]);
 
         Ok(true)
@@ -410,6 +414,13 @@ impl PluginManager {
         }
     }
 
+    pub fn get_plugin_name(&self, uuid: [u8; 16]) -> Option<String> {
+        self.plugins_list
+            .iter()
+            .find(|plugin| plugin.plugin_info.plugin_uuid == uuid)
+            .map(|plugin| plugin.plugin_info.name.clone())
+    }
+
     fn check_plugin(&mut self, path: &Path) {
         let path_str = path.to_string_lossy();
 
@@ -468,6 +479,7 @@ impl PluginManager {
                                     plugin_path.display()
                                 ));
 
+
                                 log_plugin_enable_failed(&self.plugins_list[index], &e.to_string());
 
                                 return;
@@ -501,6 +513,7 @@ impl PluginManager {
                     self.plugins_list[index].enabled = false;
                     self.plugins_list[index].plugin_info.status = false;
                 } else {
+                    ensure_plugin_exists_in_config(&self.plugins_list[index]);
                     log_plugin_enabled(&self.plugins_list[index]);
                 }
             }
@@ -594,6 +607,17 @@ impl PluginManager {
         ));
 
         Ok((child, core_stream, plugin_info))
+    }
+}
+
+fn ensure_plugin_exists_in_config(plugin: &ManagedPlugin) {
+    if let Err(e) = DaemonConfig::ensure_plugin_exists(plugin.plugin_info.plugin_uuid) {
+        LOGGER_PM.error(format!(
+            "Failed to sync plugin config for {} {}: {}",
+            plugin.plugin_info.name,
+            format_uuid_bytes(&plugin.plugin_info.plugin_uuid),
+            e
+        ));
     }
 }
 
