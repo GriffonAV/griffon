@@ -99,7 +99,7 @@ fn list_plugins() -> Result<Vec<Plugin>, String> {
 
         plugins.push(Plugin {
             file_name: stem.to_string(),
-            uuid: manifest.plugin.id.clone(),
+            uuid: manifest.plugin.uuid.clone(),
             display_name: manifest.plugin.name.clone(),
             version: manifest.plugin.version.clone(),
             author: manifest.plugin.author.clone(),
