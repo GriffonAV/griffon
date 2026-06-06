@@ -52,3 +52,5 @@ dist/
 
 *.log
 eicar*
+
+quanrantine/
