@@ -77,7 +77,7 @@ extern "C" fn handle_message(msg: RString) -> RString {
     let msg_str = msg.as_str();
     log::info!("[LIBSCANNER] Received message: {}", msg_str);
     let args = msg_str.split_whitespace().collect::<Vec<&str>>();
-    let command = args.get(0).unwrap_or(&"");
+    let command = args.first().unwrap_or(&"");
 
     match *command {
         "fn:check" => check_engine(),
