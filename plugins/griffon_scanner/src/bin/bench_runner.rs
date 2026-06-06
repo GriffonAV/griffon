@@ -21,7 +21,7 @@ use serde::Serialize;
 
 // Pull from your crate
 use griffon_scanner::scanner_engine::ScanEngine;
-use griffon_scanner::scanner_engine::scanargs::ScanArgs;
+use griffon_scanner::scanner_engine::scanargs::{PrepArgs, ScanArgs};
 
 // ---------------------------------------------------------------------------
 // Output schema — everything Python needs in one JSON blob
@@ -117,9 +117,13 @@ fn main() {
     let scan_args = ScanArgs {
         threads: threads.clone(),
         yara_only,
-        yara_rules: Some(rules_dir),
         path: target.clone().into(),
 
+        ..Default::default()
+    };
+
+    let prep_args = PrepArgs {
+        yara_rules: Some(rules_dir),
         ..Default::default()
     };
 
@@ -141,7 +145,7 @@ fn main() {
     for i in 0..iters {
         let mut engine = ScanEngine::new();
         let t = Instant::now();
-        match engine.prepare(&scan_args) {
+        match engine.prepare(&prep_args) {
             Ok((h, y)) => {
                 prepare_samples.push(duration_ms(t.elapsed()));
                 // Capture rule counts from last iteration
@@ -162,7 +166,7 @@ fn main() {
     //    This isolates scan cost from engine startup cost.
     // -----------------------------------------------------------------------
     let mut scan_engine = ScanEngine::new();
-    if let Err(e) = scan_engine.prepare(&scan_args) {
+    if let Err(e) = scan_engine.prepare(&prep_args) {
         eprintln!("ERR: prepare() for scan bench failed: {}", e);
         std::process::exit(1);
     }

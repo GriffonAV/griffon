@@ -13,10 +13,11 @@ use abi_stable::{
     sabi_extern_fn,
     std_types::{RResult, RString},
 };
+use clap::Parser;
 use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 
 use crate::scanner_engine::ScanEngine;
-use crate::scanner_engine::scanargs::ScanArgs;
+use crate::scanner_engine::scanargs::{PrepArgs, ScanArgs};
 use crate::scanner_quarantine::Quarantine;
 use crate::scanner_updater::ScannerUpdater;
 
@@ -61,7 +62,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     ));
     info.push(Tuple2(
         RString::from("UUID"),
-        RString::from("123e4567-e89b-12d3-a456-426614174000"),
+        RString::from("a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"),
     ));
     info.push(Tuple2(
         RString::from("function"),
@@ -75,23 +76,21 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 extern "C" fn handle_message(msg: RString) -> RString {
     let msg_str = msg.as_str();
     log::info!("[LIBSCANNER] Received message: {}", msg_str);
+    let args = msg_str.split_whitespace().collect::<Vec<&str>>();
+    let command = args.get(0).unwrap_or(&"");
 
-    if msg_str == "fn:check" {
-        check_engine()
-    } else if msg_str == "fn:stop" {
-        stop_engine()
-    } else if let Some(path_str) = msg_str.strip_prefix("scan:") {
-        handle_scan(path_str)
-    } else if msg_str == "update" {
-        handle_update()
-    } else if let Some(path_str) = msg_str.strip_prefix("fn:quarantine:") {
-        handle_quarantine(path_str)
-    } else if let Some(path_str) = msg_str.strip_prefix("fn:restore:") {
-        handle_restore(path_str)
-    } else if msg_str == "list" {
-        handle_list()
-    } else {
-        RString::from(format!("ACK LIBSCANNER {}\n", msg_str))
+    match *command {
+        "fn:check" => check_engine(),
+        "fn:stop" => stop_engine(),
+        "fn:update" => handle_update(),
+        "fn:list" => handle_list(),
+        "fn:scan" => handle_scan(args),
+        "fn:quarantine" => handle_quarantine(args),
+        "fn:restore" => handle_restore(args),
+        _ => RString::from(format!(
+            "ACK LIBSCANNER received unknown message: {}",
+            msg_str
+        )),
     }
 }
 
@@ -128,7 +127,7 @@ fn start_engine() {
     log::info!("[LIBSCANNER] Loading signatures into memory...");
 
     let mut engine = ScanEngine::new();
-    let args = ScanArgs::default();
+    let args = PrepArgs::default();
 
     match engine.prepare(&args) {
         Ok((hashes, rules)) => {
@@ -157,20 +156,14 @@ fn stop_engine() -> RString {
     RString::from("ACK: Engine stopped")
 }
 
-fn handle_scan(path_str: &str) -> RString {
+fn handle_scan(args: Vec<&str>) -> RString {
     require_ready!();
-
-    let path = Path::new(path_str);
-    if !path.exists() {
-        return RString::from(format!("ERR: Path does not exist: {}", path_str));
-    }
-
-    log::info!("[LIBSCANNER] Scanning: {}", path_str);
 
     let mut lock = ENGINE.lock().unwrap();
     if let Some(engine) = lock.as_mut() {
-        let args = ScanArgs::default();
-        let report = engine.scan(path, &args);
+        let itr = std::iter::once(args.first().unwrap_or(&"")).chain(args.iter().skip(1));
+        let args = ScanArgs::parse_from(itr);
+        let report = engine.scan(args.path.as_path(), &args);
 
         match serde_json::to_string(&report) {
             Ok(json) => RString::from(json),
@@ -184,12 +177,25 @@ fn handle_scan(path_str: &str) -> RString {
 fn handle_update() -> RString {
     let updater = ScannerUpdater::default();
     match updater.update() {
-        Ok(_) => RString::from("ACK: Update completed successfully"),
+        Ok(_) => {
+            if ENGINE_STATE.load(Ordering::SeqCst) == STATE_READY {
+                log::info!(
+                    "[LIBSCANNER] Signatures updated. Restarting engine to apply changes..."
+                );
+                stop_engine();
+
+                std::thread::spawn(|| {
+                    start_engine();
+                });
+            }
+            RString::from("ACK: Update completed successfully")
+        }
         Err(e) => RString::from(format!("ERR: Update failed: {}", e)),
     }
 }
 
-fn handle_quarantine(path_str: &str) -> RString {
+fn handle_quarantine(args: Vec<&str>) -> RString {
+    let path_str = args.get(1).unwrap_or(&"");
     let quarantine = Quarantine::new(&Quarantine::default_dir());
     match quarantine {
         Ok(q) => {
@@ -203,8 +209,16 @@ fn handle_quarantine(path_str: &str) -> RString {
     }
 }
 
-fn handle_restore(file_name: &str) -> RString {
-    RString::from(format!("ACK: Restore requested for {}", file_name))
+fn handle_restore(args: Vec<&str>) -> RString {
+    let file_name = args.get(1).unwrap_or(&"");
+    let quarantine = Quarantine::new(&Quarantine::default_dir());
+    match quarantine {
+        Ok(q) => match q.restore_file(file_name) {
+            Ok(path) => RString::from(format!("ACK: Restored to {}", path.display())),
+            Err(e) => RString::from(format!("ERR: Failed to restore {}: {}", file_name, e)),
+        },
+        Err(e) => RString::from(format!("ERR: Failed to initialize quarantine: {}", e)),
+    }
 }
 
 fn handle_list() -> RString {

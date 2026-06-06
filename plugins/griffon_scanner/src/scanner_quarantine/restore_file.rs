@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use crate::scanner_quarantine::{Quarantine, manifest::QuarantineManifest};
 
 impl Quarantine {
-    #[allow(dead_code)]
     pub fn restore_file(&self, quarantined_name: &str) -> Result<PathBuf, String> {
         let dest_path = self.dir.join(quarantined_name);
         let manifest_path = self
