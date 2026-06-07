@@ -1,5 +1,5 @@
-# Griffon — Modular Antivirus for Linux (Rust)
-> A fast, modular, and secure antivirus engine for Linux, written in Rust and powered by YARA. And open source.
+# Griffon — Modular Security Platform for Linux (Rust)
+> GriffonAV is a modular, Rust-based security and toolbox platform for Linux users! Just write your security tool in a Rust plugin, define a TOML config, and we automatically integrate and generate the UI into our application.
 
 ---> [Installation and documentation](https://griffon-av.vercel.app/) <---
 
