@@ -93,6 +93,21 @@ impl NotificationConfig {
         Ok(())
     }
 
+    pub fn switch_plugin_notification(plugin_uuid: [u8; 16]) -> Result<bool, String> {
+        let mut config = Self::load();
+        let uuid = format_uuid_bytes(&plugin_uuid);
+
+        let plugin_settings = config.plugins.entry(uuid).or_default();
+
+        plugin_settings.notifications_enabled = !plugin_settings.notifications_enabled;
+
+        let new_status = plugin_settings.notifications_enabled;
+
+        config.save()?;
+
+        Ok(new_status)
+    }
+
     pub fn is_enabled_for_plugin(&self, plugin_uuid: [u8; 16]) -> bool {
         if !self.general.notifications_enabled {
             return false;
@@ -106,17 +121,11 @@ impl NotificationConfig {
             .unwrap_or(true)
     }
 
-    pub fn set_global_enabled(&mut self, enabled: bool) {
-        self.general.notifications_enabled = enabled;
-    }
 
     pub fn set_plugin_enabled(&mut self, plugin_uuid: [u8; 16], enabled: bool) {
         let uuid = format_uuid_bytes(&plugin_uuid);
 
-        self.plugins
-            .entry(uuid)
-            .or_default()
-            .notifications_enabled = enabled;
+        self.plugins.entry(uuid).or_default().notifications_enabled = enabled;
     }
 
     pub fn remove_plugin_override(&mut self, plugin_uuid: [u8; 16]) {
