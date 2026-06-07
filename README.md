@@ -88,3 +88,13 @@ INSERT INTO system_metrics (plugin, ram_usage, cpu_usage, disk_usage, is_active,
 ```
 .quit
 ```
+
+# Turn off the instance
+
+To turn off the instance run this command:
+
+```
+sudo docker compose down
+```
+
+if you want to remove the containers add the `-v` flag to the above command

@@ -8,4 +8,4 @@ datasources:
     isDefault: true
     editable: false
     jsonData:
-      path: /var/lib/grafana/sqlite/reporting.sqlite
+      path: /var/lib/grafana/datasources/reporting.sqlite
