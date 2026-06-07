@@ -1,5 +1,5 @@
 # Griffon — Modular Security Platform for Linux (Rust)
-> GriffonAV is a modular, Rust-based security and toolbox platform for Linux users! Just write your security tool in a Rust plugin, define a TOML config, and we automatically integrate and generate the UI into our application.
+> Griffon is a modular, Rust-based security and toolbox platform for Linux users! Just write your security tool in a Rust plugin, define a TOML config, and we automatically integrate and generate the UI into our application.
 
 ---> [Installation and documentation](https://griffon-av.vercel.app/) <---
 
@@ -28,7 +28,7 @@
 
 - **User docs:** [griffon-av.vercel.app](https://griffon-av.vercel.app/)
 - **Developer docs:** [`/docs`](./docs)
-- **Internal wiki:** [GitHub Wiki](https://github.com/GriffonAV/GriffonAV/wiki)
+- **Internal wiki:** [GitHub Wiki](https://github.com/GriffonAV/griffon/wiki)
 
 
 ## Authors

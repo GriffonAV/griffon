@@ -1,13 +1,13 @@
-# Contributing to GriffonAV
+# Contributing to Griffon
 
-First off, thank you for considering contributing to GriffonAV! As an open-source academic project, we welcome feedback, bug reports, and pull requests.
+First off, thank you for considering contributing to Griffon! As an open-source academic project, we welcome feedback, bug reports, and pull requests.
 
 ## How Can I Contribute?
 
 ### Reporting Bugs
 If you find a bug, please open an issue on GitHub. Include as much detail as possible:
 * Your operating system (Debian, Fedora, etc.)
-* The version of GriffonAV you are using.
+* The version of Griffon you are using.
 * Steps to reproduce the issue.
 * Any relevant logs or error messages.
 
