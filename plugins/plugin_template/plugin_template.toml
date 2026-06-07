@@ -1,6 +1,6 @@
 # Griffon Plugin Manifest: File Picker Demo
 [plugin]
-name = "File Picker Demo"
+name = "Plugin Template"
 id = "d0c90f71-b15c-4b7d-afb0-033316c871f9"
 version = "1.0.0"
 author = "Raphael"

@@ -11,8 +11,7 @@ members = [
     "shared/logger",
 
     # plugins
-    "plugins/plugin_test",
-    "plugins/plugin_test_2",
+    "plugins/plugin_template",
     "plugins/griffon_cleaner",
     "plugins/griffon_scanner",
 

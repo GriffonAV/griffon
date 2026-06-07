@@ -24,12 +24,15 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
 
     info.push(Tuple2(
         RString::from("author"),
-        RString::from("Test Author1"),
+        RString::from("Author Name"),
     ));
-    info.push(Tuple2(RString::from("name"), RString::from("Test Name1")));
+    info.push(Tuple2(
+        RString::from("name"),
+        RString::from("Template Plugin"),
+    ));
     info.push(Tuple2(
         RString::from("description"),
-        RString::from("Test Description1"),
+        RString::from("This is the template plugin"),
     ));
     info.push(Tuple2(
         RString::from("UUID"),
