@@ -3,7 +3,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use ipc_protocol::ipc_payload_interface::{format_uuid_bytes, PluginInfoDto};
+use ipc_protocol::ipc_payload_interface::{PluginInfoDto, format_uuid_bytes};
 use logger::Logger;
 
 static LOGGER_PLUGIN_HISTORY: Logger = if cfg!(debug_assertions) {
@@ -122,7 +122,12 @@ pub fn plugin_call_requested(
     );
 }
 
-pub fn plugin_call_rejected(plugin: &PluginInfoDto, request_id: u32, function_name: &str, reason: &str) {
+pub fn plugin_call_rejected(
+    plugin: &PluginInfoDto,
+    request_id: u32,
+    function_name: &str,
+    reason: &str,
+) {
     warn(
         &plugin.name,
         plugin.plugin_uuid,
@@ -195,12 +200,7 @@ pub fn plugin_error(
     );
 }
 
-pub fn plugin_unknown_message(
-    plugin_name: &str,
-    plugin_uuid: [u8; 16],
-    pid: u32,
-    message: &str,
-) {
+pub fn plugin_unknown_message(plugin_name: &str, plugin_uuid: [u8; 16], pid: u32, message: &str) {
     warn(
         plugin_name,
         plugin_uuid,

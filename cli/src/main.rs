@@ -41,7 +41,9 @@ fn print_help() {
     println!("        call 550e8400-e29b-41d4-a716-446655440000 clean cache|true");
     println!();
     println!("  switch_notification <plugin_uuid>");
-    println!("      Enable or disable notifications for a plugin depending on its current notification status");
+    println!(
+        "      Enable or disable notifications for a plugin depending on its current notification status"
+    );
     println!();
     println!("  exit | quit");
     println!("      Exit the CLI");

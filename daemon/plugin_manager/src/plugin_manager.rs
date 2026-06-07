@@ -1,8 +1,8 @@
-mod settings;
 mod plugin_history;
+mod settings;
 
 use nix::libc;
-use nix::sys::socket::{socketpair, AddressFamily, SockFlag, SockType};
+use nix::sys::socket::{AddressFamily, SockFlag, SockType, socketpair};
 use std::collections::VecDeque;
 use std::io;
 use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd};
@@ -14,7 +14,7 @@ use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 
 use ipc_protocol::ipc_payload_interface::PluginInfoDto;
 use ipc_protocol::ipc_payload_runner::{
-    format_uuid_bytes, recv_message, send_message, CallPayload, Message,
+    CallPayload, Message, format_uuid_bytes, recv_message, send_message,
 };
 use logger::Logger;
 use settings::DaemonConfig;
@@ -503,10 +503,7 @@ impl PluginManager {
                 plugin.plugin_info.name, e
             ));
 
-            plugin_history::plugin_remove_kill_failed(
-                &plugin.plugin_info,
-                &e.to_string(),
-            );
+            plugin_history::plugin_remove_kill_failed(&plugin.plugin_info, &e.to_string());
         }
     }
 
@@ -528,7 +525,7 @@ impl PluginManager {
             None,
             SockFlag::empty(),
         )
-            .map_err(|e| format!("socketpair failed: {e}"))?;
+        .map_err(|e| format!("socketpair failed: {e}"))?;
 
         let mut cmd = Command::new(&self.runner_binary);
         cmd.arg(path);
@@ -591,7 +588,11 @@ fn read_plugin_messages(
         .try_clone()
         .map_err(|e| io::Error::other(format!("Failed to clone fd: {e}")))?;
 
-    let pid = plugin.process.as_ref().map(|process| process.id()).unwrap_or(0);
+    let pid = plugin
+        .process
+        .as_ref()
+        .map(|process| process.id())
+        .unwrap_or(0);
 
     send_message(&mut fd_clone, Message::Hello)?;
 
@@ -649,12 +650,7 @@ fn read_plugin_messages(
                 Err(e) => {
                     LOGGER_PM_NETWORK.info(format!("{name} ({pid}) closed / recv error: {e}"));
 
-                    plugin_history::plugin_closed(
-                        &name,
-                        plugin_uuid,
-                        pid,
-                        &e.to_string(),
-                    );
+                    plugin_history::plugin_closed(&name, plugin_uuid, pid, &e.to_string());
 
                     let _ = events_tx.send(PluginEvent::Closed {
                         pid,
@@ -697,13 +693,7 @@ fn read_plugin_messages(
 
                     let message = data.message.clone();
 
-                    plugin_history::plugin_error(
-                        &name,
-                        plugin_uuid,
-                        pid,
-                        request_id,
-                        &message,
-                    );
+                    plugin_history::plugin_error(&name, plugin_uuid, pid, request_id, &message);
 
                     let _ = events_tx.send(PluginEvent::Error {
                         pid,

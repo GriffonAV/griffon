@@ -121,7 +121,6 @@ impl NotificationConfig {
             .unwrap_or(true)
     }
 
-
     pub fn set_plugin_enabled(&mut self, plugin_uuid: [u8; 16], enabled: bool) {
         let uuid = format_uuid_bytes(&plugin_uuid);
 
