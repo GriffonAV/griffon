@@ -1,5 +1,5 @@
 [package]
-name = "plugin_test_2"
+name = "plugin_template"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,4 +8,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 plugin_interface = { workspace = true }
-abi_stable = "0.11.3"
+abi_stable = { workspace = true }
+lazy_static = "1.5.0"
