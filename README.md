@@ -5,8 +5,15 @@
 
 
 <p align="center">
-  <img width="250" height="250" src="logo.png" alt='Griffon logo'>
+  <img width="125" height="125" src="https://griffon-av.vercel.app/img/logo.png" alt='Griffon logo'>
 </p>
+
+![Open Source Love](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red?style=flat-square)
+![GitHub Stars](https://img.shields.io/github/stars/GriffonAV/GriffonAV?style=flat-square)
+![GitHub Downloads](https://img.shields.io/github/downloads/GriffonAV/GriffonAV/total?style=flat-square)
+![GitHub Release](https://img.shields.io/github/v/release/GriffonAV/GriffonAV?style=flat-square)
+![Rust](https://img.shields.io/badge/rust-stable-orange?style=flat-square&logo=rust)
+![Tauri](https://img.shields.io/badge/tauri-v2-blue?style=flat-square&logo=tauri)
 
 ## Key features
 
