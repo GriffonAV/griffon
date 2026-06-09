@@ -66,7 +66,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     ));
     info.push(Tuple2(
         RString::from("function"),
-        RString::from("start/stop/check/scan/update/quarantine/restore/list"),
+        RString::from("start/stop/check/check_rules/scan/update/quarantine/restore/list"),
     ));
 
     RResult::ROk(info)
@@ -81,9 +81,10 @@ extern "C" fn handle_message(msg: RString) -> RString {
 
     match *command {
         "fn:check" => check_engine(),
+        "fn:check_rules" => check_rules(),
         "fn:stop" => stop_engine(),
         "fn:update" => handle_update(),
-        "fn:list" => handle_list(),
+        "fn:list_quarantine" => handle_list(),
         "fn:scan" => handle_scan(args),
         "fn:quarantine" => handle_quarantine(args),
         "fn:restore" => handle_restore(args),
@@ -233,4 +234,14 @@ fn handle_list() -> RString {
         }
         Err(e) => RString::from(format!("ERR: Failed to initialize quarantine: {}", e)),
     }
+}
+
+fn check_rules() -> RString {
+    // just display the information relating to the rules, to check if something is wrong, no rules update is performed
+    require_ready!();
+    let lock = ENGINE.lock().unwrap();
+    let engine = lock.as_ref().unwrap(); // safe to unwrap since require_ready checks the
+    // state
+    let rules_count = engine.yara_rules.as_ref().map_or(0, |r| r.rule_count());
+    RString::from(format!("ACK: Engine has {} YARA rules loaded", rules_count))
 }

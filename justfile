@@ -37,3 +37,11 @@ lint-fix:
 build-deb:
     sudo docker build -t griffonav-builder -f Dockerfile.build .
     sudo docker run --rm -v $(pwd)/dist:/out griffonav-builder
+
+update-plugins:
+    cp target/debug/libgriffon_cleaner.so .config/griffon/
+    cp target/debug/libgriffon_cleaner.d .config/griffon/
+    cp target/debug/libgriffon_scanner.so .config/griffon/
+    cp target/debug/libgriffon_scanner.d .config/griffon/
+    cp plugins/griffon_cleaner/griffon_cleaner.toml .config/griffon/
+    cp plugins/griffon_scanner/griffon_scanner.toml .config/griffon/

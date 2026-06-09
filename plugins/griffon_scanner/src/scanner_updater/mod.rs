@@ -45,7 +45,7 @@ impl ScannerUpdater {
 
     #[allow(dead_code)]
     pub fn update(&self) -> Result<(), String> {
-        let base_url = "https://raw.githubusercontent.com/GriffonAV/Griffon_scan_db/main";
+        let base_url = "https://raw.githubusercontent.com/GriffonAV/griffon-yara-rules/main";
 
         let manifest_url = format!("{}/manifest.toml", base_url);
         let manifest_content = reqwest::blocking::get(manifest_url)
