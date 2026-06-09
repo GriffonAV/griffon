@@ -4,7 +4,7 @@ platform: "linux"
 version: "0.1.0"
 section: "utils"
 priority: "optional"
-maintainer: "Griffon griffon.security@protonmail.com"
+maintainer: "Griffon contact.griffon@proton.me"
 description: "Griffon is a modular, Rust-based security and toolbox platform for Linux users."
 
 contents:
