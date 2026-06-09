@@ -54,7 +54,7 @@ export function ContactButton() {
             </a>
           </Badge>
           <div className="h-28"></div>
-          <Button variant="outline" className="w-56 mb-2 flex align-middle cursor-pointer" onClick={() => openUrl("https://github.com/Griffon/Griffon")}>
+          <Button variant="outline" className="w-56 mb-2 flex align-middle cursor-pointer" onClick={() => openUrl("https://griffon-av.vercel.app/")}>
             <span>Website</span>
             <div className="flex-1"></div>
             <SquareArrowOutUpRight className="ml-2" />
@@ -65,7 +65,7 @@ export function ContactButton() {
             <div className="flex-1"></div>
             <Bug className="ml-2" />
           </Button>
-          <Button variant="outline" className="w-56">Waranty</Button>
+          <Button variant="outline" className="w-56" onClick={() => openUrl("https://github.com/GriffonAV/griffon?tab=security-ov-file")}>Waranty</Button>
 
 
         </div>
