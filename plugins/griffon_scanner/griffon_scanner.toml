@@ -5,8 +5,8 @@ id = "a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"
 version = "1.0.0"
 author = "Diabolo"
 description = "Static analysis plugin for GriffonAV"
-tabs = ["scan"]
-
+tabs = ["scan", "database", "quarantine"]
+uuid = "a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"
 
 [store]
 
@@ -19,6 +19,10 @@ selected_file = ""
 
 
 [ui]
+
+## ==========
+## Scan Tab
+## ==========
 
 [[ui.sections]]
 id = "file_main"
@@ -77,3 +81,21 @@ from = "event.value"
 type = "set"
 key = "ui.status"
 value = "File selected"
+
+## ==========
+## Database Tab
+## ==========
+
+[[ui.sections]]
+id = "database_main"
+tab = "database"
+
+[[ui.sections.contents]]
+type = "text"
+id = "database_title"
+name = "Database Section"
+variant = "title"
+
+## ==========
+## Quarantine Tab
+## ==========
