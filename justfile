@@ -14,13 +14,13 @@ build-gui:
     cd gui && npx tauri build --no-bundle
 
 build-workspace:
-    cargo build --release --workspace --exclude griffonav-gui
+    cargo build --release --workspace --exclude griffon-gui
 
 run-daemon:
-    sudo target/debug/griffonav-daemon
+    sudo target/debug/griffon-daemon
 
 run-cli:
-    sudo target/debug/griffonav-cli
+    sudo target/debug/griffon-cli
 
 run-gui-sudo:
     sudo target/debug/app
@@ -35,8 +35,8 @@ lint-fix:
     cargo clippy --fix --allow-dirty
 
 build-deb:
-    sudo docker build -t griffonav-builder -f Dockerfile.build .
-    sudo docker run --rm -v $(pwd)/dist:/out griffonav-builder
+    sudo docker build -t griffon-builder -f Dockerfile.build .
+    sudo docker run --rm -v $(pwd)/dist:/out griffon-builder
 
 update-plugins:
     cp target/debug/libgriffon_cleaner.so .config/griffon/

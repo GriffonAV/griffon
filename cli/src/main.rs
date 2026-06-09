@@ -18,10 +18,10 @@ const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
 
 fn print_help() {
     println!();
-    println!("GriffonAV CLI");
+    println!("Griffon CLI");
     println!();
     println!("Usage:");
-    println!("  griffonav-cli");
+    println!("  griffon-cli");
     println!();
     println!("Commands:");
     println!("  help");

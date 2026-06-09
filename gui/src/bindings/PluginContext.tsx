@@ -1,11 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import {
-    debug,
-    error
-} from "@tauri-apps/plugin-log";
-import { listen } from "@tauri-apps/api/event";
+import { error } from "@tauri-apps/plugin-log";
+import { createPendingRequest } from "@/services/requestManager";
 
 export type Plugin = {
     file_name: string;
@@ -39,6 +36,7 @@ export interface PluginManifest {
         author: string;
         description: string;
         tabs: string[];
+        uuid: string;
     };
     ui: {
         sections: Array<{
@@ -57,11 +55,11 @@ export interface PluginManifest {
 
 interface PluginContextType {
     plugins: Plugin[];
-    isLoading: boolean;
     currentManifest: PluginManifest | null;
     isManifestLoading: boolean;
     refreshPlugins: () => void;
     loadPluginManifest: (pluginId: string) => void;
+    callPluginFunction: (fnName: string, args: string[]) => Promise<any>;
 }
 
 
@@ -69,32 +67,59 @@ const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
 export function PluginProvider({ children }: { children: ReactNode }) {
     const [plugins, setPlugins] = useState<Plugin[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [currentManifest, setCurrentManifest] = useState<PluginManifest | null>(null);
+
+    const [manifests, setManifests] = useState<Record<string, PluginManifest>>({});
     const [isManifestLoading, setIsManifestLoading] = useState(false);
+    const [currentManifest, setCurrentManifest] = useState<PluginManifest>({} as PluginManifest);
+
+    async function callPluginFunction(
+        fnName: string,
+        args: string[]
+    ) : Promise<string> {
+        const { requestId, promise } = createPendingRequest();
+
+        await invoke("call_plugin", {
+            pluginUuid: currentManifest.plugin.uuid,
+            fnName,
+            args,
+            requestId,
+        });
+
+        const result = await promise;
+        return result;
+    }
 
     async function refreshPlugins() {
-        setIsLoading(true);
         try {
             const result = await invoke<Plugin[]>("list_plugins");
             setPlugins(result);
         } catch (err) {
             error("Failed to load plugins:" + err);
-        } finally {
-            setIsLoading(false);
         }
     }
 
-    async function loadPluginManifest(pluginId: string) {
+    async function loadPluginManifest(pluginName: string) {
+
+        if (manifests[pluginName]) {
+            setCurrentManifest(manifests[pluginName]);
+            return;
+        }
+
         setIsManifestLoading(true);
+
         try {
-            const manifest = await invoke<PluginManifest>("get_plugin_manifest", { pluginId });
-            debug("Loaded manifest:" + JSON.stringify(manifest));
-            setCurrentManifest({
+            const manifest = await invoke<PluginManifest>("get_plugin_manifest", { "name": pluginName });
+
+            setManifests(prev => ({
+            ...prev,
+            [pluginName]: {
                 ...manifest,
                 store: manifest.store ?? {},
                 interactions: manifest.interactions ?? [],
-            });
+            }
+            }));
+
+            setCurrentManifest(manifests[pluginName]);
         } catch (err) {
             error("Failed to load manifest:" + err);
         } finally {
@@ -104,33 +129,17 @@ export function PluginProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         refreshPlugins();
-
-        let unlisten: (() => void) | null = null;
-
-        const setup = async () => {
-            unlisten = await listen("plugins-updated", async () => {
-                await refreshPlugins();
-            });
-        };
-
-        setup();
-
-        return () => {
-            if (unlisten) {
-                unlisten();
-            }
-        };
     }, []);
 
     return (
         <PluginContext.Provider
             value={{
                 plugins,
-                isLoading,
                 currentManifest,
                 isManifestLoading,
                 refreshPlugins,
                 loadPluginManifest,
+                callPluginFunction
             }}
         >
             {children}

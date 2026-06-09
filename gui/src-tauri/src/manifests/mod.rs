@@ -22,6 +22,7 @@ pub struct Plugin {
     pub version: String,
     pub author: String,
     pub description: String,
+    pub uuid: String,
 
     #[serde(default)]
     pub tabs: Vec<String>,

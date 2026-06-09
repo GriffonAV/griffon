@@ -1,7 +1,7 @@
 [package]
-name = "griffonav-cli"
+name = "griffon-cli"
 version = "0.1.0"
-authors = ["GriffonAV"]
+authors = ["Griffon"]
 license = "Apache-2.0"
 edition = "2024"
 

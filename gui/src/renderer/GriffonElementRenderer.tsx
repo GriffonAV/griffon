@@ -14,6 +14,12 @@ import GriffonGroup from "@/components/griffon/GriffonGroup";
 import GriffonRow from "@/components/griffon/GriffonRow";
 import GriffonColumn from "@/components/griffon/GriffonColumn";
 import GriffonFileSelect from "@/components/griffon/GriffonFileSelect";
+import CleanerTable from "@/components/griffon/CleanerTable";
+import CleanerCandidateList from "@/components/griffon/CleanerCandidateList";
+import CleanerDeleteResult from "@/components/griffon/CleanerDeleteResult.tsx";
+import CleanerRunOverview from "@/components/griffon/CleanerRunOverview.tsx";
+import CleanerFileTypeSelector from "@/components/griffon/CleanerFileTypeSelector";
+import CleanerDryRunToggle from "@/components/griffon/CleanerDryRunToggle.tsx";
 
 interface GriffonElementRendererProps {
   element: any;
@@ -81,6 +87,21 @@ export default function GriffonElementRenderer({
     case "file_select":
       return <GriffonFileSelect {...commonProps} />;
 
+    case "cleaner_table":
+        return <CleanerTable {...commonProps} />;
+
+    case "cleaner_candidate_list":
+        return <CleanerCandidateList {...commonProps} />;
+
+    case "cleaner_delete_result":
+        return <CleanerDeleteResult {...commonProps} />;
+
+    case "cleaner_run_overview":
+        return <CleanerRunOverview {...commonProps} />;
+    case "cleaner_file_type_selector":
+        return <CleanerFileTypeSelector {...commonProps} />;
+    case "cleaner_dry_run_toggle":
+        return <CleanerDryRunToggle {...commonProps} />;
     default:
       return null;
   }

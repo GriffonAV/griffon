@@ -1,4 +1,6 @@
-use crate::api::{CandidateKind, CleanerCandidate, DeleteFailure, DeleteSelectedResponse};
+use crate::api::{
+    CandidateKind, CleanerCandidate, CleanerFilters, DeleteFailure, DeleteSelectedResponse,
+};
 use crate::cache_paths::{expand_home, CacheCategory, KNOWN_CACHE_PATHS};
 use crate::PathStats;
 use crate::Profile;
@@ -121,6 +123,18 @@ impl CacheCleaner {
         }
     }
 
+    fn directory_candidate_file_type(filters: &CleanerFilters) -> String {
+        if !filters.has_file_type_filter() {
+            return "directory".to_string();
+        }
+
+        if filters.file_types.len() == 1 {
+            return filters.file_types[0].clone();
+        }
+
+        "mixed_matching".to_string()
+    }
+
     fn bump_permission_denied_from_walkdir(report: &mut ModuleReport, e: &walkdir::Error) {
         let is_permission_denied = e
             .io_error()
@@ -144,6 +158,32 @@ impl CacheCleaner {
         }
 
         Ok(total)
+    }
+
+    fn dir_size_matching_filters(path: &Path, filters: &CleanerFilters) -> u64 {
+        let mut total = 0;
+
+        for entry_res in WalkDir::new(path).into_iter() {
+            let entry = match entry_res {
+                Ok(entry) => entry,
+                Err(_) => continue,
+            };
+
+            if !entry.file_type().is_file() {
+                continue;
+            }
+
+            let file_type = Self::file_type_key(entry.path());
+            if !filters.matches_file_type(&file_type) {
+                continue;
+            }
+
+            if let Ok(metadata) = entry.metadata() {
+                total += metadata.len();
+            }
+        }
+
+        total
     }
 
     pub fn collect_cache_candidates(
@@ -187,10 +227,24 @@ impl CacheCleaner {
                     continue;
                 };
 
-                let size = if metadata.is_file() {
-                    metadata.len()
+                let (size, file_type) = if metadata.is_file() {
+                    let file_type = Self::file_type_key(&path);
+
+                    if !ctx.filters.matches_file_type(&file_type) {
+                        continue;
+                    }
+
+                    (metadata.len(), file_type)
                 } else {
-                    Self::dir_size(&path).unwrap_or(0)
+                    let size = if ctx.filters.has_file_type_filter() {
+                        Self::dir_size_matching_filters(&path, &ctx.filters)
+                    } else {
+                        Self::dir_size(&path).unwrap_or(0)
+                    };
+
+                    let file_type = Self::directory_candidate_file_type(&ctx.filters);
+
+                    (size, file_type)
                 };
 
                 if size == 0 {
@@ -209,6 +263,7 @@ impl CacheCleaner {
                     category: category.clone(),
                     kind,
                     size,
+                    file_type,
                 });
             }
         }
@@ -255,6 +310,7 @@ impl CacheCleaner {
     fn validate_delete_target(
         raw_path: &Path,
         allowed_roots: &[PathBuf],
+        allow_cleaner_roots: bool,
     ) -> Result<PathBuf, String> {
         if raw_path.as_os_str().is_empty() {
             return Err("Empty path is not allowed".to_string());
@@ -293,20 +349,90 @@ impl CacheCleaner {
             return Err("Path is outside allowed cleaner scope".to_string());
         }
 
-        if canonical_allowed_roots
+        let is_cleaner_root = canonical_allowed_roots
             .iter()
-            .any(|root| &canonical_path == root)
-        {
+            .any(|root| &canonical_path == root);
+
+        if is_cleaner_root && !allow_cleaner_roots {
             return Err("Refusing to delete an entire cleaner root directly".to_string());
         }
 
         Ok(canonical_path)
     }
 
+    fn delete_matching_files_in_dir(
+        path: &Path,
+        filters: &CleanerFilters,
+        dry_run: bool,
+    ) -> (u64, u64, Vec<DeleteFailure>) {
+        let mut deleted_count = 0;
+        let mut deleted_bytes = 0;
+        let mut failed = Vec::new();
+
+        for entry_res in WalkDir::new(path).into_iter() {
+            let entry = match entry_res {
+                Ok(entry) => entry,
+                Err(e) => {
+                    failed.push(DeleteFailure {
+                        path: path.display().to_string(),
+                        error: format!("walkdir failed: {e}"),
+                    });
+                    continue;
+                }
+            };
+
+            if !entry.file_type().is_file() {
+                continue;
+            }
+
+            let file_path = entry.path();
+            let file_type = Self::file_type_key(file_path);
+
+            if !filters.matches_file_type(&file_type) {
+                continue;
+            }
+
+            let metadata = match entry.metadata() {
+                Ok(metadata) => metadata,
+                Err(e) => {
+                    failed.push(DeleteFailure {
+                        path: file_path.display().to_string(),
+                        error: format!("metadata failed: {e}"),
+                    });
+                    continue;
+                }
+            };
+
+            let size = metadata.len();
+
+            if dry_run {
+                deleted_count += 1;
+                deleted_bytes += size;
+                continue;
+            }
+
+            match fs::remove_file(file_path) {
+                Ok(_) => {
+                    deleted_count += 1;
+                    deleted_bytes += size;
+                }
+                Err(e) => {
+                    failed.push(DeleteFailure {
+                        path: file_path.display().to_string(),
+                        error: format!("delete failed: {e}"),
+                    });
+                }
+            }
+        }
+
+        (deleted_count, deleted_bytes, failed)
+    }
+
     pub fn delete_selected_paths(
         &self,
         ctx: &ExecutionContext,
         items: &[String],
+        allow_cleaner_roots: bool,
     ) -> DeleteSelectedResponse {
         let mut deleted_count = 0;
         let mut deleted_bytes = 0;
@@ -321,16 +447,17 @@ impl CacheCleaner {
         for item in items {
             let raw_path = Path::new(item);
 
-            let path = match Self::validate_delete_target(raw_path, &allowed_roots) {
-                Ok(path) => path,
-                Err(error) => {
-                    failed.push(DeleteFailure {
-                        path: item.clone(),
-                        error,
-                    });
-                    continue;
-                }
-            };
+            let path =
+                match Self::validate_delete_target(raw_path, &allowed_roots, allow_cleaner_roots) {
+                    Ok(path) => path,
+                    Err(error) => {
+                        failed.push(DeleteFailure {
+                            path: item.clone(),
+                            error,
+                        });
+                        continue;
+                    }
+                };
 
             let metadata = match fs::metadata(&path) {
                 Ok(m) => m,
@@ -343,10 +470,55 @@ impl CacheCleaner {
                 }
             };
 
-            let size = if metadata.is_file() {
-                metadata.len()
-            } else if metadata.is_dir() {
-                match Self::dir_size(&path) {
+            if metadata.is_file() {
+                let file_type = Self::file_type_key(&path);
+
+                if !ctx.filters.matches_file_type(&file_type) {
+                    failed.push(DeleteFailure {
+                        path: item.clone(),
+                        error: format!(
+                            "Path file type '{file_type}' does not match selected file type filter"
+                        ),
+                    });
+                    continue;
+                }
+
+                let size = metadata.len();
+
+                if ctx.dry_run {
+                    deleted_count += 1;
+                    deleted_bytes += size;
+                    continue;
+                }
+
+                match fs::remove_file(&path) {
+                    Ok(_) => {
+                        deleted_count += 1;
+                        deleted_bytes += size;
+                    }
+                    Err(e) => {
+                        failed.push(DeleteFailure {
+                            path: item.clone(),
+                            error: format!("delete failed: {e}"),
+                        });
+                    }
+                }
+
+                continue;
+            }
+
+            if metadata.is_dir() {
+                if ctx.filters.has_file_type_filter() {
+                    let (count, bytes, mut directory_failures) =
+                        Self::delete_matching_files_in_dir(&path, &ctx.filters, ctx.dry_run);
+
+                    deleted_count += count;
+                    deleted_bytes += bytes;
+                    failed.append(&mut directory_failures);
+                    continue;
+                }
+
+                let size = match Self::dir_size(&path) {
                     Ok(v) => v,
                     Err(e) => {
                         failed.push(DeleteFailure {
@@ -355,39 +527,34 @@ impl CacheCleaner {
                         });
                         continue;
                     }
-                }
-            } else {
-                failed.push(DeleteFailure {
-                    path: item.clone(),
-                    error: "Unsupported path type".to_string(),
-                });
-                continue;
-            };
+                };
 
-            if ctx.dry_run {
-                deleted_count += 1;
-                deleted_bytes += size;
-                continue;
-            }
-
-            let delete_result = if metadata.is_file() {
-                fs::remove_file(&path)
-            } else {
-                fs::remove_dir_all(&path)
-            };
-
-            match delete_result {
-                Ok(_) => {
+                if ctx.dry_run {
                     deleted_count += 1;
                     deleted_bytes += size;
+                    continue;
                 }
-                Err(e) => {
-                    failed.push(DeleteFailure {
-                        path: item.clone(),
-                        error: format!("delete failed: {e}"),
-                    });
+
+                match fs::remove_dir_all(&path) {
+                    Ok(_) => {
+                        deleted_count += 1;
+                        deleted_bytes += size;
+                    }
+                    Err(e) => {
+                        failed.push(DeleteFailure {
+                            path: item.clone(),
+                            error: format!("delete failed: {e}"),
+                        });
+                    }
                 }
+
+                continue;
             }
+
+            failed.push(DeleteFailure {
+                path: item.clone(),
+                error: "Unsupported path type".to_string(),
+            });
         }
 
         DeleteSelectedResponse {
@@ -403,7 +570,7 @@ impl CacheCleaner {
         &self,
         root_label: &str,
         path: &Path,
-        dry_run: bool,
+        ctx: &ExecutionContext,
         report: &mut ModuleReport,
     ) -> CleanerResult<()> {
         if !path.exists() {
@@ -429,6 +596,12 @@ impl CacheCleaner {
 
             if entry.file_type().is_file() {
                 let file_path = entry.path();
+                let file_type = Self::file_type_key(file_path);
+
+                if !ctx.filters.matches_file_type(&file_type) {
+                    continue;
+                }
+
                 report.candidate_files_count += 1;
 
                 let metadata = match entry.metadata() {
@@ -447,12 +620,12 @@ impl CacheCleaner {
 
                 let size = metadata.len();
 
-                if dry_run {
+                if ctx.dry_run {
                     report.skipped_files_count += 1;
                     report.files_touched += 1;
                     report.bytes_freed += size;
 
-                    Self::bump_type_stats(report, file_path, size);
+                    Self::bump_type_stats_with_key(report, &file_type, size);
                     Self::bump_root_stats(report, root_label, size);
                     continue;
                 }
@@ -463,7 +636,7 @@ impl CacheCleaner {
                         report.files_touched += 1;
                         report.bytes_freed += size;
 
-                        Self::bump_type_stats(report, file_path, size);
+                        Self::bump_type_stats_with_key(report, &file_type, size);
                         Self::bump_root_stats(report, root_label, size);
                     }
                     Err(e) => {
@@ -500,10 +673,8 @@ impl CacheCleaner {
         }
     }
 
-    fn bump_type_stats(report: &mut ModuleReport, file_path: &Path, size: u64) {
-        let type_key = Self::file_type_key(file_path);
-
-        match report.per_file_type.entry(type_key) {
+    fn bump_type_stats_with_key(report: &mut ModuleReport, type_key: &str, size: u64) {
+        match report.per_file_type.entry(type_key.to_string()) {
             Entry::Occupied(mut e) => {
                 let stats = e.get_mut();
                 stats.files_touched += 1;
@@ -534,7 +705,7 @@ impl CleanerModule for CacheCleaner {
         let cache_paths = Self::default_cache_paths_with_logs(ctx, &mut report);
 
         for (label, path) in cache_paths {
-            if let Err(e) = self.clean_cache_dir(&label, &path, ctx.dry_run, &mut report) {
+            if let Err(e) = self.clean_cache_dir(&label, &path, ctx, &mut report) {
                 report.warnings.push(format!(
                     "Erreur lors du nettoyage de {}: {e}",
                     path.display()

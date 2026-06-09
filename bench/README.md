@@ -80,13 +80,13 @@ vagrant up
 Inside the VM the project is mounted at:
 
 ```
-/home/vagrant/GriffonAV
+/home/vagrant/Griffon
 ```
 
 Example:
 
 ```
-/home/vagrant/GriffonAV/plugins/griffon_cleaner
+/home/vagrant/Griffon/plugins/griffon_cleaner
 ```
 
 
@@ -105,7 +105,7 @@ populate_stress.sh
 Example:
 
 ```
-cd ~/GriffonAV
+cd ~/Griffon
 ./bench/scripts/populate_medium.sh
 ```
 
@@ -137,7 +137,7 @@ This guarantees reproducible results.
 From inside the VM:
 
 ```
-cd ~/GriffonAV
+cd ~/Griffon
 cargo run --release --package griffon_cleaner --bin griffon_cleaner
 ```
 
@@ -276,7 +276,7 @@ Recommended workflow:
 ```
 vagrant up
 vagrant ssh
-cd ~/GriffonAV
+cd ~/Griffon
 
 ./bench/scripts/cleanup_dataset.sh
 ./bench/scripts/populate_medium.sh
@@ -315,7 +315,7 @@ Across runs.
 ```
 vagrant up
 vagrant ssh
-cd ~/GriffonAV
+cd ~/Griffon
 ./bench/scripts/populate_medium.sh
 sudo ./target/release/griffon_cleaner
 ```
