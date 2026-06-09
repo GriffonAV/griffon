@@ -40,7 +40,7 @@ export function ContactButton() {
         <div className="flex flex-col flex-1 align-middle items-center">
 
           <img
-            src="/assets/logo_test/G-white.png"
+            src="/assets/logo.png"
             alt="Griffon Logo"
             style={{
               imageRendering: "pixelated",

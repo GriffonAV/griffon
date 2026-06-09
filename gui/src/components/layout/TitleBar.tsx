@@ -60,7 +60,7 @@ function TitleBar() {
   return (
     <div className="px-4 py-3 flex items-center  rounded-b-none" data-tauri-drag-region>
       <img
-        src="/assets/logo_test/G-white.png"
+        src="/assets/logo.png"
         alt="Griffon Logo"
         style={{
           imageRendering: "pixelated",
