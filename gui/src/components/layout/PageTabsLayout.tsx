@@ -45,7 +45,7 @@ export const PageTabsLayout: React.FC<PageProps> = ({ title, children, navigatio
           </NavigationMenu>
         </div>
       )}
-      <main className="flex flex-col m-2 flex-1 overflow-auto sm:px-0 md:px-7 lg:px-36 items-start gap-4">
+      <main className="flex flex-col m-2 flex-1 overflow-auto sm:px-0 md:px-7 lg:px-36 items-center gap-4">
         {children?.[activeTab]}
       </main>
     </div>
