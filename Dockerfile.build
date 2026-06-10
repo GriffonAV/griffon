@@ -40,13 +40,12 @@ COPY --from=gui-builder /app/target/release/ /app/target/release/
 COPY --from=workspace-builder /app/target/release/ /app/target/release/
 
 COPY nfpm.yaml .
-COPY logo.png .
+# COPY logo.png .
 COPY griffon.desktop .
 COPY scripts/ ./scripts/
 
 # copy plugin config files
-COPY plugins/plugin_test/plugin_test.toml ./plugins/plugin_test/plugin_test.toml
-COPY plugins/plugin_test_2/plugin_test_2.toml ./plugins/plugin_test_2/plugin_test_2.toml
+COPY plugins/plugin_template/plugin_template.toml ./plugins/plugin_template/plugin_template.toml
 COPY ./plugins/griffon_cleaner/libgriffon_cleaner.toml ./plugins/griffon_cleaner/libgriffon_cleaner.toml
 COPY daemon/griffon-daemon.service ./daemon/griffon-daemon.service
 

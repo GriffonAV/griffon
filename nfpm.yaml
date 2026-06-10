@@ -44,13 +44,8 @@ contents:
       mode: 0644
 
 # plugins
-  - src: ./target/release/libplugin_test.so
-    dst: /usr/lib/griffon/plugins/libplugin_test.so
-    file_info:
-      mode: 0644
-
-  - src: ./target/release/libplugin_test_2.so
-    dst: /usr/lib/griffon/plugins/libplugin_test_2.so
+  - src: ./target/release/libplugin_template.so
+    dst: /usr/lib/griffon/plugins/libplugin_template.so
     file_info:
       mode: 0644
 
@@ -60,13 +55,8 @@ contents:
       mode: 0644
 
    # Plugin configs
-  - src: ./plugins/plugin_test/plugin_test.toml
-    dst: /usr/lib/griffon/plugins/plugin_test.toml
-    file_info:
-      mode: 0644
-
-  - src: ./plugins/plugin_test_2/plugin_test_2.toml
-    dst: /usr/lib/griffon/plugins/plugin_test_2.toml
+  - src: ./plugins/plugin_template/plugin_template.toml
+    dst: /usr/lib/griffon/plugins/plugin_template.toml
     file_info:
       mode: 0644
 
