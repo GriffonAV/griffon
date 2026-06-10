@@ -120,17 +120,6 @@ impl NotificationConfig {
             .map(|plugin| plugin.notifications_enabled)
             .unwrap_or(true)
     }
-
-    pub fn set_plugin_enabled(&mut self, plugin_uuid: [u8; 16], enabled: bool) {
-        let uuid = format_uuid_bytes(&plugin_uuid);
-
-        self.plugins.entry(uuid).or_default().notifications_enabled = enabled;
-    }
-
-    pub fn remove_plugin_override(&mut self, plugin_uuid: [u8; 16]) {
-        let uuid = format_uuid_bytes(&plugin_uuid);
-        self.plugins.remove(&uuid);
-    }
 }
 
 pub fn send_plugin_response_notification(
