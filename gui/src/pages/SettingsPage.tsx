@@ -1,10 +1,10 @@
 import { ChangeThemeButtonTest, ModeToggleGroup } from "@/components/layout/ModeToggle";
-import { PageWrapper } from "@/components/layout/PageLayout";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 
 export default function SettingsPage() {
   return (
-    <PageWrapper title="Settings" navigation={true} tabs={["Appearance", "Notifications"]}>
+    <PageLayout title="Settings" navigation tabs={["Appearance", "Notifications"]}>
       <div>
         <h2 className="text-xl font-bold">Appearance</h2>
         <div className="flex flex-col m-5">
@@ -22,6 +22,6 @@ export default function SettingsPage() {
 
       </div>
 
-    </PageWrapper >
+    </PageLayout >
   );
 }

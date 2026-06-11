@@ -61,14 +61,12 @@ function TitleBar() {
   return (
     <div className="m-2 pt-2 pl-6 pr-2 flex items-center  rounded-b-none" data-tauri-drag-region>
       <div className="flex items-center gap-3 min-w-0">
-        {/* <div className="flex h-9 w-9 items-center justify-center rounded-md bg-background/70 ring-1 ring-border/70"> */}
         <img
           src="/assets/logo.png"
           alt="Griffon Logo"
           className="h-9 w-9 object-contain"
           style={{ imageRendering: "pixelated" }}
         />
-        {/* </div> */}
 
         <div className="flex flex-col leading-none">
           <span className="text-base font-semibold tracking-wide text-foreground">
