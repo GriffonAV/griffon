@@ -14,7 +14,7 @@ import { Search } from "lucide-react";
 import clsx from "clsx";
 import { Kbd, KbdGroup } from "../ui/kbd";
 
-function SearchInput() {
+function SearchInput({ isCollapsed }: { isCollapsed: boolean }) {
   const navigate = useNavigate();
   const [open, setOpen] = React.useState(false);
 
@@ -43,19 +43,25 @@ function SearchInput() {
   return (
     <div>
       <Button
+        title="Search (Ctrl + F)"
         variant="ghost"
         className={clsx(
-          "w-full justify-start cursor-pointer mb-2 font-bold"
-
+          "w-full cursor-pointer mt-2 font-bold overflow-hidden transition-all duration-200",
+          isCollapsed ? "justify-center px-0" : "justify-start"
         )}
         onClick={() => setOpen((open) => !open)}
       >
-        <span className="mr-2">{<Search />}</span>
-        <KbdGroup>
-          <Kbd>Ctrl</Kbd>
-          <span>+</span>
-          <Kbd>F</Kbd>
-        </KbdGroup>
+        <span className={clsx("transition-all duration-200", isCollapsed ? "mr-0" : "mr-2")}>
+          <Search />
+        </span>
+
+        {!isCollapsed && (
+          <KbdGroup>
+            <Kbd>Ctrl</Kbd>
+            <span>+</span>
+            <Kbd>F</Kbd>
+          </KbdGroup>
+        )}
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Search for any plugin or command..." />

@@ -6,20 +6,31 @@ interface SidebarButtonProps {
   icon: ReactNode;
   label: string;
   isActive: boolean;
+  isCollapsed?: boolean;
 }
 
-export function SidebarButton({ icon, label, isActive }: SidebarButtonProps) {
+export function SidebarButton({ icon, label, isActive, isCollapsed }: SidebarButtonProps) {
   return (
     <Button
       title={label}
       variant="ghost"
       className={clsx(
-        "w-full justify-start cursor-pointer mb-2 font-bold overflow-hidden",
+        "w-full cursor-pointer mt-2 font-bold overflow-hidden transition-all duration-200",
+        isCollapsed ? "justify-center px-0" : "justify-start",
         isActive && "bg-sidebar-primary text-sidebar-primary-foreground"
       )}
     >
-      <span className="mr-2">{icon}</span>
-      {label}
+
+
+      <span className={clsx("transition-all duration-200", isCollapsed ? "mr-0" : "mr-2")}>
+        {icon}
+      </span>
+
+      {!isCollapsed && (
+        <span className={"transition-all duration-200"}>
+          {label}
+        </span>
+      )}
     </Button>
   );
 }

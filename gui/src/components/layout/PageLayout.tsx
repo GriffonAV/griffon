@@ -7,6 +7,7 @@ import {
   NavigationMenuList,
 } from "@/components/ui/navigation-menu";
 import { titleCase } from "@/lib/titleCase";
+import { useSidebar } from "@/providers/SidebarProvider";
 
 interface PageProps {
   title?: string;
@@ -19,6 +20,7 @@ interface PageProps {
 export const PageWrapper: React.FC<PageProps> = ({ title, children, navigation, tabs }) => {
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
+  const { toggleSidebar, isCollapsed } = useSidebar();
 
   // Function to scroll to a section
   const scrollToSection = (index: number) => {
@@ -51,8 +53,8 @@ export const PageWrapper: React.FC<PageProps> = ({ title, children, navigation, 
   return (
     <div className="bg-background text-foreground flex-1 flex-col m-2 rounded-md overflow-hidden flex">
       <div className="flex items-center border-b rounded-none p-2 gap-4">
-        <Button className="cursor-pointer" variant={"ghost"} id="titlebar-maximize" title="maximize">
-          <PanelLeft />
+        <Button className="cursor-pointer" variant={"ghost"} id="titlebar-maximize" title="maximize" onClick={toggleSidebar}>
+          {isCollapsed ? <PanelLeft /> : <PanelLeft />}
         </Button>
         <div className="border-r rounded-none w-0 h-6"></div>
         {title && <h1>{titleCase(title)}</h1>}
