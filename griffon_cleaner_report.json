@@ -1,1360 +1,201 @@
 {
-  "report": {
-    "dry_run": true,
-    "per_module": {
-      "cache": {
-        "module_id": "cache",
-        "files_touched": 226844,
-        "bytes_freed": 71354590073,
-        "warnings": [
-          "Path skipped (requires root): /var/cache",
-          "Path skipped (requires root): /var/tmp",
-          "Path skipped by profile Safe: /var/log/journal",
-          "Path skipped (requires root): /var/lib/apt/lists",
-          "Path skipped (requires root): /var/cache/apt/archives",
-          "Path skipped (requires root): /var/cache/dnf",
-          "Path skipped (requires root): /var/cache/pacman/pkg",
-          "Path skipped by profile Safe: /var/lib/snapd/snaps",
-          "Path skipped by profile Safe: ~/Downloads",
-          "Path skipped by profile Safe: ~/.rustup/toolchains",
-          "Path skipped by profile Safe: ~/.mozilla/firefox",
-          "Path skipped by profile Safe: ~/.var/app",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-passim.service-GnsaoY: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-geoclue.service-KKEgMp: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-pcscd.service-myyYBA: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-colord.service-ZJn0uD: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-ModemManager.service-Ccf8pM: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-upower.service-I4dn5q: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-systemd-logind.service-1Nxzgv: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-switcheroo-control.service-SNKwDq: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-rtkit-daemon.service-6dGszC: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-polkit.service-b7Lz5T: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-low-memory-monitor.service-DC7Gth: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-chronyd.service-TpVtxb: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-irqbalance.service-cehtMr: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-bluetooth.service-0XQXQE: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-abrtd.service-f9nMcs: Permission denied (os error 13)",
-          "Erreur walkdir dans /tmp: IO error for operation on /tmp/systemd-private-77d7ef763f3947e1914e0d8f755ca6ec-dbus-broker.service-IhednY: Permission denied (os error 13)"
-        ],
-        "errors": [],
-        "permission_denied": 16,
-        "per_root_path": {
-          "~/.local/share/Trash": {
-            "files_touched": 141493,
-            "bytes_freed": 65861528942
-          },
-          "/tmp": {
-            "files_touched": 2,
-            "bytes_freed": 22
-          },
-          "~/.npm": {
-            "files_touched": 15772,
-            "bytes_freed": 1168876262
-          },
-          "~/.cache/pip": {
-            "files_touched": 385,
-            "bytes_freed": 305668147
-          },
-          "~/.cache": {
-            "files_touched": 44248,
-            "bytes_freed": 2256637337
-          },
-          "~/.cargo/git/db": {
-            "files_touched": 45,
-            "bytes_freed": 91263639
-          },
-          "~/.cache/mozilla/firefox": {
-            "files_touched": 6510,
-            "bytes_freed": 1101933598
-          },
-          "~/.cache/gnome-software": {
-            "files_touched": 16234,
-            "bytes_freed": 245254175
-          },
-          "~/.cargo/registry/cache": {
-            "files_touched": 2155,
-            "bytes_freed": 323427951
-          }
-        },
-        "per_file_type": {
-          "glb-kkajdk": {
-            "files_touched": 1,
-            "bytes_freed": 137108
-          },
-          "zck": {
-            "files_touched": 3,
-            "bytes_freed": 45444318
-          },
-          "104865798": {
-            "files_touched": 1,
-            "bytes_freed": 6208424
-          },
-          "xml": {
-            "files_touched": 41,
-            "bytes_freed": 943796
-          },
-          "blend": {
-            "files_touched": 39,
-            "bytes_freed": 82183673
-          },
-          "zi": {
-            "files_touched": 2,
-            "bytes_freed": 214940
-          },
-          "f95": {
-            "files_touched": 2,
-            "bytes_freed": 278
-          },
-          "apache": {
-            "files_touched": 4,
-            "bytes_freed": 40696
-          },
-          "gl": {
-            "files_touched": 1,
-            "bytes_freed": 480
-          },
-          "lua": {
-            "files_touched": 2,
-            "bytes_freed": 278
-          },
-          "npz": {
-            "files_touched": 50,
-            "bytes_freed": 7665508
-          },
-          "cache2": {
-            "files_touched": 1,
-            "bytes_freed": 650
-          },
-          "qmlc": {
-            "files_touched": 10,
-            "bytes_freed": 105244
-          },
-          "isle": {
-            "files_touched": 30,
-            "bytes_freed": 11132448
-          },
-          "docx": {
-            "files_touched": 18,
-            "bytes_freed": 4263939
-          },
-          "jst": {
-            "files_touched": 109,
-            "bytes_freed": 215583
-          },
-          "solvx": {
-            "files_touched": 4,
-            "bytes_freed": 18196381
-          },
-          "fbx": {
-            "files_touched": 774,
-            "bytes_freed": 48697192
-          },
-          "xls": {
-            "files_touched": 2,
-            "bytes_freed": 25822
-          },
-          "104865797": {
-            "files_touched": 1,
-            "bytes_freed": 4311740
-          },
-          "dylib": {
-            "files_touched": 1,
-            "bytes_freed": 1446144
-          },
-          "sbstore": {
-            "files_touched": 32,
-            "bytes_freed": 154218
-          },
-          "md": {
-            "files_touched": 2753,
-            "bytes_freed": 14923758
-          },
-          "rpm": {
-            "files_touched": 3,
-            "bytes_freed": 166490623
-          },
-          "bnf": {
-            "files_touched": 12,
-            "bytes_freed": 7428
-          },
-          "xcf": {
-            "files_touched": 1,
-            "bytes_freed": 7405
-          },
-          "ftl": {
-            "files_touched": 2,
-            "bytes_freed": 31658
-          },
-          "txt": {
-            "files_touched": 541,
-            "bytes_freed": 8557687
-          },
-          "afm": {
-            "files_touched": 120,
-            "bytes_freed": 2707568
-          },
-          "fish": {
-            "files_touched": 6,
-            "bytes_freed": 10585
-          },
-          "8": {
-            "files_touched": 1,
-            "bytes_freed": 59952
-          },
-          "metadata": {
-            "files_touched": 10,
-            "bytes_freed": 666
-          },
-          "5": {
-            "files_touched": 3,
-            "bytes_freed": 548016
-          },
-          "pkl": {
-            "files_touched": 2,
-            "bytes_freed": 1432
-          },
-          "bash": {
-            "files_touched": 5,
-            "bytes_freed": 39994
-          },
-          "gltf": {
-            "files_touched": 204,
-            "bytes_freed": 583315
-          },
-          "woff": {
-            "files_touched": 8,
-            "bytes_freed": 1566036
-          },
-          "yml": {
-            "files_touched": 191,
-            "bytes_freed": 96715
-          },
-          "coffee": {
-            "files_touched": 11,
-            "bytes_freed": 25863
-          },
-          "log": {
-            "files_touched": 15,
-            "bytes_freed": 34880
-          },
-          "al": {
-            "files_touched": 16,
-            "bytes_freed": 7590
-          },
-          "rlib": {
-            "files_touched": 3408,
-            "bytes_freed": 12337416802
-          },
-          "gdshader": {
-            "files_touched": 5,
-            "bytes_freed": 15840
-          },
-          "odt": {
-            "files_touched": 2,
-            "bytes_freed": 25235241
-          },
-          "dockerfile": {
-            "files_touched": 4,
-            "bytes_freed": 3128
-          },
-          "104861705": {
-            "files_touched": 1,
-            "bytes_freed": 4678084
-          },
-          "pickle": {
-            "files_touched": 2,
-            "bytes_freed": 34193
-          },
-          "xlsx": {
-            "files_touched": 4,
-            "bytes_freed": 35967595
-          },
-          "zst": {
-            "files_touched": 5,
-            "bytes_freed": 590725
-          },
-          "db-wal": {
-            "files_touched": 1,
-            "bytes_freed": 476560
-          },
-          "mit": {
-            "files_touched": 2,
-            "bytes_freed": 2125
-          },
-          "tres": {
-            "files_touched": 56,
-            "bytes_freed": 68984
-          },
-          "tgz": {
-            "files_touched": 2,
-            "bytes_freed": 6869
-          },
-          "bsd": {
-            "files_touched": 13,
-            "bytes_freed": 16953
-          },
-          "idx": {
-            "files_touched": 68,
-            "bytes_freed": 1210405
-          },
-          "12": {
-            "files_touched": 1,
-            "bytes_freed": 269
-          },
-          "jpeg": {
-            "files_touched": 3,
-            "bytes_freed": 288366
-          },
-          "bin": {
-            "files_touched": 2241,
-            "bytes_freed": 1199895545
-          },
-          "pxd": {
-            "files_touched": 40,
-            "bytes_freed": 705160
-          },
-          "dtd": {
-            "files_touched": 2,
-            "bytes_freed": 1630
-          },
-          "pak": {
-            "files_touched": 58,
-            "bytes_freed": 60650080
-          },
-          "un~": {
-            "files_touched": 2,
-            "bytes_freed": 5163
-          },
-          "old": {
-            "files_touched": 1,
-            "bytes_freed": 2252531
-          },
-          "nix": {
-            "files_touched": 1,
-            "bytes_freed": 459
-          },
-          "c": {
-            "files_touched": 31,
-            "bytes_freed": 10876730
-          },
-          "md5": {
-            "files_touched": 19,
-            "bytes_freed": 1729
-          },
-          "typed": {
-            "files_touched": 47,
-            "bytes_freed": 650
-          },
-          "104865799": {
-            "files_touched": 2,
-            "bytes_freed": 14164296
-          },
-          "lz4": {
-            "files_touched": 2,
-            "bytes_freed": 287482
-          },
-          "nc": {
-            "files_touched": 6,
-            "bytes_freed": 6864
-          },
-          "zip": {
-            "files_touched": 73,
-            "bytes_freed": 1574240636
-          },
-          "icns": {
-            "files_touched": 3,
-            "bytes_freed": 582665
-          },
-          "10": {
-            "files_touched": 2,
-            "bytes_freed": 2991248
-          },
-          "tag": {
-            "files_touched": 6,
-            "bytes_freed": 1085
-          },
-          "pdb": {
-            "files_touched": 2,
-            "bytes_freed": 212308
-          },
-          "pcss": {
-            "files_touched": 39,
-            "bytes_freed": 62566
-          },
-          "13": {
-            "files_touched": 3,
-            "bytes_freed": 3217622
-          },
-          "11": {
-            "files_touched": 1,
-            "bytes_freed": 535064
-          },
-          "tpl": {
-            "files_touched": 7,
-            "bytes_freed": 8486
-          },
-          "lst": {
-            "files_touched": 2,
-            "bytes_freed": 85180
-          },
-          "pc": {
-            "files_touched": 2,
-            "bytes_freed": 382
-          },
-          "xsd": {
-            "files_touched": 2,
-            "bytes_freed": 5273
-          },
-          "so": {
-            "files_touched": 1056,
-            "bytes_freed": 6407501999
-          },
-          "plist": {
-            "files_touched": 2,
-            "bytes_freed": 83524
-          },
-          "sub": {
-            "files_touched": 1,
-            "bytes_freed": 7416980
-          },
-          "pyc": {
-            "files_touched": 9952,
-            "bytes_freed": 209102847
-          },
-          "access": {
-            "files_touched": 1,
-            "bytes_freed": 3997
-          },
-          "lock": {
-            "files_touched": 353,
-            "bytes_freed": 1377364
-          },
-          "3": {
-            "files_touched": 8,
-            "bytes_freed": 2341120
-          },
-          "tmlanguage": {
-            "files_touched": 7,
-            "bytes_freed": 453003
-          },
-          "104857602": {
-            "files_touched": 1,
-            "bytes_freed": 4362208
-          },
-          "xpm": {
-            "files_touched": 2,
-            "bytes_freed": 3716
-          },
-          "gd": {
-            "files_touched": 207,
-            "bytes_freed": 457843
-          },
-          "jsa": {
-            "files_touched": 2,
-            "bytes_freed": 66318336
-          },
-          "gplv2": {
-            "files_touched": 2,
-            "bytes_freed": 36184
-          },
-          "apk": {
-            "files_touched": 2,
-            "bytes_freed": 16217717
-          },
-          "mp3": {
-            "files_touched": 26,
-            "bytes_freed": 75662354
-          },
-          "quarantined": {
-            "files_touched": 2,
-            "bytes_freed": 0
-          },
-          "snap": {
-            "files_touched": 3,
-            "bytes_freed": 18588
-          },
-          "gypi": {
-            "files_touched": 2,
-            "bytes_freed": 60632
-          },
-          "cjs": {
-            "files_touched": 656,
-            "bytes_freed": 6929800
-          },
-          "glsl": {
-            "files_touched": 3,
-            "bytes_freed": 4188
-          },
-          "csh": {
-            "files_touched": 3,
-            "bytes_freed": 3161
-          },
-          "rs": {
-            "files_touched": 612,
-            "bytes_freed": 139555527
-          },
-          "xmlb": {
-            "files_touched": 6,
-            "bytes_freed": 73685118
-          },
-          "mtl": {
-            "files_touched": 204,
-            "bytes_freed": 60009
-          },
-          "hwp": {
-            "files_touched": 17,
-            "bytes_freed": 1256448
-          },
-          "exe": {
-            "files_touched": 16,
-            "bytes_freed": 37419376
-          },
-          "pack": {
-            "files_touched": 21,
-            "bytes_freed": 149642467
-          },
-          "spdx": {
-            "files_touched": 3,
-            "bytes_freed": 2664
-          },
-          "policy": {
-            "files_touched": 7,
-            "bytes_freed": 14649
-          },
-          "appimage": {
-            "files_touched": 3,
-            "bytes_freed": 154919515
-          },
-          "xrc": {
-            "files_touched": 2,
-            "bytes_freed": 4372
-          },
-          "ani": {
-            "files_touched": 2,
-            "bytes_freed": 8724
-          },
-          "sample": {
-            "files_touched": 130,
-            "bytes_freed": 233515
-          },
-          "gplv3": {
-            "files_touched": 2,
-            "bytes_freed": 70298
-          },
-          "markdown": {
-            "files_touched": 9,
-            "bytes_freed": 35213
-          },
-          "bank": {
-            "files_touched": 4,
-            "bytes_freed": 10502934
-          },
-          "applescript": {
-            "files_touched": 1,
-            "bytes_freed": 2657
-          },
-          "png-eidvo4": {
-            "files_touched": 1,
-            "bytes_freed": 16587
-          },
-          "gvariant": {
-            "files_touched": 1,
-            "bytes_freed": 791
-          },
-          "flow": {
-            "files_touched": 16,
-            "bytes_freed": 1800120
-          },
-          "xsl": {
-            "files_touched": 5,
-            "bytes_freed": 372866
-          },
-          "timestamp": {
-            "files_touched": 6247,
-            "bytes_freed": 299856
-          },
-          "solv": {
-            "files_touched": 10,
-            "bytes_freed": 40504961
-          },
-          "x86_64-redhat-linux-gnu": {
-            "files_touched": 1,
-            "bytes_freed": 12288
-          },
-          "js": {
-            "files_touched": 27868,
-            "bytes_freed": 208912989
-          },
-          "mjs": {
-            "files_touched": 662,
-            "bytes_freed": 12941532
-          },
-          "scss": {
-            "files_touched": 1,
-            "bytes_freed": 13924
-          },
-          "ejs": {
-            "files_touched": 2,
-            "bytes_freed": 631
-          },
-          "external": {
-            "files_touched": 2,
-            "bytes_freed": 40044
-          },
-          "ico": {
-            "files_touched": 10,
-            "bytes_freed": 3358082
-          },
-          "otf": {
-            "files_touched": 11,
-            "bytes_freed": 1752876
-          },
-          "pyi": {
-            "files_touched": 817,
-            "bytes_freed": 3863348
-          },
-          "o": {
-            "files_touched": 7539,
-            "bytes_freed": 2119490216
-          },
-          "go": {
-            "files_touched": 1,
-            "bytes_freed": 6067
-          },
-          "104869893": {
-            "files_touched": 1,
-            "bytes_freed": 1089000
-          },
-          "pptx": {
-            "files_touched": 2,
-            "bytes_freed": 21992066
-          },
-          "cfg": {
-            "files_touched": 15,
-            "bytes_freed": 14292
-          },
-          "pem": {
-            "files_touched": 1,
-            "bytes_freed": 291366
-          },
-          "dir": {
-            "files_touched": 1,
-            "bytes_freed": 36170
-          },
-          "hdr": {
-            "files_touched": 6,
-            "bytes_freed": 1925300
-          },
-          "swf": {
-            "files_touched": 1,
-            "bytes_freed": 21162
-          },
-          "jfc": {
-            "files_touched": 2,
-            "bytes_freed": 74847
-          },
-          "yar": {
-            "files_touched": 2853,
-            "bytes_freed": 66787392
-          },
-          "sig": {
-            "files_touched": 1,
-            "bytes_freed": 592
-          },
-          "4": {
-            "files_touched": 5,
-            "bytes_freed": 22339412
-          },
-          "rmeta": {
-            "files_touched": 4747,
-            "bytes_freed": 5475495226
-          },
-          "tsx": {
-            "files_touched": 319,
-            "bytes_freed": 688884
-          },
-          "ron": {
-            "files_touched": 1,
-            "bytes_freed": 1104
-          },
-          "base": {
-            "files_touched": 1,
-            "bytes_freed": 39
-          },
-          "template": {
-            "files_touched": 4,
-            "bytes_freed": 10343
-          },
-          "lark": {
-            "files_touched": 2,
-            "bytes_freed": 14158
-          },
-          "dll": {
-            "files_touched": 61,
-            "bytes_freed": 24520736
-          },
-          "npy": {
-            "files_touched": 24,
-            "bytes_freed": 916050
-          },
-          "glb": {
-            "files_touched": 191,
-            "bytes_freed": 11565836
-          },
-          "mat": {
-            "files_touched": 220,
-            "bytes_freed": 140306
-          },
-          "bat": {
-            "files_touched": 1,
-            "bytes_freed": 75
-          },
-          "104869894": {
-            "files_touched": 2,
-            "bytes_freed": 3786664
-          },
-          "sqlite": {
-            "files_touched": 2,
-            "bytes_freed": 24576
-          },
-          "te": {
-            "files_touched": 1,
-            "bytes_freed": 246
-          },
-          "py": {
-            "files_touched": 10830,
-            "bytes_freed": 172204397
-          },
-          "trashinfo": {
-            "files_touched": 999,
-            "bytes_freed": 112895
-          },
-          "pyx": {
-            "files_touched": 22,
-            "bytes_freed": 2760534
-          },
-          "pyf": {
-            "files_touched": 14,
-            "bytes_freed": 4714
-          },
-          "db": {
-            "files_touched": 59,
-            "bytes_freed": 50991692
-          },
-          "body": {
-            "files_touched": 368,
-            "bytes_freed": 606110460
-          },
-          "com": {
-            "files_touched": 3,
-            "bytes_freed": 205
-          },
-          "import": {
-            "files_touched": 170,
-            "bytes_freed": 1170566
-          },
-          "registry": {
-            "files_touched": 1,
-            "bytes_freed": 992167
-          },
-          "sav": {
-            "files_touched": 94,
-            "bytes_freed": 423806
-          },
-          "security": {
-            "files_touched": 1,
-            "bytes_freed": 65594
-          },
-          "vmoptions": {
-            "files_touched": 3,
-            "bytes_freed": 3143
-          },
-          "little": {
-            "files_touched": 2,
-            "bytes_freed": 7938324
-          },
-          "0": {
-            "files_touched": 63,
-            "bytes_freed": 52233087
-          },
-          "tdb": {
-            "files_touched": 1,
-            "bytes_freed": 4168
-          },
-          "2": {
-            "files_touched": 24,
-            "bytes_freed": 272520604
-          },
-          "ttf": {
-            "files_touched": 118,
-            "bytes_freed": 23060164
-          },
-          "mp4": {
-            "files_touched": 5,
-            "bytes_freed": 19074159
-          },
-          "6": {
-            "files_touched": 9,
-            "bytes_freed": 3347672
-          },
-          "iso": {
-            "files_touched": 2,
-            "bytes_freed": 14100533248
-          },
-          "svg": {
-            "files_touched": 84,
-            "bytes_freed": 1123211
-          },
-          "db-shm": {
-            "files_touched": 1,
-            "bytes_freed": 32768
-          },
-          "php": {
-            "files_touched": 1,
-            "bytes_freed": 4613
-          },
-          "ogg": {
-            "files_touched": 20,
-            "bytes_freed": 30051609
-          },
-          "1": {
-            "files_touched": 48,
-            "bytes_freed": 6320403
-          },
-          "ijx": {
-            "files_touched": 1,
-            "bytes_freed": 4525709
-          },
-          "cache-9": {
-            "files_touched": 8,
-            "bytes_freed": 459448
-          },
-          "m4": {
-            "files_touched": 1,
-            "bytes_freed": 8007
-          },
-          "conf": {
-            "files_touched": 3,
-            "bytes_freed": 3889
-          },
-          "gdshaderinc": {
-            "files_touched": 25,
-            "bytes_freed": 87158
-          },
-          "15": {
-            "files_touched": 1,
-            "bytes_freed": 179328
-          },
-          "expr": {
-            "files_touched": 3,
-            "bytes_freed": 309
-          },
-          "png": {
-            "files_touched": 40759,
-            "bytes_freed": 1022999807
-          },
-          "yara": {
-            "files_touched": 258,
-            "bytes_freed": 554874
-          },
-          "deb": {
-            "files_touched": 5,
-            "bytes_freed": 624005032
-          },
-          "h": {
-            "files_touched": 2809,
-            "bytes_freed": 63591697
-          },
-          "gz": {
-            "files_touched": 20,
-            "bytes_freed": 1334589997
-          },
-          "sh": {
-            "files_touched": 16,
-            "bytes_freed": 81025
-          },
-          "res": {
-            "files_touched": 23,
-            "bytes_freed": 897110
-          },
-          "desktop": {
-            "files_touched": 2,
-            "bytes_freed": 504
-          },
-          "arff": {
-            "files_touched": 32,
-            "bytes_freed": 420646
-          },
-          "18": {
-            "files_touched": 2,
-            "bytes_freed": 3217368
-          },
-          "woff2": {
-            "files_touched": 8,
-            "bytes_freed": 985576
-          },
-          "yaml": {
-            "files_touched": 1,
-            "bytes_freed": 92
-          },
-          "vlpset": {
-            "files_touched": 42,
-            "bytes_freed": 26490806
-          },
-          "json": {
-            "files_touched": 9549,
-            "bytes_freed": 45876760
-          },
-          "sty": {
-            "files_touched": 2,
-            "bytes_freed": 22122
-          },
-          "properties": {
-            "files_touched": 7,
-            "bytes_freed": 55678
-          },
-          "blend1": {
-            "files_touched": 28,
-            "bytes_freed": 35990342
-          },
-          "inc": {
-            "files_touched": 8,
-            "bytes_freed": 17112
-          },
-          "githooks": {
-            "files_touched": 1,
-            "bytes_freed": 0
-          },
-          "map": {
-            "files_touched": 6356,
-            "bytes_freed": 84619952
-          },
-          "gltf-kjtuvd": {
-            "files_touched": 1,
-            "bytes_freed": 40187
-          },
-          "17": {
-            "files_touched": 4,
-            "bytes_freed": 1098580
-          },
-          "pp": {
-            "files_touched": 1,
-            "bytes_freed": 880
-          },
-          "pdf": {
-            "files_touched": 140,
-            "bytes_freed": 462461250
-          },
-          "node": {
-            "files_touched": 8,
-            "bytes_freed": 67161152
-          },
-          "certs": {
-            "files_touched": 1,
-            "bytes_freed": 2488
-          },
-          "fits": {
-            "files_touched": 2,
-            "bytes_freed": 17280
-          },
-          "no_ext": {
-            "files_touched": 54683,
-            "bytes_freed": 17746965508
-          },
-          "cpp": {
-            "files_touched": 2,
-            "bytes_freed": 11684
-          },
-          "gpl3-except": {
-            "files_touched": 1,
-            "bytes_freed": 36363
-          },
-          "inv": {
-            "files_touched": 1,
-            "bytes_freed": 32928
-          },
-          "def": {
-            "files_touched": 20,
-            "bytes_freed": 67048
-          },
-          "7": {
-            "files_touched": 2,
-            "bytes_freed": 3600994
-          },
-          "html": {
-            "files_touched": 135,
-            "bytes_freed": 6198745
-          },
-          "ts": {
-            "files_touched": 8090,
-            "bytes_freed": 61478151
-          },
-          "css": {
-            "files_touched": 275,
-            "bytes_freed": 1366862
-          },
-          "uid": {
-            "files_touched": 233,
-            "bytes_freed": 4609
-          },
-          "csv": {
-            "files_touched": 68,
-            "bytes_freed": 2867909
-          },
-          "tmsnippet": {
-            "files_touched": 2,
-            "bytes_freed": 899
-          },
-          "ps1": {
-            "files_touched": 5,
-            "bytes_freed": 35184
-          },
-          "ctypes": {
-            "files_touched": 1,
-            "bytes_freed": 296
-          },
-          "mplstyle": {
-            "files_touched": 58,
-            "bytes_freed": 76698
-          },
-          "eml": {
-            "files_touched": 18,
-            "bytes_freed": 2858130
-          },
-          "104869892": {
-            "files_touched": 1,
-            "bytes_freed": 1626832
-          },
-          "dat": {
-            "files_touched": 60,
-            "bytes_freed": 14704593
-          },
-          "zsh": {
-            "files_touched": 4,
-            "bytes_freed": 17642
-          },
-          "fgd": {
-            "files_touched": 1,
-            "bytes_freed": 3465
-          },
-          "wasm": {
-            "files_touched": 2,
-            "bytes_freed": 11704370
-          },
-          "jsx": {
-            "files_touched": 8,
-            "bytes_freed": 3555
-          },
-          "love": {
-            "files_touched": 1,
-            "bytes_freed": 6205667
-          },
-          "eot": {
-            "files_touched": 2,
-            "bytes_freed": 185869
-          },
-          "obj": {
-            "files_touched": 204,
-            "bytes_freed": 16986993
-          },
-          "cts": {
-            "files_touched": 206,
-            "bytes_freed": 1400647
-          },
-          "ctex": {
-            "files_touched": 20,
-            "bytes_freed": 31209744
-          },
-          "d": {
-            "files_touched": 5743,
-            "bytes_freed": 35642826
-          },
-          "mdx": {
-            "files_touched": 10,
-            "bytes_freed": 11654
-          },
-          "ui": {
-            "files_touched": 38,
-            "bytes_freed": 257230
-          },
-          "109051909": {
-            "files_touched": 1,
-            "bytes_freed": 1731868
-          },
-          "ja": {
-            "files_touched": 1,
-            "bytes_freed": 3793
-          },
-          "mts": {
-            "files_touched": 320,
-            "bytes_freed": 1443215
-          },
-          "crate": {
-            "files_touched": 2155,
-            "bytes_freed": 323427951
-          },
-          "ini": {
-            "files_touched": 7,
-            "bytes_freed": 5651
-          },
-          "jar": {
-            "files_touched": 733,
-            "bytes_freed": 2007122040
-          },
-          "aseprite": {
-            "files_touched": 20,
-            "bytes_freed": 173534
-          },
-          "jpg": {
-            "files_touched": 96,
-            "bytes_freed": 127872314
-          },
-          "rst": {
-            "files_touched": 4,
-            "bytes_freed": 38702
-          },
-          "a": {
-            "files_touched": 17,
-            "bytes_freed": 25515068
-          },
-          "tab": {
-            "files_touched": 8,
-            "bytes_freed": 98588
-          },
-          "g4": {
-            "files_touched": 2,
-            "bytes_freed": 10016
-          },
-          "code-snippets": {
-            "files_touched": 16,
-            "bytes_freed": 33148
-          },
-          "sym": {
-            "files_touched": 1,
-            "bytes_freed": 10715134
-          },
-          "wav": {
-            "files_touched": 467,
-            "bytes_freed": 659835658
-          },
-          "f": {
-            "files_touched": 48,
-            "bytes_freed": 21696
-          },
-          "139": {
-            "files_touched": 1,
-            "bytes_freed": 16
-          },
-          "cache": {
-            "files_touched": 80,
-            "bytes_freed": 1883708
-          },
-          "atom": {
-            "files_touched": 1,
-            "bytes_freed": 28455
-          },
-          "whl": {
-            "files_touched": 14,
-            "bytes_freed": 4723498
-          },
-          "godot": {
-            "files_touched": 3,
-            "bytes_freed": 4497
-          },
-          "tsbuildinfo": {
-            "files_touched": 17,
-            "bytes_freed": 1071600
-          },
-          "tscn": {
-            "files_touched": 15,
-            "bytes_freed": 7991470
-          },
-          "sharp": {
-            "files_touched": 1,
-            "bytes_freed": 72568
-          },
-          "cache-11": {
-            "files_touched": 34,
-            "bytes_freed": 1054152
-          },
-          "cmake": {
-            "files_touched": 5,
-            "bytes_freed": 15974
-          },
-          "build": {
-            "files_touched": 12,
-            "bytes_freed": 13896
-          },
-          "apache2": {
-            "files_touched": 1,
-            "bytes_freed": 586
-          },
-          "thumbnailer": {
-            "files_touched": 1,
-            "bytes_freed": 147
-          },
-          "vox": {
-            "files_touched": 30,
-            "bytes_freed": 5913190
-          },
-          "rev": {
-            "files_touched": 9,
-            "bytes_freed": 23336
-          },
-          "toml": {
-            "files_touched": 3434,
-            "bytes_freed": 1789563
-          },
-          "f90": {
-            "files_touched": 122,
-            "bytes_freed": 58692
-          },
-          "url": {
-            "files_touched": 14,
-            "bytes_freed": 1815
-          }
-        },
-        "candidate_files_count": 226844,
-        "deleted_files_count": 0,
-        "skipped_files_count": 226844,
-        "missing_paths_count": 10,
-        "existing_paths_count": 10,
-        "duration_ms": 11847,
-        "warning_count": 16
-      }
+  "events": [],
+  "per_module_metrics": {},
+  "dry_run": true,
+  "total_duration_ms": 14757,
+  "total_files_touched": 340985,
+  "total_bytes_freed": 101117646660,
+  "total_warnings": 29,
+  "total_errors": 0,
+  "total_permission_denied": 17,
+  "modules_by_bytes_freed": [
+    {
+      "module_id": "cache",
+      "duration_ms": 14574,
+      "files_touched": 340985,
+      "bytes_freed": 101117646660,
+      "warnings_count": 28,
+      "errors_count": 0,
+      "permission_denied": 16,
+      "candidate_files_count": 340985,
+      "deleted_files_count": 0,
+      "skipped_files_count": 340985,
+      "missing_paths_count": 10,
+      "existing_paths_count": 10,
+      "delete_success_rate": 0.0,
+      "warning_rate": 0.008211504904907841,
+      "avg_bytes_per_file": 296545.73268618854,
+      "bytes_per_second": 6938221947.303417
     },
-    "total_files_touched": 226844,
-    "total_bytes_freed": 71354590073,
-    "total_warnings": 28,
-    "total_errors": 0,
-    "total_permission_denied": 16,
-    "total_duration_ms": 11847
-  },
-  "analysis": {
-    "events": [],
-    "per_module_metrics": {},
-    "dry_run": true,
-    "total_duration_ms": 11847,
-    "total_files_touched": 226844,
-    "total_bytes_freed": 71354590073,
-    "total_warnings": 28,
-    "total_errors": 0,
-    "total_permission_denied": 16,
-    "modules_by_bytes_freed": [
-      {
-        "module_id": "cache",
-        "duration_ms": 11847,
-        "files_touched": 226844,
-        "bytes_freed": 71354590073,
-        "warnings_count": 28,
-        "errors_count": 0,
-        "permission_denied": 16,
-        "candidate_files_count": 226844,
-        "deleted_files_count": 0,
-        "skipped_files_count": 226844,
-        "missing_paths_count": 10,
-        "existing_paths_count": 10,
-        "delete_success_rate": 0.0,
-        "warning_rate": 0.012343284371638659,
-        "avg_bytes_per_file": 314553.57017598,
-        "bytes_per_second": 6023009206.803411
-      }
-    ],
-    "modules_by_duration": [
-      {
-        "module_id": "cache",
-        "duration_ms": 11847,
-        "files_touched": 226844,
-        "bytes_freed": 71354590073,
-        "warnings_count": 28,
-        "errors_count": 0,
-        "permission_denied": 16,
-        "candidate_files_count": 226844,
-        "deleted_files_count": 0,
-        "skipped_files_count": 226844,
-        "missing_paths_count": 10,
-        "existing_paths_count": 10,
-        "delete_success_rate": 0.0,
-        "warning_rate": 0.012343284371638659,
-        "avg_bytes_per_file": 314553.57017598,
-        "bytes_per_second": 6023009206.803411
-      }
-    ],
-    "modules_by_warnings": [
-      {
-        "module_id": "cache",
-        "duration_ms": 11847,
-        "files_touched": 226844,
-        "bytes_freed": 71354590073,
-        "warnings_count": 28,
-        "errors_count": 0,
-        "permission_denied": 16,
-        "candidate_files_count": 226844,
-        "deleted_files_count": 0,
-        "skipped_files_count": 226844,
-        "missing_paths_count": 10,
-        "existing_paths_count": 10,
-        "delete_success_rate": 0.0,
-        "warning_rate": 0.012343284371638659,
-        "avg_bytes_per_file": 314553.57017598,
-        "bytes_per_second": 6023009206.803411
-      }
-    ],
-    "modules_by_efficiency": [
-      {
-        "module_id": "cache",
-        "duration_ms": 11847,
-        "files_touched": 226844,
-        "bytes_freed": 71354590073,
-        "warnings_count": 28,
-        "errors_count": 0,
-        "permission_denied": 16,
-        "candidate_files_count": 226844,
-        "deleted_files_count": 0,
-        "skipped_files_count": 226844,
-        "missing_paths_count": 10,
-        "existing_paths_count": 10,
-        "delete_success_rate": 0.0,
-        "warning_rate": 0.012343284371638659,
-        "avg_bytes_per_file": 314553.57017598,
-        "bytes_per_second": 6023009206.803411
-      }
-    ],
-    "modules_by_delete_success_rate": [
-      {
-        "module_id": "cache",
-        "duration_ms": 11847,
-        "files_touched": 226844,
-        "bytes_freed": 71354590073,
-        "warnings_count": 28,
-        "errors_count": 0,
-        "permission_denied": 16,
-        "candidate_files_count": 226844,
-        "deleted_files_count": 0,
-        "skipped_files_count": 226844,
-        "missing_paths_count": 10,
-        "existing_paths_count": 10,
-        "delete_success_rate": 0.0,
-        "warning_rate": 0.012343284371638659,
-        "avg_bytes_per_file": 314553.57017598,
-        "bytes_per_second": 6023009206.803411
-      }
-    ]
-  },
-  "selected_scope": {
-    "profile": "safe",
-    "enabled_categories": [
-      "system",
-      "user",
-      "browser",
-      "devtools",
-      "package_manager",
-      "desktop_env"
-    ],
-    "dry_run": true
-  },
-  "generated_at": "2026-05-11T06:33:41.642360001+00:00",
-  "plugin_name": "griffon_cleaner",
-  "plugin_version": "0.1.0",
-  "run_id": "2d400a54-44d8-4a57-9e2e-cc2006820661"
+    {
+      "module_id": "docker",
+      "duration_ms": 183,
+      "files_touched": 0,
+      "bytes_freed": 0,
+      "warnings_count": 1,
+      "errors_count": 0,
+      "permission_denied": 1,
+      "candidate_files_count": 0,
+      "deleted_files_count": 0,
+      "skipped_files_count": 0,
+      "missing_paths_count": 0,
+      "existing_paths_count": 0,
+      "delete_success_rate": 0.0,
+      "warning_rate": 0.0,
+      "avg_bytes_per_file": 0.0,
+      "bytes_per_second": 0.0
+    }
+  ],
+  "modules_by_duration": [
+    {
+      "module_id": "cache",
+      "duration_ms": 14574,
+      "files_touched": 340985,
+      "bytes_freed": 101117646660,
+      "warnings_count": 28,
+      "errors_count": 0,
+      "permission_denied": 16,
+      "candidate_files_count": 340985,
+      "deleted_files_count": 0,
+      "skipped_files_count": 340985,
+      "missing_paths_count": 10,
+      "existing_paths_count": 10,
+      "delete_success_rate": 0.0,
+      "warning_rate": 0.008211504904907841,
+      "avg_bytes_per_file": 296545.73268618854,
+      "bytes_per_second": 6938221947.303417
+    },
+    {
+      "module_id": "docker",
+      "duration_ms": 183,
+      "files_touched": 0,
+      "bytes_freed": 0,
+      "warnings_count": 1,
+      "errors_count": 0,
+      "permission_denied": 1,
+      "candidate_files_count": 0,
+      "deleted_files_count": 0,
+      "skipped_files_count": 0,
+      "missing_paths_count": 0,
+      "existing_paths_count": 0,
+      "delete_success_rate": 0.0,
+      "warning_rate": 0.0,
+      "avg_bytes_per_file": 0.0,
+      "bytes_per_second": 0.0
+    }
+  ],
+  "modules_by_warnings": [
+    {
+      "module_id": "cache",
+      "duration_ms": 14574,
+      "files_touched": 340985,
+      "bytes_freed": 101117646660,
+      "warnings_count": 28,
+      "errors_count": 0,
+      "permission_denied": 16,
+      "candidate_files_count": 340985,
+      "deleted_files_count": 0,
+      "skipped_files_count": 340985,
+      "missing_paths_count": 10,
+      "existing_paths_count": 10,
+      "delete_success_rate": 0.0,
+      "warning_rate": 0.008211504904907841,
+      "avg_bytes_per_file": 296545.73268618854,
+      "bytes_per_second": 6938221947.303417
+    },
+    {
+      "module_id": "docker",
+      "duration_ms": 183,
+      "files_touched": 0,
+      "bytes_freed": 0,
+      "warnings_count": 1,
+      "errors_count": 0,
+      "permission_denied": 1,
+      "candidate_files_count": 0,
+      "deleted_files_count": 0,
+      "skipped_files_count": 0,
+      "missing_paths_count": 0,
+      "existing_paths_count": 0,
+      "delete_success_rate": 0.0,
+      "warning_rate": 0.0,
+      "avg_bytes_per_file": 0.0,
+      "bytes_per_second": 0.0
+    }
+  ],
+  "modules_by_efficiency": [
+    {
+      "module_id": "cache",
+      "duration_ms": 14574,
+      "files_touched": 340985,
+      "bytes_freed": 101117646660,
+      "warnings_count": 28,
+      "errors_count": 0,
+      "permission_denied": 16,
+      "candidate_files_count": 340985,
+      "deleted_files_count": 0,
+      "skipped_files_count": 340985,
+      "missing_paths_count": 10,
+      "existing_paths_count": 10,
+      "delete_success_rate": 0.0,
+      "warning_rate": 0.008211504904907841,
+      "avg_bytes_per_file": 296545.73268618854,
+      "bytes_per_second": 6938221947.303417
+    },
+    {
+      "module_id": "docker",
+      "duration_ms": 183,
+      "files_touched": 0,
+      "bytes_freed": 0,
+      "warnings_count": 1,
+      "errors_count": 0,
+      "permission_denied": 1,
+      "candidate_files_count": 0,
+      "deleted_files_count": 0,
+      "skipped_files_count": 0,
+      "missing_paths_count": 0,
+      "existing_paths_count": 0,
+      "delete_success_rate": 0.0,
+      "warning_rate": 0.0,
+      "avg_bytes_per_file": 0.0,
+      "bytes_per_second": 0.0
+    }
+  ],
+  "modules_by_delete_success_rate": [
+    {
+      "module_id": "cache",
+      "duration_ms": 14574,
+      "files_touched": 340985,
+      "bytes_freed": 101117646660,
+      "warnings_count": 28,
+      "errors_count": 0,
+      "permission_denied": 16,
+      "candidate_files_count": 340985,
+      "deleted_files_count": 0,
+      "skipped_files_count": 340985,
+      "missing_paths_count": 10,
+      "existing_paths_count": 10,
+      "delete_success_rate": 0.0,
+      "warning_rate": 0.008211504904907841,
+      "avg_bytes_per_file": 296545.73268618854,
+      "bytes_per_second": 6938221947.303417
+    },
+    {
+      "module_id": "docker",
+      "duration_ms": 183,
+      "files_touched": 0,
+      "bytes_freed": 0,
+      "warnings_count": 1,
+      "errors_count": 0,
+      "permission_denied": 1,
+      "candidate_files_count": 0,
+      "deleted_files_count": 0,
+      "skipped_files_count": 0,
+      "missing_paths_count": 0,
+      "existing_paths_count": 0,
+      "delete_success_rate": 0.0,
+      "warning_rate": 0.0,
+      "avg_bytes_per_file": 0.0,
+      "bytes_per_second": 0.0
+    }
+  ]
 }
