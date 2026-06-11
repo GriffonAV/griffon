@@ -3,7 +3,7 @@ import { PageLayout } from "@/components/layout/PageLayout";
 
 export default function HomePage() {
   return (
-    <PageLayout title="Home">
+    <PageLayout title="Overview">
       <NoPluginLayout>
         <div>Welcome Home</div>
       </NoPluginLayout>

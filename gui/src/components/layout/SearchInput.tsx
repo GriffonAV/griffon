@@ -69,13 +69,13 @@ function SearchInput({ isCollapsed }: { isCollapsed: boolean }) {
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Suggestions">
             <CommandItem onSelect={() => handleCommandSelect("dashboard")}>
-              Dashboard
+              Overview
             </CommandItem>
             <CommandItem onSelect={() => handleCommandSelect("log")}>
-              Logs
+              Activity Log
             </CommandItem>
           </CommandGroup>
-          <CommandGroup heading="Plugins">
+          <CommandGroup heading="Extensions">
           </CommandGroup>
           <CommandGroup heading="Settings">
             <CommandItem onSelect={() => handleCommandSelect("settings")}>

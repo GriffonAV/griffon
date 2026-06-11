@@ -3,9 +3,9 @@ import { PageLayout } from "@/components/layout/PageLayout";
 
 export default function LogsPage() {
   return (
-    <PageLayout title="History">
+    <PageLayout title="Activity Log">
       <NoPluginLayout>
-        <div>Welcome to the History page</div>
+        <div>Welcome to the Activity Log page</div>
       </NoPluginLayout>
     </PageLayout>
   );

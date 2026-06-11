@@ -70,7 +70,7 @@ export function Sidebar() {
             <Link to="/dashboard">
                 <SidebarButton
                     icon={<LayoutDashboard />}
-                    label="Dashboard"
+                    label="Overview"
                     isActive={location.pathname === "/dashboard" || location.pathname === "/"}
                     isCollapsed={isCollapsed}
                 />
@@ -79,7 +79,7 @@ export function Sidebar() {
             <Link to="/log">
                 <SidebarButton
                     icon={<Clock10 />}
-                    label="Logs"
+                    label="Activity Log"
                     isActive={location.pathname === "/log"}
                     isCollapsed={isCollapsed}
                 />
@@ -94,7 +94,7 @@ export function Sidebar() {
                 {!isCollapsed &&
 
                     <span className="text-xs text-muted-foreground px-2 my-2 select-none">
-                        Plugins
+                        Extensions
                     </span>
                 }
             </div>
@@ -136,7 +136,7 @@ export function Sidebar() {
 
             <div className={isCollapsed ? "flex flex-col gap-2 justify-center" : "flex flex-row gap-2 justify-center"}>
                 <Button
-                    title="Refresh daemon"
+                    title="Refresh Background Service"
                     variant="outline"
                     size="icon"
                     className="cursor-pointer"
@@ -150,14 +150,13 @@ export function Sidebar() {
                                 new Promise((resolve) => setTimeout(resolve, 500)),
                             ]);
                         } catch (error) {
-                            console.error("Failed to refresh plugins:", error);
+                            console.error("Failed to refresh Background Service:", error);
                         } finally {
                             setIsRefreshing(false);
                         }
                     }}
                 >
                     <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
-                    <span className="sr-only">Refresh plugins</span>
                 </Button>
 
                 <Link to="/settings">
