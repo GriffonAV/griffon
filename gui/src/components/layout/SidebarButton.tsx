@@ -11,6 +11,7 @@ interface SidebarButtonProps {
 export function SidebarButton({ icon, label, isActive }: SidebarButtonProps) {
   return (
     <Button
+      title={label}
       variant="ghost"
       className={clsx(
         "w-full justify-start cursor-pointer mb-2 font-bold overflow-hidden",

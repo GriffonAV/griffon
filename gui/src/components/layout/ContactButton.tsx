@@ -28,9 +28,8 @@ export function ContactButton() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="cursor-pointer">
+        <Button variant="outline" size="icon" className="cursor-pointer" title="Contact & Support">
           <Info></Info>
-          <span className="sr-only">Toggle theme</span>
         </Button>
       </DialogTrigger>
 

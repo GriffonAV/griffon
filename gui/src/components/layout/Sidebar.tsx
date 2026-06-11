@@ -104,11 +104,10 @@ export function Sidebar() {
                             variant="ghost"
                             size="icon"
                             disabled={isSwitching}
-                            className={`h-8 w-8 shrink-0 cursor-pointer ${
-                                isEnabled
-                                    ? "text-green-500 hover:text-green-600"
-                                    : "text-red-500 hover:text-red-600"
-                            }`}
+                            className={`h-8 w-8 shrink-0 cursor-pointer ${isEnabled
+                                ? "text-green-500 hover:text-green-600"
+                                : "text-red-500 hover:text-red-600"
+                                }`}
                             title={isEnabled ? "Disable plugin" : "Enable plugin"}
                             onClick={() =>
                                 handleSwitchPlugin(plugin.uuid)
@@ -124,6 +123,7 @@ export function Sidebar() {
 
             <div className="flex flex-row gap-2 justify-end">
                 <Button
+                    title="Refresh daemon"
                     variant="outline"
                     size="icon"
                     className="cursor-pointer"
@@ -148,9 +148,9 @@ export function Sidebar() {
                 </Button>
 
                 <Link to="/settings">
-                    <Button variant="outline" size="icon" className="cursor-pointer">
+                    <Button variant="outline" size="icon" className="cursor-pointer" title="Settings">
                         <Settings2 />
-                        <span className="sr-only">Settings</span>
+                        {/* <span className="sr-only">Settings</span> */}
                     </Button>
                 </Link>
 

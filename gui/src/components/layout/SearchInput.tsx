@@ -7,24 +7,38 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Link, useNavigate } from "react-router-dom";
+
 import { Button } from "../ui/button";
 import { Search } from "lucide-react";
 import clsx from "clsx";
 import { Kbd, KbdGroup } from "../ui/kbd";
 
 function SearchInput() {
+  const navigate = useNavigate();
   const [open, setOpen] = React.useState(false);
 
+  // open with ctrl+f
   React.useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.key === "F" && (e.metaKey || e.ctrlKey)) {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === "f") {
         e.preventDefault();
         setOpen((open) => !open);
       }
     };
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  // if enter is pressed, close the dialog and navigate to the first command if it exists
+  const handleCommandSelect = (command: string) => {
+    setOpen(false);
+    // navigate to the command with react-router-dom
+    navigate(`/${command.toLowerCase()}`);
+
+  }
+
 
   return (
     <div>
@@ -48,10 +62,21 @@ function SearchInput() {
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Suggestions">
-            <CommandItem>test1</CommandItem>
-            <CommandItem>test2</CommandItem>
-            <CommandItem>test3</CommandItem>
+            <CommandItem onSelect={() => handleCommandSelect("dashboard")}>
+              Dashboard
+            </CommandItem>
+            <CommandItem onSelect={() => handleCommandSelect("log")}>
+              Logs
+            </CommandItem>
           </CommandGroup>
+          <CommandGroup heading="Plugins">
+          </CommandGroup>
+          <CommandGroup heading="Settings">
+            <CommandItem onSelect={() => handleCommandSelect("settings")}>
+              Settings
+            </CommandItem>
+          </CommandGroup>
+
         </CommandList>
       </CommandDialog>
     </div >
