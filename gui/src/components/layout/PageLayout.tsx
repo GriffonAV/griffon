@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "../ui/button";
-import { PanelLeft } from "lucide-react";
+import { Columns2, PanelLeft } from "lucide-react";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -54,7 +54,7 @@ export const PageWrapper: React.FC<PageProps> = ({ title, children, navigation, 
     <div className="bg-background text-foreground flex-1 flex-col m-2 rounded-md overflow-hidden flex">
       <div className="flex items-center border-b rounded-none p-2 gap-2">
         <Button className="cursor-pointer" variant={"ghost"} id="titlebar-maximize" title="maximize" onClick={toggleSidebar}>
-          {isCollapsed ? <PanelLeft /> : <PanelLeft />}
+          {isCollapsed ? <Columns2 /> : <PanelLeft />}
         </Button>
         <div className="border-r rounded-none w-0 h-6"></div>
         <h1 className="text-lg font-semibold pl-6">
