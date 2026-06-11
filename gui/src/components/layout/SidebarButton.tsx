@@ -15,19 +15,19 @@ export function SidebarButton({ icon, label, isActive, isCollapsed }: SidebarBut
       title={label}
       variant="ghost"
       className={clsx(
-        "w-full cursor-pointer font-bold overflow-hidden transition-all duration-200",
+        "w-full cursor-pointer font-bold overflow-hidden",
         isCollapsed ? "justify-center px-0" : "justify-start",
         isActive && "bg-sidebar-primary text-sidebar-primary-foreground"
       )}
     >
 
 
-      <span className={clsx("transition-all duration-200", isCollapsed ? "mr-0" : "mr-2")}>
+      <span className={clsx(isCollapsed ? "mr-0" : "mr-2")}>
         {icon}
       </span>
 
       {!isCollapsed && (
-        <span className={"transition-all duration-200"}>
+        <span className={"transition-transform duration-200"}>
           {label}
         </span>
       )}

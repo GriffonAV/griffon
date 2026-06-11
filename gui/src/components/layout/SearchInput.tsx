@@ -46,12 +46,12 @@ function SearchInput({ isCollapsed }: { isCollapsed: boolean }) {
         title="Search (Ctrl + F)"
         variant="ghost"
         className={clsx(
-          "w-full cursor-pointer font-bold overflow-hidden transition-all duration-200",
+          "w-full cursor-pointer font-bold overflow-hidden",
           isCollapsed ? "justify-center px-0" : "justify-start"
         )}
         onClick={() => setOpen((open) => !open)}
       >
-        <span className={clsx("transition-all duration-200", isCollapsed ? "mr-0" : "mr-2")}>
+        <span className={clsx(isCollapsed ? "mr-0" : "mr-2")}>
           <Search />
         </span>
 
