@@ -15,7 +15,7 @@ export function SidebarButton({ icon, label, isActive, isCollapsed }: SidebarBut
       title={label}
       variant="ghost"
       className={clsx(
-        "w-full cursor-pointer mt-2 font-bold overflow-hidden transition-all duration-200",
+        "w-full cursor-pointer font-bold overflow-hidden transition-all duration-200",
         isCollapsed ? "justify-center px-0" : "justify-start",
         isActive && "bg-sidebar-primary text-sidebar-primary-foreground"
       )}

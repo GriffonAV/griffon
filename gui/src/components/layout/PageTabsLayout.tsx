@@ -22,12 +22,14 @@ export const PageTabsLayout: React.FC<PageProps> = ({ title, children, navigatio
 
   return (
     <div className="bg-background text-foreground flex-1 flex-col m-2 rounded-md overflow-hidden flex">
-      <div className="flex items-center border-b rounded-none p-2 gap-4">
+      <div className="flex items-center border-b rounded-none p-2 gap-2">
         <Button className="cursor-pointer" variant={"ghost"} id="titlebar-maximize" title="maximize" onClick={toggleSidebar}>
           {isCollapsed ? <PanelLeft /> : <PanelLeft />}
         </Button>
         <div className="border-r rounded-none w-0 h-6"></div>
-        {title && <h1>{titleCase(title)}</h1>}
+        <h1 className="text-lg font-semibold pl-6">
+          {title && titleCase(title)}
+        </h1>
       </div>
       {navigation && tabs && (
         <div className="flex p-2 shadow">
@@ -47,7 +49,7 @@ export const PageTabsLayout: React.FC<PageProps> = ({ title, children, navigatio
           </NavigationMenu>
         </div>
       )}
-      <main className="flex flex-col m-2 flex-1 overflow-auto sm:px-0 md:px-7 lg:px-36 items-center gap-4">
+      <main className="flex flex-col m-2 mt-6 flex-1 overflow-auto sm:px-0 md:px-7 lg:px-36 items-center gap-4">
         {children?.[activeTab]}
       </main>
     </div>

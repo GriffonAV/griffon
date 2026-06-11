@@ -65,7 +65,7 @@ export function Sidebar() {
 
     return (
         // <aside className="transition-all duration-200 ease-in-out flex flex-col w-48 m-2">
-        <aside className={`transition-all duration-200 ease-in-out flex flex-col ${isCollapsed ? "w-min" : "w-48"} m-2`}>
+        <aside className={`transition-all duration-200 ease-in-out flex flex-col gap-2 ${isCollapsed ? "w-min" : "w-48"} m-2 pl-2 pt-6 pb-2`}>
 
             <Link to="/dashboard">
                 <SidebarButton
@@ -86,14 +86,18 @@ export function Sidebar() {
             </Link>
 
             <SearchInput isCollapsed={isCollapsed} />
-            <Separator className="mt-5" />
 
-            {!isCollapsed &&
+            <div >
 
-                <span className="text-xs text-muted-foreground px-2 my-2 select-none">
-                    Plugins
-                </span>
-            }
+                <Separator className="mt-2" />
+
+                {!isCollapsed &&
+
+                    <span className="text-xs text-muted-foreground px-2 my-2 select-none">
+                        Plugins
+                    </span>
+                }
+            </div>
 
             {plugins.map((plugin) => {
                 const isEnabled = pluginStatus[plugin.uuid] ?? true;
@@ -130,7 +134,7 @@ export function Sidebar() {
 
             <div className="flex-1" />
 
-            <div className={isCollapsed ? "flex flex-col gap-2 justify-end" : "flex flex-row gap-2 justify-end"}>
+            <div className={isCollapsed ? "flex flex-col gap-2 justify-center" : "flex flex-row gap-2 justify-center"}>
                 <Button
                     title="Refresh daemon"
                     variant="outline"
