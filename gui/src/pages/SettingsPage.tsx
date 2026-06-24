@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChangeThemeButtonTest, ModeToggleGroup } from "@/components/layout/ModeToggle";
-import { PageWrapper } from "@/components/layout/PageLayout";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 const PLUGIN_DOC_URL = "https://griffon-av.vercel.app/";
 
@@ -12,7 +12,7 @@ export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<SettingsTab>("Appearance");
 
     return (
-        <PageWrapper title="Settings" navigation={true}>
+        <PageLayout title="Settings" navigation={true}>
             <div className="space-y-6">
                 <div className="flex gap-2 border-b border-border pb-2">
                     {tabs.map((tab) => (
@@ -97,6 +97,6 @@ export default function SettingsPage() {
                     </section>
                 )}
             </div>
-        </PageWrapper>
+        </PageLayout>
     );
 }
