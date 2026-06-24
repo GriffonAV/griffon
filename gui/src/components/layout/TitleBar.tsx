@@ -6,6 +6,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import DaemonConnection from "@/bindings/component/layout/DaemonConnection";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Separator } from "../ui/separator";
 
 function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -25,7 +26,7 @@ function TitleBar() {
   }, []);
 
   const openGitHub = () => {
-    openUrl("https://github.com/Griffon/Griffon");
+    openUrl("https://github.com/GriffonAV/griffon");
   };
 
   useEffect(() => {
@@ -58,18 +59,25 @@ function TitleBar() {
   }, [isTauri]);
 
   return (
-    <div className="px-4 py-3 flex items-center  rounded-b-none" data-tauri-drag-region>
-      <img
-        src="/assets/logo_test/G-white.png"
-        alt="Griffon Logo"
-        style={{
-          imageRendering: "pixelated",
-        }}
-        className="w-9 h-auto"
-      />
-      <div className="pl-2 font-bold">Griffon</div>
+    <div className="m-2 pt-2 pl-6 pr-2 flex items-center  rounded-b-none" data-tauri-drag-region>
+      <div className="flex items-center gap-3 min-w-0">
+        <img
+          src="/assets/logo.png"
+          alt="Griffon Logo"
+          className="h-9 w-9 object-contain"
+          style={{ imageRendering: "pixelated" }}
+        />
+
+        <div className="flex flex-col leading-none">
+          <span className="text-base font-semibold tracking-wide text-foreground">
+            Griffon
+          </span>
+          <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            Desktop app
+          </span>
+        </div>
+      </div>
       <div className="flex-1"></div>
-      <DaemonConnection />
       <Tooltip>
         <TooltipTrigger asChild>
           <Button className="cursor-pointer text-muted-foreground" variant={"ghost"}>
@@ -80,6 +88,7 @@ function TitleBar() {
           <p>Notifications</p>
         </TooltipContent>
       </Tooltip>
+      <DaemonConnection />
       <Tooltip>
         <TooltipTrigger asChild>
           <a target="_blank" rel="noopener noreferrer" onClick={openGitHub}>
@@ -93,30 +102,41 @@ function TitleBar() {
         </TooltipContent>
       </Tooltip>
 
-      {isTauri && (
-        <>
-          <Button
-            className="cursor-pointer"
-            variant={"ghost"}
-            id="titlebar-minimize"
-            title="minimize"
-          >
-            <Minus />
-          </Button>
-          <Button
-            className="cursor-pointer"
-            variant={"ghost"}
-            id="titlebar-maximize"
-            title="maximize"
-          >
-            {isMaximized ? <Copy /> : <Square />}
-          </Button>
-          <Button className="cursor-pointer" variant={"ghost"} id="titlebar-close" title="close">
-            <X />
-          </Button>
-        </>
-      )}
-    </div>
+      {
+        isTauri && (
+          <>
+            <div className="border-r rounded-none w-0 h-6 mx-2"></div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-md text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+              id="titlebar-minimize"
+              title="minimize"
+            >
+              <Minus className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-md text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+              id="titlebar-maximize"
+              title="maximize"
+            >
+              {isMaximized ? <Copy className="size-4" /> : <Square className="size-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-md text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+              id="titlebar-close"
+              title="close"
+            >
+              <X className="size-4" />
+            </Button>
+          </>
+        )
+      }
+    </div >
   );
 }
 
