@@ -163,9 +163,7 @@ pub fn send_system_notification(
     level: NotificationLevel,
 ) -> Result<(), String> {
     let urgency = match level {
-        NotificationLevel::Info => Urgency::Low,
         NotificationLevel::Success => Urgency::Normal,
-        NotificationLevel::Warning => Urgency::Normal,
         NotificationLevel::Error => Urgency::Critical,
     };
 
