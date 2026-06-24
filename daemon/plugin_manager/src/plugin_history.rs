@@ -217,14 +217,14 @@ pub fn plugin_unknown_message(plugin_name: &str, plugin_uuid: [u8; 16], pid: u32
 fn write_history(level: &str, plugin_name: &str, plugin_uuid: [u8; 16], message: String) {
     let path = plugin_history_path(plugin_uuid);
 
-    if let Some(parent) = path.parent() {
-        if let Err(e) = fs::create_dir_all(parent) {
-            LOGGER_PLUGIN_HISTORY.error(format!(
-                "Failed to create plugin history directory {}: {e}",
-                parent.display()
-            ));
-            return;
-        }
+    if let Some(parent) = path.parent()
+        && let Err(e) = fs::create_dir_all(parent)
+    {
+        LOGGER_PLUGIN_HISTORY.error(format!(
+            "Failed to create plugin history directory {}: {e}",
+            parent.display()
+        ));
+        return;
     }
 
     let mut file = match OpenOptions::new().create(true).append(true).open(&path) {
