@@ -183,6 +183,26 @@
   --shadow-2xl: 0px 4px 10px 0px hsl(240 30% 25% / 0.3);
 }
 
+.settings-doc-button {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background-color: #2563eb;
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.settings-doc-button:hover {
+  background-color: #1d4ed8;
+}
+
+.settings-doc-button:active {
+  transform: scale(0.98);
+}
+
 @layer base {
   * {
     /* border-radius: 10px; */
