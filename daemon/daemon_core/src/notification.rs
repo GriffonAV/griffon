@@ -183,9 +183,7 @@ pub fn send_system_notification(
 
 #[derive(Debug, Clone, Copy)]
 pub enum NotificationLevel {
-    Info,
     Success,
-    Warning,
     Error,
 }
 
