@@ -4,6 +4,7 @@ use ipc_protocol::ipc_payload_interface::{
 };
 use serde::Serialize;
 use std::os::unix::net::UnixStream;
+use std::path::Path;
 use std::sync::Mutex;
 use std::thread;
 use tauri::Manager;
@@ -15,6 +16,7 @@ use logger::{LogLevel, Logger};
 
 mod manifests;
 mod plugin_history;
+mod plugin_installer;
 
 use manifests::load_plugin_manifest;
 use manifests::PluginManifest;
@@ -48,6 +50,85 @@ const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
 
 fn format_name(name: &str) -> String {
     name.replace(' ', "_").to_lowercase()
+}
+
+fn sanitize_plugin_name(name: &str) -> Result<String, String> {
+    let trimmed = name.trim();
+
+    if trimmed.is_empty() {
+        return Err("Plugin name cannot be empty".to_string());
+    }
+
+    if trimmed.contains('/') || trimmed.contains('\\') || trimmed.contains("..") {
+        return Err("Invalid plugin name".to_string());
+    }
+
+    let stem = Path::new(trimmed)
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .ok_or_else(|| "Invalid plugin name".to_string())?;
+
+    let formatted_stem = format_name(stem);
+
+    if formatted_stem.is_empty() {
+        return Err("Plugin name cannot be empty".to_string());
+    }
+
+    if !formatted_stem
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
+        return Err("Invalid plugin name".to_string());
+    }
+
+    Ok(formatted_stem)
+}
+
+#[tauri::command]
+fn delete_plugin(name: String) -> Result<(), String> {
+    let plugin_name = sanitize_plugin_name(&name)?;
+
+    LOGGER.info(format!("Deleting plugin: {}", plugin_name));
+
+    let toml_path = Path::new(PLUGIN_MANIFEST_DIR).join(format!("{}.toml", plugin_name));
+    let so_path = Path::new(PLUGIN_MANIFEST_DIR).join(format!("{}.so", plugin_name));
+
+    let mut deleted_files = Vec::new();
+
+    if toml_path.exists() {
+        std::fs::remove_file(&toml_path).map_err(|e| {
+            format!(
+                "Failed to delete plugin manifest '{}': {}",
+                toml_path.display(),
+                e
+            )
+        })?;
+
+        deleted_files.push(toml_path.display().to_string());
+    }
+
+    if so_path.exists() {
+        std::fs::remove_file(&so_path).map_err(|e| {
+            format!(
+                "Failed to delete plugin shared library '{}': {}",
+                so_path.display(),
+                e
+            )
+        })?;
+
+        deleted_files.push(so_path.display().to_string());
+    }
+
+    if deleted_files.is_empty() {
+        return Err(format!("Plugin '{}' was not found", plugin_name));
+    }
+
+    LOGGER.info(format!(
+        "Deleted plugin '{}' files: {:?}",
+        plugin_name, deleted_files
+    ));
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -344,6 +425,7 @@ fn start_reader_thread(mut read_sock: UnixStream, app_handle: tauri::AppHandle) 
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Info)
@@ -414,11 +496,13 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_daemon_status,
             list_plugins,
+            delete_plugin,
             get_plugin_manifest,
             refresh_plugin,
             switch_status_plugin,
             call_plugin,
-            plugin_history::get_plugin_history
+            plugin_history::get_plugin_history,
+            plugin_installer::install_plugin_files,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");
