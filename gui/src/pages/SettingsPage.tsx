@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChangeThemeButtonTest, ModeToggleGroup } from "@/components/layout/ModeToggle";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PluginToggleSettings } from "@/components/layout/PluginToggleSettings";
+import { PluginInstaller } from "@/components/layout/PluginInstaller";
 
 const PLUGIN_DOC_URL = "https://griffon-av.vercel.app/";
 
@@ -66,7 +67,7 @@ export default function SettingsPage() {
                                     <h2 className="text-xl font-bold">Plugins</h2>
 
                                     <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                                        Enable or disable installed plugins, and access the plugin
+                                        Add, enable or disable installed plugins, and access the plugin
                                         development documentation.
                                     </p>
                                 </div>
@@ -98,13 +99,28 @@ export default function SettingsPage() {
                             </div>
 
                             <div className="border-t border-border pt-5">
+                                <h3 className="text-lg font-semibold">Add plugin</h3>
+
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Select a plugin manifest file and its compiled shared library.
+                                    Griffon will copy them into <code>.config/griffon</code>.
+                                </p>
+
+                                <div className="mt-4">
+                                    <PluginInstaller />
+                                </div>
+                            </div>
+
+                            <div className="border-t border-border pt-5">
                                 <h3 className="text-lg font-semibold">Installed plugins</h3>
 
                                 <p className="mt-1 text-sm text-muted-foreground">
                                     Toggle plugin status directly from the settings panel.
                                 </p>
 
-                                <PluginToggleSettings />
+                                <div className="mt-4">
+                                    <PluginToggleSettings />
+                                </div>
                             </div>
                         </div>
                     </section>

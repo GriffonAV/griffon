@@ -15,6 +15,7 @@ use logger::{LogLevel, Logger};
 
 mod manifests;
 mod plugin_history;
+mod plugin_installer;
 
 use manifests::load_plugin_manifest;
 use manifests::PluginManifest;
@@ -418,7 +419,8 @@ fn main() {
             refresh_plugin,
             switch_status_plugin,
             call_plugin,
-            plugin_history::get_plugin_history
+            plugin_history::get_plugin_history,
+            plugin_installer::install_plugin_files,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");
