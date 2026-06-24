@@ -8,7 +8,11 @@ type InstalledPlugin = {
     plugin_dir: string;
 };
 
-export function PluginInstaller() {
+type PluginInstallerProps = {
+    onInstalled?: () => void | Promise<void>;
+};
+
+export function PluginInstaller({ onInstalled }: PluginInstallerProps) {
     const [tomlPath, setTomlPath] = useState<string | null>(null);
     const [soPath, setSoPath] = useState<string | null>(null);
     const [status, setStatus] = useState<string | null>(null);
@@ -63,7 +67,21 @@ export function PluginInstaller() {
                 soPath,
             });
 
-            setStatus(`Plugin installed successfully in ${result.plugin_dir}`);
+            setStatus(`Plugin installed successfully in ${result.plugin_dir}. Refreshing plugin list...`);
+
+            try {
+                await onInstalled?.();
+
+                setTomlPath(null);
+                setSoPath(null);
+
+                setStatus(`Plugin installed successfully in ${result.plugin_dir}.`);
+            } catch (refreshError) {
+                console.error(refreshError);
+                setStatus(
+                    `Plugin installed successfully in ${result.plugin_dir}, but the plugin list could not be refreshed.`
+                );
+            }
         } catch (error) {
             setStatus(`Installation failed: ${String(error)}`);
         } finally {
@@ -75,8 +93,10 @@ export function PluginInstaller() {
         <div className="rounded-lg border border-border p-4 space-y-4">
             <div>
                 <h2 className="text-xl font-bold">Install plugin</h2>
+
                 <p className="text-sm text-muted-foreground">
-                    Select the plugin manifest and shared library. They will be copied to .config/griffon.
+                    Select the plugin manifest and shared library. They will be copied to{" "}
+                    <code>.config/griffon</code>.
                 </p>
             </div>
 

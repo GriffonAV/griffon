@@ -15,8 +15,31 @@ const tabs: SettingsTab[] = ["Appearance", "Notifications", "Plugins"];
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<SettingsTab>("Appearance");
     const [pluginBeingDeleted, setPluginBeingDeleted] = useState<string | null>(null);
+    const [pluginRefreshKey, setPluginRefreshKey] = useState(0);
+    const [isRefreshingPlugins, setIsRefreshingPlugins] = useState(false);
 
     const { plugins, refreshPlugins } = usePlugins();
+
+    const refreshPluginUi = async () => {
+        try {
+            setIsRefreshingPlugins(true);
+
+            await refreshPlugins();
+
+            setPluginRefreshKey((key) => key + 1);
+        } finally {
+            setIsRefreshingPlugins(false);
+        }
+    };
+
+    const handleManualRefresh = async () => {
+        try {
+            await refreshPluginUi();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to refresh plugins.");
+        }
+    };
 
     const handleDeletePlugin = async (pluginFileName: string, pluginDisplayName: string) => {
         const confirmed = window.confirm(
@@ -32,7 +55,7 @@ export default function SettingsPage() {
                 name: pluginFileName,
             });
 
-            refreshPlugins();
+            await refreshPluginUi();
         } catch (err) {
             console.error(err);
             alert("Failed to delete plugin.");
@@ -135,19 +158,32 @@ export default function SettingsPage() {
                                 </p>
 
                                 <div className="mt-4">
-                                    <PluginInstaller />
+                                    <PluginInstaller onInstalled={refreshPluginUi} />
                                 </div>
                             </div>
 
                             <div className="border-t border-border pt-5">
-                                <h3 className="text-lg font-semibold">Installed plugins</h3>
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-semibold">Installed plugins</h3>
 
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                    Toggle plugin status directly from the settings panel.
-                                </p>
+                                        <p className="mt-1 text-sm text-muted-foreground">
+                                            Toggle plugin status directly from the settings panel.
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleManualRefresh}
+                                        disabled={isRefreshingPlugins}
+                                        className="inline-flex items-center justify-center rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground shadow-sm transition hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {isRefreshingPlugins ? "Refreshing..." : "Refresh"}
+                                    </button>
+                                </div>
 
                                 <div className="mt-4">
-                                    <PluginToggleSettings />
+                                    <PluginToggleSettings key={pluginRefreshKey} />
                                 </div>
                             </div>
 
