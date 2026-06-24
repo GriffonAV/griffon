@@ -1,8 +1,7 @@
 use crate::scanner_quarantine::{Quarantine, manifest::QuarantineManifest};
 
 impl Quarantine {
-    #[allow(dead_code)]
-    pub fn list(&self) -> Vec<QuarantineManifest> {
+    fn list(&self) -> Vec<QuarantineManifest> {
         let Ok(entries) = std::fs::read_dir(&self.dir) else {
             return vec![];
         };
@@ -17,7 +16,6 @@ impl Quarantine {
             .collect()
     }
 
-    #[allow(dead_code)]
     pub fn list_sorted(&self) -> Vec<QuarantineManifest> {
         let mut manifests = self.list();
         manifests.sort_by(|a, b| b.quarantined_at.cmp(&a.quarantined_at)); // newest first

@@ -6,29 +6,22 @@ use std::path::PathBuf;
 #[command(version, about, long_about = None)]
 pub struct ScanArgs {
     // scan archive file: bool, default false
-    #[arg(short, long)]
-    pub scan_archives: bool,
+    #[arg(short, long, default_value_t = false)]
+    pub archives: bool,
 
     // recursive scan: bool, default true
-    #[arg(short, long)]
+    #[arg(short, long, default_value_t = false)]
     pub recursive: bool,
 
     // path to scan: string, no flag just the path
     pub path: PathBuf,
 
-    // path to hash db: string, optional
-    #[arg(short = 'H', long)]
-    pub hash_db: Option<String>,
-    // path to yara rules: string, optional
-    #[arg(short, long)]
-    pub yara_rules: Option<String>,
-
     // yara only
-    #[arg(long)]
+    #[arg(long, default_value_t = true)]
     pub yara_only: bool,
 
     // parallel scan: bool, default true
-    #[arg(short, long)]
+    #[arg(short, long, default_value_t = true)]
     pub parallel: bool,
 
     // thread settings
@@ -49,11 +42,9 @@ pub struct ScanArgs {
 impl Default for ScanArgs {
     fn default() -> Self {
         ScanArgs {
-            scan_archives: false,
+            archives: false,
             recursive: true,
             path: PathBuf::new(),
-            hash_db: None,
-            yara_rules: None,
             yara_only: false,
             parallel: true,
             threads: "auto".to_string(),
@@ -76,4 +67,26 @@ impl ScanArgs {
             .cloned()
             .collect()
     }
+}
+
+#[derive(Parser, Debug, Clone, Default)]
+#[command(version, about, long_about = None)]
+pub struct PrepArgs {
+    // path to hash db: string, optional
+    #[arg(short = 'H', long)]
+    pub hash_db: Option<String>,
+    // path to yara rules: string, optional
+    #[arg(short, long)]
+    pub yara_rules: Option<String>,
+
+    // yara only
+    #[arg(long)]
+    pub yara_only: bool,
+
+    // thread settings
+    //--threads 4 — explicit count
+    //--threads auto — let rayon decide (default, uses all cores)
+    //--threads conservative — use max(1, cores / 2) to leave room for the rest of the system
+    #[arg(long, default_value = "auto")]
+    pub threads: String,
 }

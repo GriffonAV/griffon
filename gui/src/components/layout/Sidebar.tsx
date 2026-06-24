@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { usePlugins } from "@/bindings/PluginContext.tsx";
 import { ModeToggle } from "./ModeToggle.tsx";
-import { Settings2, LayoutDashboard, Clock10, RefreshCw } from "lucide-react";
+import { Settings2, LayoutDashboard, Clock10, RefreshCw, ToyBrick } from "lucide-react";
 import { SearchInput } from "./SearchInput.tsx";
 import { ContactButton } from "./ContactButton.tsx";
 import { SidebarButton } from "./SidebarButton.tsx";
@@ -10,6 +10,7 @@ import { Button } from "../ui/button.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
 import { invoke } from "@tauri-apps/api/core";
 import { createPendingRequest } from "@/services/requestManager";
+import { useSidebar } from "@/providers/SidebarProvider.tsx";
 
 type PluginSwitchDonePayload = {
     request_id: string;
@@ -31,6 +32,7 @@ async function switchPluginStatus(
 }
 
 export function Sidebar() {
+    const { isCollapsed } = useSidebar();
     const { plugins } = usePlugins();
     const location = useLocation();
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -62,68 +64,79 @@ export function Sidebar() {
     }
 
     return (
-        <aside className="flex flex-col w-48 m-2">
+        // <aside className="transition-all duration-200 ease-in-out flex flex-col w-48 m-2">
+        <aside className={`transition-all duration-200 ease-in-out flex flex-col gap-2 ${isCollapsed ? "w-min" : "w-48"} m-2 pl-2 pt-6 pb-2`}>
+
             <Link to="/dashboard">
                 <SidebarButton
                     icon={<LayoutDashboard />}
-                    label="Dashboard"
+                    label="Overview"
                     isActive={location.pathname === "/dashboard" || location.pathname === "/"}
+                    isCollapsed={isCollapsed}
                 />
             </Link>
 
             <Link to="/log">
                 <SidebarButton
                     icon={<Clock10 />}
-                    label="Logs"
+                    label="Activity Log"
                     isActive={location.pathname === "/log"}
+                    isCollapsed={isCollapsed}
                 />
             </Link>
 
-            <SearchInput />
-            <Separator />
+            <SearchInput isCollapsed={isCollapsed} />
 
-            <span className="text-xs text-muted-foreground px-2 my-2 select-none">
-                Plugins
-            </span>
+            <div >
+
+                <Separator className="mt-2" />
+
+                {!isCollapsed &&
+
+                    <span className="text-xs text-muted-foreground px-2 my-2 select-none">
+                        Extensions
+                    </span>
+                }
+            </div>
 
             {plugins.map((plugin) => {
                 const isEnabled = pluginStatus[plugin.uuid] ?? true;
                 const isSwitching = switchingPlugins[plugin.uuid] ?? false;
 
                 return (
-                    <div key={plugin.uuid} className="flex items-center gap-1">
-                        <Link to={`/plugin/${plugin.file_name}`} className="flex-1 min-w-0">
+                    <div key={plugin.uuid} className="relative">
+                        <Link to={`/plugin/${plugin.file_name}`} className="block">
                             <SidebarButton
-                                icon={null}
+                                icon={<ToyBrick />}
                                 label={plugin.display_name}
                                 isActive={location.pathname === `/plugin/${plugin.file_name}`}
+                                isCollapsed={isCollapsed}
                             />
                         </Link>
 
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={isSwitching}
-                            className={`h-8 w-8 shrink-0 cursor-pointer ${
-                                isEnabled
-                                    ? "text-green-500 hover:text-green-600"
-                                    : "text-red-500 hover:text-red-600"
-                            }`}
-                            title={isEnabled ? "Disable plugin" : "Enable plugin"}
-                            onClick={() =>
-                                handleSwitchPlugin(plugin.uuid)
-                            }
-                        >
-                            ●
-                        </Button>
+
+                        {!isCollapsed && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                disabled={isSwitching}
+                                className={`absolute top-1 right-1 z-10 h-6 w-6 rounded-full bg-transparent p-0 shadow-none hover:bg-transparent ${isEnabled ? "text-green-500 hover:text-green-600" : "text-red-500 hover:text-red-600"
+                                    }`}
+                                title={isEnabled ? "Disable plugin" : "Enable plugin"}
+                                onClick={() => handleSwitchPlugin(plugin.uuid)}
+                            >
+                                <span className="text-base leading-none">●</span>
+                            </Button>
+                        )}
                     </div>
                 );
             })}
 
             <div className="flex-1" />
 
-            <div className="flex flex-row gap-2 justify-end">
+            <div className={isCollapsed ? "flex flex-col gap-2 justify-center" : "flex flex-row gap-2 justify-center"}>
                 <Button
+                    title="Refresh Background Service"
                     variant="outline"
                     size="icon"
                     className="cursor-pointer"
@@ -137,20 +150,19 @@ export function Sidebar() {
                                 new Promise((resolve) => setTimeout(resolve, 500)),
                             ]);
                         } catch (error) {
-                            console.error("Failed to refresh plugins:", error);
+                            console.error("Failed to refresh Background Service:", error);
                         } finally {
                             setIsRefreshing(false);
                         }
                     }}
                 >
                     <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
-                    <span className="sr-only">Refresh plugins</span>
                 </Button>
 
                 <Link to="/settings">
-                    <Button variant="outline" size="icon" className="cursor-pointer">
+                    <Button variant="outline" size="icon" className="cursor-pointer" title="Settings">
                         <Settings2 />
-                        <span className="sr-only">Settings</span>
+                        {/* <span className="sr-only">Settings</span> */}
                     </Button>
                 </Link>
 

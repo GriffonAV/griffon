@@ -37,7 +37,9 @@ struct Plugin {
 }
 
 const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
-    "/tmp/griffon-dev.sock"
+    // "/tmp/griffon-dev.sock"
+    // Use a fixed path in the Griffon directory to avoid issues with some IDEs that create random temp directories
+    "../../griffon.sock"
 } else {
     "/run/griffon/griffon.sock"
 };
@@ -355,6 +357,11 @@ fn main() {
                 move || {
                     thread::sleep(std::time::Duration::from_millis(500));
 
+                    // print DAEMON_SOCK_PATH for debug
+                    LOGGER_NETWORK.debug(format!(
+                        "Attempting to connect to daemon at: {}",
+                        DAEMON_SOCK_PATH
+                    ));
                     match UnixStream::connect(DAEMON_SOCK_PATH) {
                         Ok(stream) => {
                             let state = app_handle.state::<DaemonConnection>();

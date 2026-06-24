@@ -23,7 +23,7 @@ run-cli:
     sudo target/debug/griffon-cli
 
 run-gui-sudo:
-    sudo target/debug/app
+    sudo target/debug/griffon-gui
 
 lint:
     cargo fmt -- --check
@@ -37,3 +37,11 @@ lint-fix:
 build-deb:
     sudo docker build -t griffon-builder -f Dockerfile.build .
     sudo docker run --rm -v $(pwd)/dist:/out griffon-builder
+
+update-plugins:
+    cp target/debug/libgriffon_cleaner.so .config/griffon/
+    cp target/debug/libgriffon_cleaner.d .config/griffon/
+    cp target/debug/libgriffon_scanner.so .config/griffon/
+    cp target/debug/libgriffon_scanner.d .config/griffon/
+    cp plugins/griffon_cleaner/libgriffon_cleaner.toml .config/griffon/
+    cp plugins/griffon_scanner/griffon_scanner.toml .config/griffon/

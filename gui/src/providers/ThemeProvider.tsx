@@ -30,6 +30,25 @@ export function ThemeProvider({
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   );
 
+  // switch them with ctrl + alt + t
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.altKey && event.key === "t") {
+        setTheme((prevTheme) => {
+          const newTheme: Theme =
+            prevTheme === "light" ? "dark" : "light";
+          localStorage.setItem(storageKey, newTheme);
+          return newTheme;
+        });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [storageKey]);
+
   useEffect(() => {
     const root = window.document.documentElement;
 

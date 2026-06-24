@@ -19,6 +19,6 @@ Currently, we only apply patches and updates to the latest development branch (`
 
 If you discover a security vulnerability within Griffon, please do not disclose it publicly on the issue tracker immediately. 
 
-Instead, please report it to the development team directly at: **griffon.security@protonmail.com**.
+Instead, please report it to the development team directly at: **contact.griffon@proton.me**.
 
 We will do our best to acknowledge your report quickly and work on a fix as part of our academic development cycle.
