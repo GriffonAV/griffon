@@ -38,7 +38,7 @@ function DaemonConnection() {
                 </Button>
             </TooltipTrigger>
             <TooltipContent>
-                <p>{isConnected ? 'Daemon is connected' : 'Daemon is not connected'}</p>
+                <p>{isConnected ? 'Background Service is connected' : 'Background Service is not connected'}</p>
             </TooltipContent>
         </Tooltip>
 

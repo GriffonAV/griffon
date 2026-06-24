@@ -1,7 +1,7 @@
 #[allow(dead_code)]
 #[allow(unused_variables)]
 use crate::scanner_engine::data_type::ScanReport;
-use crate::scanner_engine::scanargs::ScanArgs;
+use crate::scanner_engine::scanargs::{PrepArgs, ScanArgs};
 use std::path::Path;
 
 mod archive;
@@ -20,6 +20,7 @@ static THREAD_POOL_INIT: OnceLock<()> = OnceLock::new();
 pub struct ScanEngine {
     pub hash_db: Option<hash_scanner::SignatureDb>,
     pub yara_rules: Option<yara_engine::YaraEngine>,
+    prep_args: PrepArgs,
     scan_args: ScanArgs,
 }
 
@@ -28,10 +29,10 @@ impl ScanEngine {
         Self::default()
     }
 
-    pub fn prepare(&mut self, args: &ScanArgs) -> Result<(i32, i32), String> {
-        self.scan_args = args.clone();
+    pub fn prepare(&mut self, args: &PrepArgs) -> Result<(i32, i32), String> {
+        self.prep_args = args.clone();
 
-        Self::init_thread_pool(&args.threads)?;
+        // Self::init_thread_pool(&args.threads)?;
 
         if !args.yara_only {
             self.load_hash_db(args)
@@ -51,6 +52,8 @@ impl ScanEngine {
     pub fn scan(&mut self, path: &Path, args: &ScanArgs) -> ScanReport {
         self.scan_args = args.clone();
         let mut report = ScanReport::default();
+
+        let _ = Self::init_thread_pool(&args.threads);
 
         log::info!("Rayon active threads: {}", rayon::current_num_threads());
         if path.is_file() {

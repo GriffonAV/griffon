@@ -11,7 +11,6 @@ pub struct Quarantine {
 }
 
 impl Quarantine {
-    #[allow(dead_code)]
     pub fn new(dir: &Path) -> std::io::Result<Self> {
         std::fs::create_dir_all(dir)?;
         log::info!("Quarantine directory: {}", dir.display());
@@ -20,7 +19,6 @@ impl Quarantine {
         })
     }
 
-    #[allow(dead_code)]
     pub fn default_dir() -> PathBuf {
         if cfg!(debug_assertions) {
             PathBuf::from("quarantine")

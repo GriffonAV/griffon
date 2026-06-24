@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::scanner_engine::{ScanArgs, ScanEngine, hash_scanner, yara_engine};
+use crate::scanner_engine::{ScanEngine, hash_scanner, scanargs::PrepArgs, yara_engine};
 
 fn default_rules_dir() -> PathBuf {
     if cfg!(debug_assertions) {
@@ -14,7 +14,7 @@ fn default_rules_dir() -> PathBuf {
 }
 
 impl ScanEngine {
-    pub fn load_hash_db(&mut self, args: &ScanArgs) -> anyhow::Result<()> {
+    pub fn load_hash_db(&mut self, args: &PrepArgs) -> anyhow::Result<()> {
         log::warn!(
             "Experimental feature: Hash-based scanning is still in early development, use only yara rules for better results"
         );
@@ -29,7 +29,7 @@ impl ScanEngine {
         Ok(())
     }
 
-    pub fn load_yara_rules(&mut self, args: &ScanArgs) -> anyhow::Result<()> {
+    pub fn load_yara_rules(&mut self, args: &PrepArgs) -> anyhow::Result<()> {
         let path = args
             .yara_rules
             .as_deref()

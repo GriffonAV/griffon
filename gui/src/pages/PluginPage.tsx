@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { usePlugins } from "@/bindings/PluginContext";
-import { PageTabsLayout } from "@/components/layout/PageTabsLayout";
 import GriffonSectionRenderer from "@/renderer/GriffonSectionRenderer";
 import type { GriffonSection } from "@/components/types";
 import { useGriffonStore } from "@/hooks/useGriffonStore";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 export default function PluginPage() {
   const { name } = useParams();
@@ -23,11 +23,9 @@ export default function PluginPage() {
   }
 
   return (
-    <PageTabsLayout
-      title={currentManifest.plugin.name}
-      navigation={!!currentManifest.plugin?.tabs?.length}
-      tabs={currentManifest.plugin?.tabs}
+    <PageLayout mode="tabs" title={currentManifest.plugin.name} navigation tabs={currentManifest.plugin?.tabs}
     >
+
       {currentManifest.plugin?.tabs?.map((tab) => {
         const tabSections =
           currentManifest.ui?.sections?.filter(
@@ -48,6 +46,6 @@ export default function PluginPage() {
           </div>
         );
       })}
-    </PageTabsLayout>
+    </PageLayout>
   );
 }

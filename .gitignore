@@ -49,6 +49,10 @@ dist/
 /samples
 /target
 /eicar_files
+/grafana
 
 *.log
 eicar*
+
+quanrantine/
+*.sock

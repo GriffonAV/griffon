@@ -1,33 +1,33 @@
 const ThemesList = {
   default: {
-    "---primary": "oklch(0.5417 0.1790 288.0332)",
-    "--secondary": "oklch(0.9174 0.0435 292.6901)",
-    "--accent": "oklch(0.9221 0.0373 262.1410)",
+    "--primary": "oklch(1 0 0)",
+    "--secondary": "oklch(0.1450 0 0)",
+    "--accent": "rgb(168, 82, 214)",
   },
-  "sunset-horizon": {
-    "--primary": "oklch(0.7357 0.1641 34.7091)",
-    "--secondary": "oklch(0.9596 0.0200 28.9029)",
-    "--accent": "oklch(0.8278 0.1131 57.9984)",
+  claude: {
+    "--primary": "oklch(0.9818 0.0054 95.0986)",
+    "--secondary": "oklch(0.3438 0.0269 95.7226)",
+    "--accent": "oklch(0.6171 0.1375 39.0427)",
   },
-  bubblegum: {
-    "--primary": "oklch(0.6209 0.1801 348.1385)",
-    "--secondary": "oklch(0.8095 0.0694 198.1863)",
-    "--accent": "oklch(0.9195 0.0801 87.6670)",
+  designbyte: {
+    "--primary": "oklch(0.9940 0 0)",
+    "--secondary": "oklch(0 0 0)",
+    "--accent": "oklch(0.8545 0.1675 159.6564)",
   },
-  doom64: {
-    "--primary": "oklch(0.5016 0.1887 27.4816)",
-    "--secondary": "oklch(0.4955 0.0896 126.1858)",
-    "--accent": "oklch(0.5880 0.0993 245.7394)",
+  lightgreen: {
+    "--primary": "oklch(0.9892 0.0054 117.9205)",
+    "--secondary": "oklch(0.2077 0.0398 265.7549)",
+    "--accent": "oklch(0.8871 0.2122 128.5041)",
   },
-  "quantum-rose": {
-    "--primary": "oklch(0.6002 0.2414 0.1348)",
-    "--secondary": "oklch(0.9230 0.0701 326.1273)",
-    "--accent": "oklch(0.8766 0.0828 344.8849)",
+  mxbrutalist: {
+    "--primary": "oklch(0.9923 0.0104 91.4994)",
+    "--secondary": "oklch(0.1759 0.0275 161.2531)",
+    "--accent": "oklch(0.5687 0.1498 151.9380)",
   },
-  cafeine: {
-    "--primary": "oklch(0.6180 0.0778 65.5444)",
-    "--secondary": "oklch(0.8846 0.0302 85.5655)",
-    "--accent": "oklch(0.8348 0.0426 88.8064)",
+  sakura: {
+    "--primary": "oklch(0.9859 0.0076 48.6568)",
+    "--secondary": "oklch(0.4279 0.0265 46.6194)",
+    "--accent": "oklch(0.7508 0.1610 2.6024)",
   },
 };
 
