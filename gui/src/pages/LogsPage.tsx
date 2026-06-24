@@ -1,12 +1,12 @@
 import { NoPluginLayout } from "@/bindings/component/layout/NoPluginLayout";
-import { PageWrapper } from "@/components/layout/PageLayout";
+import { PageLayout } from "@/components/layout/PageLayout";
 
 export default function LogsPage() {
   return (
-    <PageWrapper title="History">
+    <PageLayout title="Activity Log">
       <NoPluginLayout>
-        <div>Welcome to the History page</div>
+        <div>Welcome to the Activity Log page</div>
       </NoPluginLayout>
-    </PageWrapper>
+    </PageLayout>
   );
 }

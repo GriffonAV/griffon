@@ -2,7 +2,6 @@ import { ThemeProvider } from "@/providers/ThemeProvider";
 import { TitleBar } from "@/components/layout/TitleBar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Routes, Route } from "react-router-dom";
-
 import HomePage from "@/pages/HomePage";
 import PluginPage from "@/pages/PluginPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -12,6 +11,7 @@ import { PluginProvider } from "@/bindings/PluginContext";
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { useDaemonNotifications } from "@/hooks/useDaemonNotifications";
 import { initializeRequestManager } from "./services/requestManager";
+import { SidebarProvider } from "@/providers/SidebarProvider";
 
 export default function App() {
   useDaemonNotifications();
@@ -22,23 +22,29 @@ export default function App() {
       <TooltipProvider>
 
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-          <ThemeInitializer />
-          <div className="bg-sidebar flex h-screen flex-col">
-            <TitleBar />
-            <div className="flex flex-1 overflow-hidden">
-              <Sidebar />
+          <SidebarProvider>
 
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/dashboard" element={<HomePage />} />
+            <ThemeInitializer />
+            <div className="bg-sidebar flex h-screen flex-col">
 
-                <Route path="/log" element={<LogsPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
+              <TitleBar />
+              <div className="flex flex-1 overflow-hidden">
+                <Sidebar />
 
-                <Route path="/plugin/:name" element={<PluginPage />} />
-              </Routes>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/dashboard" element={<HomePage />} />
+
+                  <Route path="/log" element={<LogsPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+
+                  <Route path="/plugin/:name" element={<PluginPage />} />
+                </Routes>
+
+              </div>
+
             </div>
-          </div>
+          </SidebarProvider>
         </ThemeProvider>
       </TooltipProvider>
     </PluginProvider>

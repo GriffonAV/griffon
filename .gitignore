@@ -53,3 +53,6 @@ dist/
 
 *.log
 eicar*
+
+quanrantine/
+*.sock

@@ -45,9 +45,8 @@ COPY griffon.desktop .
 COPY scripts/ ./scripts/
 
 # copy plugin config files
-COPY plugins/plugin_test/plugin_test.toml ./plugins/plugin_test/plugin_test.toml
-COPY plugins/plugin_test_2/plugin_test_2.toml ./plugins/plugin_test_2/plugin_test_2.toml
 COPY ./plugins/griffon_cleaner/libgriffon_cleaner.toml ./plugins/griffon_cleaner/libgriffon_cleaner.toml
+COPY ./plugins/griffon_scanner/libgriffon_scanner.toml ./plugins/griffon_scanner/libgriffon_scanner.toml
 COPY daemon/griffon-daemon.service ./daemon/griffon-daemon.service
 
 ENTRYPOINT ["sh", "scripts/build-packages.sh"]
