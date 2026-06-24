@@ -40,6 +40,11 @@ fn print_help() {
     println!("        call 550e8400-e29b-41d4-a716-446655440000 scan /tmp");
     println!("        call 550e8400-e29b-41d4-a716-446655440000 clean cache|true");
     println!();
+    println!("  switch_notification <plugin_uuid>");
+    println!(
+        "      Enable or disable notifications for a plugin depending on its current notification status"
+    );
+    println!();
     println!("  exit | quit");
     println!("      Exit the CLI");
     println!();
@@ -208,6 +213,37 @@ fn main() -> io::Result<()> {
 
                 LOGGER_NETWORK.debug(format!(
                     "Switch status plugin sent with request_id={id_request_to_use}"
+                ));
+
+                id_request = id_request_to_use;
+            }
+            "switch_notification" => {
+                LOGGER.debug("SWITCH NOTIFICATION");
+                let plugin_uuid_str = parts.next();
+
+                if plugin_uuid_str.is_none() {
+                    LOGGER.error("Usage: switch_notification <plugin_uuid>");
+                    continue;
+                }
+
+                let plugin_uuid = match parse_uuid_16(plugin_uuid_str) {
+                    Some(uuid) => uuid,
+                    None => {
+                        LOGGER.error("Invalid UUID format");
+                        continue;
+                    }
+                };
+
+                let id_request_to_use = alloc_request_id(id_request);
+
+                send_interface_request(
+                    &mut sock,
+                    &InterfaceRequest::SwitchStatusNotification { plugin_uuid },
+                    id_request_to_use,
+                )?;
+
+                LOGGER_NETWORK.debug(format!(
+                    "Switch notification status sent with request_id={id_request_to_use}"
                 ));
 
                 id_request = id_request_to_use;

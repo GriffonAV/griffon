@@ -20,4 +20,9 @@ pub enum DaemonTask {
         plugin_uuid: [u8; 16],
         reply_tx: mpsc::Sender<InterfaceResponse>,
     },
+    SwitchStatusNotification {
+        request_id: u32,
+        plugin_uuid: [u8; 16],
+        reply_tx: mpsc::Sender<InterfaceResponse>,
+    },
 }

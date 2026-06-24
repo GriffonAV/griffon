@@ -4,6 +4,7 @@ use std::sync::mpsc;
 
 mod dispatcher;
 mod network;
+mod notification;
 mod types;
 
 static LOGGER_NETWORK: Logger = if cfg!(debug_assertions) {

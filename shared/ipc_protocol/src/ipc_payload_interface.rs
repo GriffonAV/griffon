@@ -29,6 +29,9 @@ pub enum InterfaceRequest {
         fn_name: String,
         args: Vec<String>,
     },
+    SwitchStatusNotification {
+        plugin_uuid: [u8; 16],
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize)]

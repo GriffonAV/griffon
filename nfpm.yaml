@@ -44,19 +44,19 @@ contents:
       mode: 0644
 
 # plugins
+  - src: ./target/release/libplugin_template.so
+    dst: /usr/lib/griffon/plugins/libplugin_template.so
+    file_info:
+      mode: 0644
+
   - src: ./target/release/libgriffon_cleaner.so
     dst: /usr/lib/griffon/plugins/libgriffon_cleaner.so
     file_info:
       mode: 0644
 
-  - src: ./target/release/libgriffon_scanner.so
-    dst: /usr/lib/griffon/plugins/libgriffon_scanner.so
-    file_info:
-      mode: 0644
-
    # Plugin configs
-  - src: ./plugins/griffon_cleaner/libgriffon_cleaner.toml
-    dst: /usr/lib/griffon/plugins/libgriffon_cleaner.toml
+  - src: ./plugins/plugin_template/plugin_template.toml
+    dst: /usr/lib/griffon/plugins/plugin_template.toml
     file_info:
       mode: 0644
 
@@ -80,9 +80,14 @@ contents:
     file_info:
       mode: 0644
 
-  # Le service Systemd pour le daemon
+  # Les config pour le daemon
   - src: ./daemon/griffon-daemon.service
     dst: /lib/systemd/system/griffon-daemon.service
+    file_info:
+      mode: 0644
+
+  - src: ./daemon/config_griffon_daemon.json
+    dst: /etc/griffon/config_griffon_daemon.json
     file_info:
       mode: 0644
 
