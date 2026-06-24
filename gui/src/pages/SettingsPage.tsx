@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { ChangeThemeButtonTest, ModeToggleGroup } from "@/components/layout/ModeToggle";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PluginToggleSettings } from "@/components/layout/PluginToggleSettings";
 import { PluginInstaller } from "@/components/layout/PluginInstaller";
+import { usePlugins } from "@/bindings/PluginContext";
 
 const PLUGIN_DOC_URL = "https://griffon-av.vercel.app/";
 
@@ -12,6 +14,32 @@ const tabs: SettingsTab[] = ["Appearance", "Notifications", "Plugins"];
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<SettingsTab>("Appearance");
+    const [pluginBeingDeleted, setPluginBeingDeleted] = useState<string | null>(null);
+
+    const { plugins, refreshPlugins } = usePlugins();
+
+    const handleDeletePlugin = async (pluginFileName: string, pluginDisplayName: string) => {
+        const confirmed = window.confirm(
+            `Are you sure you want to delete "${pluginDisplayName}"?\n\nThis will remove the plugin .toml and .so files.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            setPluginBeingDeleted(pluginFileName);
+
+            await invoke("delete_plugin", {
+                name: pluginFileName,
+            });
+
+            refreshPlugins();
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete plugin.");
+        } finally {
+            setPluginBeingDeleted(null);
+        }
+    };
 
     return (
         <PageLayout title="Settings" navigation={true}>
@@ -67,8 +95,8 @@ export default function SettingsPage() {
                                     <h2 className="text-xl font-bold">Plugins</h2>
 
                                     <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                                        Add, enable or disable installed plugins, and access the plugin
-                                        development documentation.
+                                        Add, enable, disable or delete installed plugins, and access
+                                        the plugin development documentation.
                                     </p>
                                 </div>
 
@@ -121,6 +149,63 @@ export default function SettingsPage() {
                                 <div className="mt-4">
                                     <PluginToggleSettings />
                                 </div>
+                            </div>
+
+                            <div className="border-t border-border pt-5">
+                                <h3 className="text-lg font-semibold text-red-600">
+                                    Delete plugins
+                                </h3>
+
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Permanently remove a plugin from Griffon. This action will delete
+                                    its manifest and shared library files.
+                                </p>
+
+                                {plugins.length === 0 ? (
+                                    <p className="mt-4 text-sm text-muted-foreground">
+                                        No installed plugin found.
+                                    </p>
+                                ) : (
+                                    <div className="mt-4 space-y-3">
+                                        {plugins.map((plugin) => (
+                                            <div
+                                                key={plugin.uuid}
+                                                className="flex flex-col gap-4 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
+                                            >
+                                                <div>
+                                                    <p className="font-semibold">
+                                                        {plugin.display_name}
+                                                    </p>
+
+                                                    <p className="mt-1 text-sm text-muted-foreground">
+                                                        {plugin.description || "No description available."}
+                                                    </p>
+
+                                                    <p className="mt-1 text-xs text-muted-foreground">
+                                                        {plugin.file_name} • Version {plugin.version} •{" "}
+                                                        {plugin.author}
+                                                    </p>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    disabled={pluginBeingDeleted === plugin.file_name}
+                                                    onClick={() =>
+                                                        handleDeletePlugin(
+                                                            plugin.file_name,
+                                                            plugin.display_name
+                                                        )
+                                                    }
+                                                    className="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                                                >
+                                                    {pluginBeingDeleted === plugin.file_name
+                                                        ? "Deleting..."
+                                                        : "Delete"}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </section>

@@ -2,34 +2,34 @@
   "events": [],
   "per_module_metrics": {},
   "dry_run": true,
-  "total_duration_ms": 1552,
-  "total_files_touched": 109348,
-  "total_bytes_freed": 14552317933,
+  "total_duration_ms": 4054,
+  "total_files_touched": 110552,
+  "total_bytes_freed": 14693970903,
   "total_warnings": 36,
   "total_errors": 0,
   "total_permission_denied": 14,
   "modules_by_bytes_freed": [
     {
       "module_id": "cache",
-      "duration_ms": 1118,
-      "files_touched": 109348,
-      "bytes_freed": 11491136617,
+      "duration_ms": 1657,
+      "files_touched": 110552,
+      "bytes_freed": 11632789587,
       "warnings_count": 26,
       "errors_count": 0,
       "permission_denied": 14,
-      "candidate_files_count": 109348,
+      "candidate_files_count": 110552,
       "deleted_files_count": 0,
-      "skipped_files_count": 109348,
+      "skipped_files_count": 110552,
       "missing_paths_count": 12,
       "existing_paths_count": 8,
       "delete_success_rate": 0.0,
-      "warning_rate": 0.02377729816731902,
-      "avg_bytes_per_file": 105087.76216300252,
-      "bytes_per_second": 10278297510.733452
+      "warning_rate": 0.023518344308560677,
+      "avg_bytes_per_file": 105224.59645234821,
+      "bytes_per_second": 7020392025.950513
     },
     {
       "module_id": "docker",
-      "duration_ms": 433,
+      "duration_ms": 2396,
       "files_touched": 0,
       "bytes_freed": 3061181316,
       "warnings_count": 10,
@@ -43,31 +43,13 @@
       "delete_success_rate": 0.0,
       "warning_rate": 0.0,
       "avg_bytes_per_file": 0.0,
-      "bytes_per_second": 7069702808.314088
+      "bytes_per_second": 1277621584.3071787
     }
   ],
   "modules_by_duration": [
     {
-      "module_id": "cache",
-      "duration_ms": 1118,
-      "files_touched": 109348,
-      "bytes_freed": 11491136617,
-      "warnings_count": 26,
-      "errors_count": 0,
-      "permission_denied": 14,
-      "candidate_files_count": 109348,
-      "deleted_files_count": 0,
-      "skipped_files_count": 109348,
-      "missing_paths_count": 12,
-      "existing_paths_count": 8,
-      "delete_success_rate": 0.0,
-      "warning_rate": 0.02377729816731902,
-      "avg_bytes_per_file": 105087.76216300252,
-      "bytes_per_second": 10278297510.733452
-    },
-    {
       "module_id": "docker",
-      "duration_ms": 433,
+      "duration_ms": 2396,
       "files_touched": 0,
       "bytes_freed": 3061181316,
       "warnings_count": 10,
@@ -81,31 +63,49 @@
       "delete_success_rate": 0.0,
       "warning_rate": 0.0,
       "avg_bytes_per_file": 0.0,
-      "bytes_per_second": 7069702808.314088
+      "bytes_per_second": 1277621584.3071787
+    },
+    {
+      "module_id": "cache",
+      "duration_ms": 1657,
+      "files_touched": 110552,
+      "bytes_freed": 11632789587,
+      "warnings_count": 26,
+      "errors_count": 0,
+      "permission_denied": 14,
+      "candidate_files_count": 110552,
+      "deleted_files_count": 0,
+      "skipped_files_count": 110552,
+      "missing_paths_count": 12,
+      "existing_paths_count": 8,
+      "delete_success_rate": 0.0,
+      "warning_rate": 0.023518344308560677,
+      "avg_bytes_per_file": 105224.59645234821,
+      "bytes_per_second": 7020392025.950513
     }
   ],
   "modules_by_warnings": [
     {
       "module_id": "cache",
-      "duration_ms": 1118,
-      "files_touched": 109348,
-      "bytes_freed": 11491136617,
+      "duration_ms": 1657,
+      "files_touched": 110552,
+      "bytes_freed": 11632789587,
       "warnings_count": 26,
       "errors_count": 0,
       "permission_denied": 14,
-      "candidate_files_count": 109348,
+      "candidate_files_count": 110552,
       "deleted_files_count": 0,
-      "skipped_files_count": 109348,
+      "skipped_files_count": 110552,
       "missing_paths_count": 12,
       "existing_paths_count": 8,
       "delete_success_rate": 0.0,
-      "warning_rate": 0.02377729816731902,
-      "avg_bytes_per_file": 105087.76216300252,
-      "bytes_per_second": 10278297510.733452
+      "warning_rate": 0.023518344308560677,
+      "avg_bytes_per_file": 105224.59645234821,
+      "bytes_per_second": 7020392025.950513
     },
     {
       "module_id": "docker",
-      "duration_ms": 433,
+      "duration_ms": 2396,
       "files_touched": 0,
       "bytes_freed": 3061181316,
       "warnings_count": 10,
@@ -119,31 +119,31 @@
       "delete_success_rate": 0.0,
       "warning_rate": 0.0,
       "avg_bytes_per_file": 0.0,
-      "bytes_per_second": 7069702808.314088
+      "bytes_per_second": 1277621584.3071787
     }
   ],
   "modules_by_efficiency": [
     {
       "module_id": "cache",
-      "duration_ms": 1118,
-      "files_touched": 109348,
-      "bytes_freed": 11491136617,
+      "duration_ms": 1657,
+      "files_touched": 110552,
+      "bytes_freed": 11632789587,
       "warnings_count": 26,
       "errors_count": 0,
       "permission_denied": 14,
-      "candidate_files_count": 109348,
+      "candidate_files_count": 110552,
       "deleted_files_count": 0,
-      "skipped_files_count": 109348,
+      "skipped_files_count": 110552,
       "missing_paths_count": 12,
       "existing_paths_count": 8,
       "delete_success_rate": 0.0,
-      "warning_rate": 0.02377729816731902,
-      "avg_bytes_per_file": 105087.76216300252,
-      "bytes_per_second": 10278297510.733452
+      "warning_rate": 0.023518344308560677,
+      "avg_bytes_per_file": 105224.59645234821,
+      "bytes_per_second": 7020392025.950513
     },
     {
       "module_id": "docker",
-      "duration_ms": 433,
+      "duration_ms": 2396,
       "files_touched": 0,
       "bytes_freed": 3061181316,
       "warnings_count": 10,
@@ -157,31 +157,31 @@
       "delete_success_rate": 0.0,
       "warning_rate": 0.0,
       "avg_bytes_per_file": 0.0,
-      "bytes_per_second": 7069702808.314088
+      "bytes_per_second": 1277621584.3071787
     }
   ],
   "modules_by_delete_success_rate": [
     {
       "module_id": "cache",
-      "duration_ms": 1118,
-      "files_touched": 109348,
-      "bytes_freed": 11491136617,
+      "duration_ms": 1657,
+      "files_touched": 110552,
+      "bytes_freed": 11632789587,
       "warnings_count": 26,
       "errors_count": 0,
       "permission_denied": 14,
-      "candidate_files_count": 109348,
+      "candidate_files_count": 110552,
       "deleted_files_count": 0,
-      "skipped_files_count": 109348,
+      "skipped_files_count": 110552,
       "missing_paths_count": 12,
       "existing_paths_count": 8,
       "delete_success_rate": 0.0,
-      "warning_rate": 0.02377729816731902,
-      "avg_bytes_per_file": 105087.76216300252,
-      "bytes_per_second": 10278297510.733452
+      "warning_rate": 0.023518344308560677,
+      "avg_bytes_per_file": 105224.59645234821,
+      "bytes_per_second": 7020392025.950513
     },
     {
       "module_id": "docker",
-      "duration_ms": 433,
+      "duration_ms": 2396,
       "files_touched": 0,
       "bytes_freed": 3061181316,
       "warnings_count": 10,
@@ -195,7 +195,7 @@
       "delete_success_rate": 0.0,
       "warning_rate": 0.0,
       "avg_bytes_per_file": 0.0,
-      "bytes_per_second": 7069702808.314088
+      "bytes_per_second": 1277621584.3071787
     }
   ]
 }
