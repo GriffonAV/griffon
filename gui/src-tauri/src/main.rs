@@ -14,6 +14,8 @@ use crate::daemon::{get_daemon_status, DaemonConnection};
 use logger::{LogLevel, Logger};
 
 mod manifests;
+mod plugin_history;
+
 use manifests::load_plugin_manifest;
 use manifests::PluginManifest;
 
@@ -415,7 +417,8 @@ fn main() {
             get_plugin_manifest,
             refresh_plugin,
             switch_status_plugin,
-            call_plugin
+            call_plugin,
+            plugin_history::get_plugin_history
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");
