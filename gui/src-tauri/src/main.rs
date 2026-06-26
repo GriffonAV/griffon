@@ -1,16 +1,16 @@
-use std::collections::HashMap;
 use ipc_protocol::ipc_payload_interface::{
     alloc_request_id, format_uuid_bytes, parse_uuid_16, recv_interface_response,
     send_interface_request, InterfaceRequest, InterfaceResponse,
 };
+use serde::Deserialize;
 use serde::Serialize;
+use std::collections::HashMap;
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::thread;
 use tauri::Manager;
 use tauri::{Emitter, State};
-use serde::Deserialize;
 
 mod daemon;
 use crate::daemon::{get_daemon_status, DaemonConnection};
@@ -427,7 +427,7 @@ fn switch_status_notification_inner(
         &InterfaceRequest::SwitchStatusNotification { plugin_uuid },
         request_id,
     )
-        .map_err(|e| e.to_string())?;
+    .map_err(|e| e.to_string())?;
 
     LOGGER_NETWORK.debug(format!(
         "Switch notification status sent with request_id={request_id}"
