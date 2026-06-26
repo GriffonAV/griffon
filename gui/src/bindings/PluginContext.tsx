@@ -5,12 +5,13 @@ import { error } from "@tauri-apps/plugin-log";
 import { createPendingRequest } from "@/services/requestManager";
 
 export type Plugin = {
-    file_name: string;
-    uuid: string;
-    display_name: string;
-    version: string;
-    author: string;
-    description: string;
+  file_name: string;
+  uuid: string;
+  display_name: string;
+  version: string;
+  author: string;
+  description: string;
+  notifications_enabled: boolean;
 };
 
 export interface InteractionStep {

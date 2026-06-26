@@ -9,20 +9,22 @@ import { usePlugins } from "@/bindings/PluginContext";
 
 const PLUGIN_DOC_URL = "https://griffon-av.vercel.app/";
 
-type SettingsTab = "Appearance" | "Notifications" | "Plugins";
+type SettingsTab = "Appearance" | "Plugins";
 
-const tabs: SettingsTab[] = ["Appearance", "Notifications", "Plugins"];
+const tabs: SettingsTab[] = ["Appearance", "Plugins"];
 
 const getInitialTab = (tab: string | null): SettingsTab => {
   switch (tab?.toLowerCase()) {
     case "plugins":
       return "Plugins";
-    case "notifications":
-      return "Notifications";
     case "appearance":
     default:
       return "Appearance";
   }
+};
+
+const createRequestId = () => {
+  return Math.floor(Date.now() % 1_000_000_000);
 };
 
 export default function SettingsPage() {
@@ -33,6 +35,9 @@ export default function SettingsPage() {
   );
 
   const [pluginBeingDeleted, setPluginBeingDeleted] = useState<string | null>(null);
+  const [pluginNotificationBeingSwitched, setPluginNotificationBeingSwitched] = useState<
+    string | null
+  >(null);
   const [pluginRefreshKey, setPluginRefreshKey] = useState(0);
 
   const { plugins, refreshPlugins } = usePlugins();
@@ -51,8 +56,33 @@ export default function SettingsPage() {
   };
 
   const refreshPluginUi = async () => {
+    await invoke("refresh_plugin");
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     await refreshPlugins();
+
     setPluginRefreshKey((key) => key + 1);
+  };
+
+  const handleSwitchNotification = async (pluginUuid: string, pluginDisplayName: string) => {
+    try {
+      setPluginNotificationBeingSwitched(pluginUuid);
+
+      await invoke("switch_status_notification", {
+        pluginUuid,
+        requestId: createRequestId(),
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      await refreshPluginUi();
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to switch notifications for "${pluginDisplayName}".`);
+    } finally {
+      setPluginNotificationBeingSwitched(null);
+    }
   };
 
   const handleDeletePlugin = async (pluginFileName: string, pluginDisplayName: string) => {
@@ -113,17 +143,6 @@ export default function SettingsPage() {
           </section>
         )}
 
-        {activeTab === "Notifications" && (
-          <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-            <h2 className="text-xl font-bold">Notifications</h2>
-
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Configure how Griffon should notify you about scans, alerts, plugin activity, and
-              security events.
-            </p>
-          </section>
-        )}
-
         {activeTab === "Plugins" && (
           <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
             <div className="flex flex-col gap-6">
@@ -132,8 +151,7 @@ export default function SettingsPage() {
                   <h2 className="text-xl font-bold">Plugins</h2>
 
                   <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                    Add, enable, disable or delete installed plugins, and access the plugin
-                    development documentation.
+                    Add, enable, disable, delete plugins, and manage plugin notifications.
                   </p>
                 </div>
 
@@ -176,19 +194,80 @@ export default function SettingsPage() {
               </div>
 
               <div className="border-t border-border pt-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">Installed plugins</h3>
+                <div>
+                  <h3 className="text-lg font-semibold">Installed plugins</h3>
 
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Toggle plugin status directly from the settings panel.
-                    </p>
-                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Toggle plugin status directly from the settings panel.
+                  </p>
                 </div>
 
                 <div className="mt-4">
                   <PluginToggleSettings key={pluginRefreshKey} />
                 </div>
+              </div>
+
+              <div className="border-t border-border pt-5">
+                <h3 className="text-lg font-semibold">Plugin notifications</h3>
+
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Enable or disable notifications for each installed plugin.
+                </p>
+
+                {plugins.length === 0 ? (
+                  <p className="mt-4 text-sm text-muted-foreground">No installed plugin found.</p>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {plugins.map((plugin) => (
+                      <div
+                        key={plugin.uuid}
+                        className="flex flex-col gap-4 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div>
+                          <p className="font-semibold">{plugin.display_name}</p>
+
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {plugin.description || "No description available."}
+                          </p>
+
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {plugin.file_name} • Version {plugin.version} • {plugin.author}
+                          </p>
+
+                          <p className="mt-2 text-xs font-medium">
+                            Notifications:{" "}
+                            <span
+                              className={
+                                plugin.notifications_enabled
+                                  ? "text-green-600"
+                                  : "text-muted-foreground"
+                              }
+                            >
+                              {plugin.notifications_enabled ? "Enabled" : "Disabled"}
+                            </span>
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={pluginNotificationBeingSwitched === plugin.uuid}
+                          onClick={() => handleSwitchNotification(plugin.uuid, plugin.display_name)}
+                          className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${
+                            plugin.notifications_enabled
+                              ? "bg-secondary text-secondary-foreground hover:opacity-90"
+                              : "bg-primary text-primary-foreground hover:opacity-90"
+                          }`}
+                        >
+                          {pluginNotificationBeingSwitched === plugin.uuid
+                            ? "Switching..."
+                            : plugin.notifications_enabled
+                              ? "Disable notifications"
+                              : "Enable notifications"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-border pt-5">
