@@ -57,25 +57,25 @@ interface PluginContextType {
     plugins: Plugin[];
     currentManifest: PluginManifest | null;
     isManifestLoading: boolean;
-    refreshPlugins: () => void;
-    loadPluginManifest: (pluginId: string) => void;
+    refreshPlugins: () => Promise<void>;
+    loadPluginManifest: (pluginName: string) => Promise<void>;
+    deletePlugin: (pluginName: string) => Promise<void>;
     callPluginFunction: (fnName: string, args: string[]) => Promise<any>;
 }
-
 
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
 export function PluginProvider({ children }: { children: ReactNode }) {
     const [plugins, setPlugins] = useState<Plugin[]>([]);
-
     const [manifests, setManifests] = useState<Record<string, PluginManifest>>({});
     const [isManifestLoading, setIsManifestLoading] = useState(false);
-    const [currentManifest, setCurrentManifest] = useState<PluginManifest>({} as PluginManifest);
+    const [currentManifest, setCurrentManifest] = useState<PluginManifest | null>(null);
 
-    async function callPluginFunction(
-        fnName: string,
-        args: string[]
-    ) : Promise<string> {
+    async function callPluginFunction(fnName: string, args: string[]): Promise<string> {
+        if (!currentManifest?.plugin?.uuid) {
+            throw new Error("No plugin manifest loaded");
+        }
+
         const { requestId, promise } = createPendingRequest();
 
         await invoke("call_plugin", {
@@ -94,12 +94,11 @@ export function PluginProvider({ children }: { children: ReactNode }) {
             const result = await invoke<Plugin[]>("list_plugins");
             setPlugins(result);
         } catch (err) {
-            error("Failed to load plugins:" + err);
+            error("Failed to load plugins: " + err);
         }
     }
 
     async function loadPluginManifest(pluginName: string) {
-
         if (manifests[pluginName]) {
             setCurrentManifest(manifests[pluginName]);
             return;
@@ -108,22 +107,51 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         setIsManifestLoading(true);
 
         try {
-            const manifest = await invoke<PluginManifest>("get_plugin_manifest", { "name": pluginName });
+            const manifest = await invoke<PluginManifest>("get_plugin_manifest", {
+                name: pluginName,
+            });
 
-            setManifests(prev => ({
-            ...prev,
-            [pluginName]: {
+            const normalizedManifest = {
                 ...manifest,
                 store: manifest.store ?? {},
                 interactions: manifest.interactions ?? [],
-            }
+            };
+
+            setManifests((prev) => ({
+                ...prev,
+                [pluginName]: normalizedManifest,
             }));
 
-            setCurrentManifest(manifests[pluginName]);
+            setCurrentManifest(normalizedManifest);
         } catch (err) {
-            error("Failed to load manifest:" + err);
+            error("Failed to load manifest: " + err);
         } finally {
             setIsManifestLoading(false);
+        }
+    }
+
+    async function deletePlugin(pluginName: string) {
+        try {
+            await invoke("delete_plugin", {
+                name: pluginName,
+            });
+
+            setPlugins((prev) =>
+                prev.filter((plugin) => plugin.file_name !== pluginName)
+            );
+
+            setManifests((prev) => {
+                const next = { ...prev };
+                delete next[pluginName];
+                return next;
+            });
+
+            setCurrentManifest(null);
+
+            await refreshPlugins();
+        } catch (err) {
+            error("Failed to delete plugin: " + err);
+            throw err;
         }
     }
 
@@ -139,7 +167,8 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                 isManifestLoading,
                 refreshPlugins,
                 loadPluginManifest,
-                callPluginFunction
+                deletePlugin,
+                callPluginFunction,
             }}
         >
             {children}
@@ -147,13 +176,12 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     );
 }
 
-
 export function usePlugins() {
     const context = useContext(PluginContext);
+
     if (context === undefined) {
         throw new Error("usePlugins must be used within a PluginProvider");
     }
+
     return context;
 }
-
-
