@@ -17,13 +17,10 @@ build-workspace:
     cargo build --release --workspace --exclude griffon-gui
 
 run-daemon:
-    sudo target/debug/griffon-daemon
+    target/debug/griffon-daemon
 
 run-cli:
-    sudo target/debug/griffon-cli
-
-run-gui-sudo:
-    sudo target/debug/griffon-gui
+    target/debug/griffon-cli
 
 lint:
     cargo fmt -- --check
