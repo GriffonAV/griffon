@@ -1,6 +1,6 @@
-# Griffon Plugin Manifest: File Picker Demo
+# Griffon Plugin Manifest: Antivirus Scanner — layout draft (primitives only)
 [plugin]
-name = "libgriffon_scan"
+name = "Griffon Scanner"
 id = "a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"
 version = "1.0.0"
 author = "DiaboloAB"
@@ -8,83 +8,14 @@ description = "YARA & Hash Antivirus Scanner plugin for scanning, managing signa
 tabs = ["scan", "database", "quarantine"]
 uuid = "a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"
 
-
 # =========================
-# Store
+# Store (placeholder shape, not wired to real logic yet)
 # =========================
 
 [store]
 
-# Engine
-[store.data.engine_status]
-state = "unknown" # "ready" | "loading" | "error" | "stopped" | "unknown"
-message = ""
-
-# --- Scan tab ---
-
-# F7  – target path (file or directory)
-[store.data.scan_target]
-path = ""
-is_dir = false
-
-# F8 / F9 / F10 / F13 – scan configuration
-[store.data.scan_options]
-# F8  default mode: when true the advanced panel is collapsed and defaults are used
-default_mode = true
-# F9  threat types to detect (advanced)
-detect_malware = true
-detect_pua = true
-detect_ransomware = true
-detect_exploits = true
-# F10 performance (advanced)
-threads = 4
-# F13 archive scanning toggle
-scan_archives = true
-
-# F11 – analysis results
-[store.data.scan_result]
-ok = false
-ran = false       # whether a scan has been executed yet
-duration_ms = 0
-scanned_count = 0
-threat_count = 0
-clean = true
-threats = []      # list of { path, threat_name, threat_type }
-
-# F12 – threat handling: selected threats for delete / quarantine
-[store.data.threat_selection]
-paths = []
-
-[store.data.threat_action_result]
-ok = false
-action = ""  # "delete" | "quarantine"
-message = ""
-count = 0
-
-# --- Database tab ---
-
-[store.data.rules_info]
-ok = false
-message = ""
-yara_count = 0
-hash_count = 0
-
-[store.data.update_result]
-ok = false
-message = ""
-
-# --- Quarantine tab ---
-
-[store.data.quarantine_list]
-ok = false
-items = [] # list of { name, original_path, quarantined_at, size }
-
-[store.data.selected_quarantine]
-name = ""
-
-[store.data.restore_result]
-ok = false
-message = ""
+[store.data.placeholder]
+note = "store left minimal until generic input components exist"
 
 # =========================
 # UI
@@ -100,75 +31,161 @@ message = ""
 id = "scan_section"
 tab = "scan"
 
-# Header row -----------------------------------------------
+# --- Title ---
+[[ui.sections.contents]]
+type = "text"
+id = "scan_title"
+name = "Scanner"
+variant = "title"
+
+[[ui.sections.contents]]
+type = "divider"
+id = "scan_div_top"
+
+# --- Subpart: Settings ---
+[[ui.sections.contents]]
+type = "text"
+id = "scan_settings_title"
+name = "Settings"
+variant = "subtitle"
+
+# Threat types
 [[ui.sections.contents]]
 type = "row"
-id = "scan_header_row"
+id = "scan_settings_threats_row"
 gap = "sm"
 justify = "space-between"
 align = "center"
 
 [[ui.sections.contents.children]]
 type = "text"
-id = "scan_title"
-name = "Scanner"
-variant = "title"
+id = "scan_settings_threats_label"
+name = "Threat types"
+variant = "label"
 
 [[ui.sections.contents.children]]
-type = "scanner_status_badge"
-id = "scan_engine_badge"
-from = "store.data.engine_status"
+type = "button"
+id = "scan_settings_threats_bt"
+name = "Select…"
+variant = "secondary"
+action = "scanner.noop"
 
-# F7 – Target path -----------------------------------------
+# Thread count
 [[ui.sections.contents]]
-type = "scanner_path_input"
-id = "scan_path_input"
-title = "Target"
-description = "Enter the path of a file or directory to analyse."
-from = "store.data.scan_target"
-action = "scanner.set_scan_target"
+type = "row"
+id = "scan_settings_threads_row"
+gap = "sm"
+justify = "space-between"
+align = "center"
 
-# F8 – Default / Advanced toggle ---------------------------
+[[ui.sections.contents.children]]
+type = "text"
+id = "scan_settings_threads_label"
+name = "Number of threads"
+variant = "label"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "scan_settings_threads_bt"
+name = "Set…"
+variant = "secondary"
+action = "scanner.noop"
+
+# Archive handling
 [[ui.sections.contents]]
-type = "scanner_mode_toggle"
-id = "scan_mode_toggle"
-title = "Analysis mode"
-description = "Use default settings for a quick scan, or switch to Advanced to fine-tune detection and performance."
-from = "store.data.scan_options"
-action = "scanner.set_scan_options"
+type = "row"
+id = "scan_settings_archive_row"
+gap = "sm"
+justify = "space-between"
+align = "center"
 
-# F9 – Threat type selector (advanced only) ----------------
+[[ui.sections.contents.children]]
+type = "text"
+id = "scan_settings_archive_label"
+name = "Scan inside archives"
+variant = "label"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "scan_settings_archive_bt"
+name = "Toggle"
+variant = "secondary"
+action = "scanner.noop"
+
+# Recursive handling
 [[ui.sections.contents]]
-type = "scanner_threat_selector"
-id = "scan_threat_selector"
-title = "Threat types"
-description = "Select which categories of threats to detect. Uncheck a type to skip it during analysis."
-from = "store.data.scan_options"
-action = "scanner.set_scan_options"
-visibleWhen = "store.data.scan_options.default_mode == false"
+type = "row"
+id = "scan_settings_recursive_row"
+gap = "sm"
+justify = "space-between"
+align = "center"
 
-# F10 – Thread count (advanced only) -----------------------
+[[ui.sections.contents.children]]
+type = "text"
+id = "scan_settings_recursive_label"
+name = "Recursive scan"
+variant = "label"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "scan_settings_recursive_bt"
+name = "Toggle"
+variant = "secondary"
+action = "scanner.noop"
+
 [[ui.sections.contents]]
-type = "scanner_thread_slider"
-id = "scan_thread_slider"
-title = "Threads"
-description = "Number of parallel threads used during analysis. Higher values are faster but consume more CPU."
-min = 1
-max = 32
-from = "store.data.scan_options"
-action = "scanner.set_scan_options"
-visibleWhen = "store.data.scan_options.default_mode == false"
+type = "divider"
+id = "scan_div_settings_end"
 
-# F13 – Archive toggle -------------------------------------
+# --- Subpart: Scan target ---
 [[ui.sections.contents]]
-type = "scanner_archive_toggle"
-id = "scan_archive_toggle"
-title = "Scan archives"
-description = "When enabled, compressed files (.zip, .tar, .gz, …) are extracted and scanned recursively."
-from = "store.data.scan_options"
-action = "scanner.set_scan_options"
+type = "text"
+id = "scan_target_title"
+name = "Target"
+variant = "subtitle"
 
-# Launch row -----------------------------------------------
+[[ui.sections.contents]]
+type = "row"
+id = "scan_target_file_row"
+gap = "sm"
+justify = "space-between"
+align = "center"
+
+[[ui.sections.contents.children]]
+type = "text"
+id = "scan_target_file_label"
+name = "File"
+variant = "label"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "scan_target_file_bt"
+name = "Choose file…"
+variant = "secondary"
+icon = "file"
+action = "scanner.noop"
+
+[[ui.sections.contents]]
+type = "row"
+id = "scan_target_folder_row"
+gap = "sm"
+justify = "space-between"
+align = "center"
+
+[[ui.sections.contents.children]]
+type = "text"
+id = "scan_target_folder_label"
+name = "Folder"
+variant = "label"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "scan_target_folder_bt"
+name = "Choose folder…"
+variant = "secondary"
+icon = "folder"
+action = "scanner.noop"
+
 [[ui.sections.contents]]
 type = "row"
 id = "scan_launch_row"
@@ -182,55 +199,62 @@ id = "run_scan_bt"
 name = "Start analysis"
 variant = "primary"
 icon = "shield"
-action = "scanner.run_scan"
+action = "scanner.noop"
 
 [[ui.sections.contents]]
 type = "divider"
-id = "scan_results_divider"
+id = "scan_div_target_end"
 
-# F11 – Results summary ------------------------------------
+# --- Subpart: Results ---
 [[ui.sections.contents]]
-type = "scanner_result_summary"
-id = "scan_result_summary"
-from = "store.data.scan_result"
+type = "row"
+id = "scan_results_header_row"
+gap = "sm"
+justify = "space-between"
+align = "center"
 
-# F12 – Threat list with actions ---------------------------
+[[ui.sections.contents.children]]
+type = "text"
+id = "scan_results_title"
+name = "Results"
+variant = "subtitle"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "scan_results_refresh_bt"
+name = "Refresh"
+variant = "secondary"
+icon = "refresh"
+action = "scanner.noop"
+
 [[ui.sections.contents]]
-type = "scanner_threat_list"
-id = "scan_threat_list"
-title = "Detected threats"
-description = "Select threats below, then choose to delete them permanently or move them to quarantine."
-from = "store.data.scan_result"
-selectedFrom = "store.data.threat_selection"
-action = "scanner.set_threat_selection"
+type = "text"
+id = "scan_results_placeholder"
+name = "No analysis run yet."
+variant = "description"
 
 [[ui.sections.contents]]
 type = "row"
-id = "threat_action_row"
+id = "scan_results_action_row"
 gap = "sm"
 justify = "flex-end"
 align = "center"
 
 [[ui.sections.contents.children]]
 type = "button"
-id = "quarantine_threats_bt"
+id = "scan_results_quarantine_bt"
 name = "Move to quarantine"
 variant = "secondary"
 icon = "shield-off"
-action = "scanner.quarantine_selected_threats"
+action = "scanner.noop"
 
 [[ui.sections.contents.children]]
 type = "button"
-id = "delete_threats_bt"
+id = "scan_results_delete_bt"
 name = "Delete selected"
 variant = "danger"
 icon = "trash"
-action = "scanner.delete_selected_threats"
-
-[[ui.sections.contents]]
-type = "scanner_threat_action_result"
-id = "threat_action_result"
-from = "store.data.threat_action_result"
+action = "scanner.noop"
 
 # =========================================================
 # DATABASE TAB
@@ -240,101 +264,82 @@ from = "store.data.threat_action_result"
 id = "database_section"
 tab = "database"
 
-# Header ---------------------------------------------------
+[[ui.sections.contents]]
+type = "text"
+id = "database_title"
+name = "Database"
+variant = "title"
+
+[[ui.sections.contents]]
+type = "divider"
+id = "database_div_top"
+
+# --- Subpart: State ---
 [[ui.sections.contents]]
 type = "row"
-id = "database_header_row"
+id = "database_state_row"
 gap = "sm"
 justify = "space-between"
 align = "center"
 
 [[ui.sections.contents.children]]
 type = "text"
-id = "database_title"
-name = "Signature Database"
-variant = "title"
+id = "database_state_label"
+name = "Database state"
+variant = "label"
 
 [[ui.sections.contents.children]]
-type = "button"
-id = "check_rules_bt"
-name = "Check rules"
-variant = "secondary"
-icon = "list"
-action = "scanner.check_rules"
-
-# Rules overview -------------------------------------------
-[[ui.sections.contents]]
-type = "scanner_rules_info"
-id = "rules_info_view"
-from = "store.data.rules_info"
-
-[[ui.sections.contents]]
-type = "divider"
-id = "database_divider_1"
-
-# Update section -------------------------------------------
-[[ui.sections.contents]]
 type = "text"
-id = "update_title"
-name = "Update signatures"
-variant = "subtitle"
-
-[[ui.sections.contents]]
-type = "text"
-id = "update_desc"
-name = "Download and apply the latest YARA rules and hash lists. The engine will restart automatically after a successful update."
+id = "database_state_value"
+name = "Unknown"
 variant = "description"
 
 [[ui.sections.contents]]
 type = "row"
-id = "update_row"
+id = "database_check_row"
 gap = "sm"
 justify = "flex-end"
 align = "center"
 
 [[ui.sections.contents.children]]
 type = "button"
-id = "update_bt"
-name = "Update now"
-variant = "primary"
-icon = "download"
-action = "scanner.run_update"
-
-[[ui.sections.contents]]
-type = "scanner_update_result"
-id = "update_result_view"
-from = "store.data.update_result"
+id = "database_check_bt"
+name = "Check"
+variant = "secondary"
+icon = "list"
+action = "scanner.noop"
 
 [[ui.sections.contents]]
 type = "divider"
-id = "database_divider_2"
+id = "database_div_state_end"
 
-# Engine control -------------------------------------------
+# --- Subpart: Update ---
 [[ui.sections.contents]]
 type = "text"
-id = "engine_control_title"
-name = "Engine control"
+id = "database_update_title"
+name = "Update"
 variant = "subtitle"
 
 [[ui.sections.contents]]
+type = "text"
+id = "database_update_desc"
+name = "Download and apply the latest YARA rules and hash lists."
+variant = "description"
+
+[[ui.sections.contents]]
 type = "row"
-id = "engine_control_row"
+id = "database_update_row"
 gap = "sm"
-justify = "space-between"
+justify = "flex-end"
 align = "center"
 
 [[ui.sections.contents.children]]
-type = "scanner_status_badge"
-id = "database_engine_badge"
-from = "store.data.engine_status"
-
-[[ui.sections.contents.children]]
 type = "button"
-id = "stop_engine_bt"
-name = "Stop engine"
-variant = "danger"
-icon = "square"
-action = "scanner.stop_engine"
+id = "database_update_bt"
+name = "Update now"
+variant = "primary"
+icon = "download"
+action = "scanner.noop"
 
 # =========================================================
 # QUARANTINE TAB
@@ -344,7 +349,6 @@ action = "scanner.stop_engine"
 id = "quarantine_section"
 tab = "quarantine"
 
-# Header ---------------------------------------------------
 [[ui.sections.contents]]
 type = "row"
 id = "quarantine_header_row"
@@ -360,21 +364,23 @@ variant = "title"
 
 [[ui.sections.contents.children]]
 type = "button"
-id = "refresh_quarantine_bt"
+id = "quarantine_refresh_bt"
 name = "Refresh"
 variant = "secondary"
 icon = "refresh"
-action = "scanner.load_quarantine"
+action = "scanner.noop"
 
-# Quarantine list ------------------------------------------
 [[ui.sections.contents]]
-type = "scanner_quarantine_list"
-id = "quarantine_list_view"
-from = "store.data.quarantine_list"
-selectedFrom = "store.data.selected_quarantine"
-action = "scanner.set_selected_quarantine"
+type = "divider"
+id = "quarantine_div_top"
 
-# Actions row ----------------------------------------------
+# --- Subpart: List ---
+[[ui.sections.contents]]
+type = "text"
+id = "quarantine_list_placeholder"
+name = "No quarantined files."
+variant = "description"
+
 [[ui.sections.contents]]
 type = "row"
 id = "quarantine_actions_row"
@@ -384,213 +390,29 @@ align = "center"
 
 [[ui.sections.contents.children]]
 type = "button"
-id = "restore_bt"
+id = "quarantine_restore_bt"
 name = "Restore selected"
 variant = "secondary"
 icon = "undo"
-action = "scanner.restore_selected"
+action = "scanner.noop"
 
-[[ui.sections.contents]]
-type = "scanner_restore_result"
-id = "restore_result_view"
-from = "store.data.restore_result"
+[[ui.sections.contents.children]]
+type = "button"
+id = "quarantine_delete_bt"
+name = "Delete selected"
+variant = "danger"
+icon = "trash"
+action = "scanner.noop"
 
 # =========================
-# Interactions
+# Interactions (placeholder, no-op for now)
 # =========================
 
-# ---- Engine ----
-
 [[interactions]]
-id = "check_engine"
-on = "scanner.check_engine"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.engine_status"
-fn = "check"
-returnType = "json"
-
-[[interactions]]
-id = "stop_engine"
-on = "scanner.stop_engine"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.engine_status"
-fn = "stop"
-returnType = "json"
-
-# ---- Scan configuration ----
-
-[[interactions]]
-id = "set_scan_target"
-on = "scanner.set_scan_target"
+id = "noop"
+on = "scanner.noop"
 
 [[interactions.steps]]
 type = "set"
-key = "store.data.scan_target"
-from = "event.value"
-
-[[interactions]]
-id = "set_scan_options"
-on = "scanner.set_scan_options"
-
-[[interactions.steps]]
-type = "set"
-key = "store.data.scan_options"
-from = "event.value"
-
-# ---- Run scan ----
-
-[[interactions]]
-id = "run_scan"
-on = "scanner.run_scan"
-
-# Clear previous results and selection before running
-[[interactions.steps]]
-type = "set"
-key = "store.data.scan_result"
-value = { ok = false, ran = false, duration_ms = 0, scanned_count = 0, threat_count = 0, clean = true, threats = [
-] }
-
-[[interactions.steps]]
-type = "set"
-key = "store.data.threat_selection"
-value = { paths = [] }
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.scan_result"
-from = "store.data.scan_options"
-fn = "scan"
-returnType = "json"
-
-# ---- Threat handling (F12) ----
-
-[[interactions]]
-id = "set_threat_selection"
-on = "scanner.set_threat_selection"
-
-[[interactions.steps]]
-type = "set"
-key = "store.data.threat_selection"
-from = "event.value"
-
-[[interactions]]
-id = "quarantine_selected_threats"
-on = "scanner.quarantine_selected_threats"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.threat_action_result"
-from = "store.data.threat_selection"
-fn = "quarantine"
-returnType = "json"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.scan_result"
-from = "store.data.scan_options"
-fn = "scan"
-returnType = "json"
-
-[[interactions.steps]]
-type = "set"
-key = "store.data.threat_selection"
-value = { paths = [] }
-
-[[interactions]]
-id = "delete_selected_threats"
-on = "scanner.delete_selected_threats"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.threat_action_result"
-from = "store.data.threat_selection"
-fn = "delete_threats"
-returnType = "json"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.scan_result"
-from = "store.data.scan_options"
-fn = "scan"
-returnType = "json"
-
-[[interactions.steps]]
-type = "set"
-key = "store.data.threat_selection"
-value = { paths = [] }
-
-# ---- Database ----
-
-[[interactions]]
-id = "check_rules"
-on = "scanner.check_rules"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.rules_info"
-fn = "check_rules"
-returnType = "json"
-
-[[interactions]]
-id = "run_update"
-on = "scanner.run_update"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.update_result"
-fn = "update"
-returnType = "json"
-
-# Refresh engine status after update
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.engine_status"
-fn = "check"
-returnType = "json"
-
-# ---- Quarantine ----
-
-[[interactions]]
-id = "load_quarantine"
-on = "scanner.load_quarantine"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.quarantine_list"
-fn = "list_quarantine"
-returnType = "json"
-
-[[interactions]]
-id = "set_selected_quarantine"
-on = "scanner.set_selected_quarantine"
-
-[[interactions.steps]]
-type = "set"
-key = "store.data.selected_quarantine"
-from = "event.value"
-
-[[interactions]]
-id = "restore_selected"
-on = "scanner.restore_selected"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.restore_result"
-from = "store.data.selected_quarantine"
-fn = "restore"
-returnType = "json"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.quarantine_list"
-fn = "list_quarantine"
-returnType = "json"
-
-[[interactions.steps]]
-type = "set"
-key = "store.data.selected_quarantine"
-value = { name = "" }
+key = "store.data.placeholder"
+value = { note = "not wired yet" }

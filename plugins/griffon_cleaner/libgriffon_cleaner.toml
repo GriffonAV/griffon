@@ -1,5 +1,5 @@
 [plugin]
-name = "libgriffon_cleaner"
+name = "Griffon Cleaner"
 id = "123e4567-e23b-12d3-a456-426614174000"
 version = "1.0.0"
 author = "Ewen"
@@ -43,7 +43,7 @@ items = [
     { id = "tmp", label = "Temporary files" },
     { id = "log", label = "Log files" },
     { id = "json", label = "JSON files" },
-    { id = "apt_index", label = "APT index files" }
+    { id = "apt_index", label = "APT index files" },
 ]
 
 [store.data.delete_result]
