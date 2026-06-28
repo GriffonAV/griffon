@@ -1,0 +1,544 @@
+# Griffon Plugin Manifest: File Picker Demo
+[plugin]
+name = "Griffon Scanner"
+id = "a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"
+version = "1.0.0"
+author = "DiaboloAB"
+description = "YARA & Hash Antivirus Scanner plugin for scanning, managing signatures and quarantine."
+tabs = ["scan", "database", "quarantine"]
+uuid = "a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"
+
+
+# =========================
+# Store
+# =========================
+
+[store]
+
+# Engine
+[store.data.engine_status]
+state = "unknown" # "ready" | "loading" | "error" | "stopped" | "unknown"
+message = ""
+
+# --- Scan tab ---
+
+# F7  – target path (file or directory)
+[store.data.scan_target]
+path = ""
+is_dir = false
+
+# F8 / F9 / F10 / F13 – scan configuration
+[store.data.scan_options]
+# F8  default mode: when true the advanced panel is collapsed and defaults are used
+default_mode = true
+# F9  threat types to detect (advanced)
+detect_malware = true
+detect_pua = true
+detect_ransomware = true
+detect_exploits = true
+# F10 performance (advanced)
+threads = 4
+# F13 archive scanning toggle
+scan_archives = true
+
+# F11 – analysis results
+[store.data.scan_result]
+ok = false
+ran = false       # whether a scan has been executed yet
+duration_ms = 0
+scanned_count = 0
+threat_count = 0
+clean = true
+threats = []      # list of { path, threat_name, threat_type }
+
+# F12 – threat handling: selected threats for delete / quarantine
+[store.data.threat_selection]
+paths = []
+
+[store.data.threat_action_result]
+ok = false
+action = ""  # "delete" | "quarantine"
+message = ""
+count = 0
+
+# --- Database tab ---
+
+[store.data.database_status]
+ok = false
+message = "database status unknown"
+rules_count = 0
+update_message = "test update message"
+
+# --- Quarantine tab ---
+
+[store.data.quarantine_list]
+ok = false
+items = [] # list of { name, original_path, quarantined_at, size }
+
+[store.data.selected_quarantine]
+name = ""
+
+[store.data.restore_result]
+ok = false
+message = ""
+
+# =========================
+# UI
+# =========================
+
+[ui]
+
+# =========================================================
+# SCAN TAB
+# =========================================================
+
+[[ui.sections]]
+id = "parameters"
+tab = "scan"
+
+[[ui.sections.contents]]
+type = "row"
+id = "scan_parameters_row"
+gap = "lg"
+
+[[ui.sections.contents.children]]
+type = "column"
+id = "threats_type_column"
+gap = "md"
+
+[[ui.sections.contents.children.children]]
+type = "text"
+id = "threats_type_title"
+name = "Threats types"
+variant = "subtitle"
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "threat_ransomware"
+label = "Ransomware"
+value = false
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "threat_keylogger"
+label = "Keylogger"
+value = false
+
+
+
+[[ui.sections.contents.children]]
+type = "column"
+id = "scan_options_column"
+gap = "md"
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "include_archives"
+label = "Include archived files"
+value = false
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "include_folders"
+label = "recursive scan"
+value = false
+
+
+[[ui.sections.contents.children.children]]
+type = "row"
+id = "thread_number_row"
+gap = "sm"
+align = "center"
+
+
+[[ui.sections.contents.children.children.children]]
+type = "text"
+id = "thread_number"
+name = "thread number:"
+
+
+[[ui.sections.contents.children.children.children]]
+type = "select"
+id = "thread_number_select"
+options = [
+    {"value"= "auto","label"= "Auto"},
+    {"value"= "max", "label"= "Max"},
+    {"value"= "custom", "label"= "Custom"}
+    ]
+value = "auto"
+
+
+[[ui.sections.contents.children.children.children]]
+type = "input"
+id = "thread_number_input"
+name = "Thread Number"
+placeholder = "Enter thread number..."
+input_type = "number"
+action = "scanner.set_thread_number"
+
+
+
+[[ui.sections]]
+id = "scan"
+tab = "scan"
+
+
+[[ui.sections.contents]]
+type = "row"
+id = "scan_bt_row"
+gap = "sm"
+
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "run_scan_bt"
+name = "Run scan"
+action = "scanner.run_scan"
+
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "run_default_scan_bt"
+name = "Default scan (/home)"
+action = "scanner.run_default_scan"
+
+
+
+[[ui.sections]]
+id = "results"
+tab = "scan"
+
+
+[[ui.sections.contents]]
+type = "row"
+id = "scan_results_row"
+gap = "sm"
+
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "quarantine_bt"
+name = "Quarantine Selected"
+action = "scanner.quarantine_selected_threats"
+
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "delete_bt"
+name = "Delete Selected"
+action = "scanner.delete_selected_threats"
+
+
+# =========================================================
+# DATABASE TAB
+# =========================================================
+
+[[ui.sections]]
+id = "database_status"
+tab = "database"
+
+
+[[ui.sections.contents]]
+type = "row"
+id = "database_refresh_row"
+gap = "sm"
+justify = "flex-end"
+align = "center"
+
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "database_refresh_bt"
+name = "refresh"
+action = "scanner.check_rules"
+
+
+[[ui.sections.contents]]
+type = "text"
+id = "database_status_text"
+name = "{{store.data.database_status.message}}"
+
+[[ui.sections.contents]]
+type = "text"
+id = "rules_count_text"
+name = "{{store.data.database_status.rules_count}} rules loaded"
+
+
+
+[[ui.sections]]
+id = "database_update"
+tab = "database"
+
+[[ui.sections.contents]]
+type = "row"
+id = "database_update_row"
+gap = "sm"
+justify = "flex-end"
+align = "center"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "database_update_bt"
+name = "update database"
+action = "scanner.run_update"
+
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "database_force_update_bt"
+name = "force update"
+action = "scanner.force_update"
+
+
+[[ui.sections.contents]]
+type = "text"
+id = "update_message_text"
+name = "{{store.data.database_status.update_message}}"
+
+
+# =========================================================
+# QUARANTINE TAB
+# =========================================================
+
+[[ui.sections]]
+id = "quarantined_files"
+tab = "quarantine"
+
+
+
+[[ui.sections.contents]]
+type = "row"
+id = "quarantine_refresh_row"
+gap = "sm"
+justify = "flex-end"
+align = "center"
+
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "quarantine_refresh_bt"
+name = "refresh"
+action = "scanner.check_rules"
+
+
+[[ui.sections.contents]]
+type = "row"
+id = "quarantine_actions_row"
+gap = "sm"
+justify = "flex-end"
+align = "center"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "quarantine_retore_bt"
+name = "restore selected"
+action = "scanner.restore_from_quarantine"
+
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "quarantine_delete_bt"
+name = "delete selected"
+action = "scanner.delete_from_quarantine"
+
+
+
+# =========================
+# Interactions
+# =========================
+
+# ---- Engine ----
+
+[[interactions]]
+id = "check_engine"
+on = "scanner.check_engine"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.engine_status"
+fn = "check"
+returnType = "json"
+
+[[interactions]]
+id = "stop_engine"
+on = "scanner.stop_engine"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.engine_status"
+fn = "stop"
+returnType = "json"
+
+# ---- Scan configuration ----
+
+[[interactions]]
+id = "set_scan_target"
+on = "scanner.set_scan_target"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_target"
+from = "event.value"
+
+[[interactions]]
+id = "set_scan_options"
+on = "scanner.set_scan_options"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_options"
+from = "event.value"
+
+# ---- Run scan ----
+
+[[interactions]]
+id = "run_scan"
+on = "scanner.run_scan"
+
+# Clear previous results and selection before running
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_result"
+value = { ok = false, ran = false, duration_ms = 0, scanned_count = 0, threat_count = 0, clean = true, threats = [
+] }
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.threat_selection"
+value = { paths = [] }
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.scan_result"
+from = "store.data.scan_options"
+fn = "scan"
+returnType = "json"
+
+# ---- Threat handling (F12) ----
+
+[[interactions]]
+id = "set_threat_selection"
+on = "scanner.set_threat_selection"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.threat_selection"
+from = "event.value"
+
+[[interactions]]
+id = "quarantine_selected_threats"
+on = "scanner.quarantine_selected_threats"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.threat_action_result"
+from = "store.data.threat_selection"
+fn = "quarantine"
+returnType = "json"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.scan_result"
+from = "store.data.scan_options"
+fn = "scan"
+returnType = "json"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.threat_selection"
+value = { paths = [] }
+
+[[interactions]]
+id = "delete_selected_threats"
+on = "scanner.delete_selected_threats"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.threat_action_result"
+from = "store.data.threat_selection"
+fn = "delete_threats"
+returnType = "json"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.scan_result"
+from = "store.data.scan_options"
+fn = "scan"
+returnType = "json"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.threat_selection"
+value = { paths = [] }
+
+# ---- Database ----
+
+[[interactions]]
+id = "check_rules"
+on = "scanner.check_rules"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.rules_info"
+fn = "check_rules"
+returnType = "json"
+
+[[interactions]]
+id = "run_update"
+on = "scanner.run_update"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.update_result"
+fn = "update"
+returnType = "json"
+
+# Refresh engine status after update
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.engine_status"
+fn = "check"
+returnType = "json"
+
+# ---- Quarantine ----
+
+[[interactions]]
+id = "load_quarantine"
+on = "scanner.load_quarantine"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.quarantine_list"
+fn = "list_quarantine"
+returnType = "json"
+
+[[interactions]]
+id = "set_selected_quarantine"
+on = "scanner.set_selected_quarantine"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.selected_quarantine"
+from = "event.value"
+
+[[interactions]]
+id = "restore_selected"
+on = "scanner.restore_selected"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.restore_result"
+from = "store.data.selected_quarantine"
+fn = "restore"
+returnType = "json"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.quarantine_list"
+fn = "list_quarantine"
+returnType = "json"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.selected_quarantine"
+value = { name = "" }
