@@ -41,4 +41,4 @@ update-plugins:
     cp target/debug/libgriffon_scanner.so .config/griffon/
     cp target/debug/libgriffon_scanner.d .config/griffon/
     cp plugins/griffon_cleaner/libgriffon_cleaner.toml .config/griffon/
-    cp plugins/griffon_scanner/griffon_scanner.toml .config/griffon/
+    cp plugins/griffon_scanner/libgriffon_scanner.toml .config/griffon/

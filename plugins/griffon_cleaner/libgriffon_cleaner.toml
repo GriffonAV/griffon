@@ -64,19 +64,6 @@ id = "cleaner_dashboard"
 tab = "dashboard"
 
 [[ui.sections.contents]]
-type = "row"
-id = "cleaner_dashboard_header_actions"
-gap = "sm"
-justify = "space-between"
-align = "center"
-
-[[ui.sections.contents.children]]
-type = "text"
-id = "cleaner_dashboard_title"
-name = "Cleaner Dashboard"
-variant = "title"
-
-[[ui.sections.contents.children]]
 type = "button"
 id = "run_cleaner_bt"
 name = "Run analysis"
@@ -115,19 +102,6 @@ id = "cleaner_main"
 tab = "main"
 
 [[ui.sections.contents]]
-type = "row"
-id = "candidate_actions"
-gap = "sm"
-justify = "space-between"
-align = "center"
-
-[[ui.sections.contents.children]]
-type = "text"
-id = "cleaner_candidates_title"
-name = "Cleaner Candidates"
-variant = "title"
-
-[[ui.sections.contents.children]]
 type = "button"
 id = "load_candidates_bt"
 name = "Refresh candidates"
@@ -158,10 +132,6 @@ id = "delete_selected_bt"
 name = "Delete selected"
 variant = "danger"
 action = "cleaner.delete_selected"
-
-[[ui.sections.contents]]
-type = "divider"
-id = "cleaner_candidates_divider"
 
 [[ui.sections.contents]]
 type = "cleaner_candidate_list"

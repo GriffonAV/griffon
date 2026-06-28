@@ -28,26 +28,8 @@ note = "store left minimal until generic input components exist"
 # =========================================================
 
 [[ui.sections]]
-id = "scan_section"
+id = "settings"
 tab = "scan"
-
-# --- Title ---
-[[ui.sections.contents]]
-type = "text"
-id = "scan_title"
-name = "Scanner"
-variant = "title"
-
-[[ui.sections.contents]]
-type = "divider"
-id = "scan_div_top"
-
-# --- Subpart: Settings ---
-[[ui.sections.contents]]
-type = "text"
-id = "scan_settings_title"
-name = "Settings"
-variant = "subtitle"
 
 # Threat types
 [[ui.sections.contents]]
@@ -133,16 +115,9 @@ name = "Toggle"
 variant = "secondary"
 action = "scanner.noop"
 
-[[ui.sections.contents]]
-type = "divider"
-id = "scan_div_settings_end"
-
-# --- Subpart: Scan target ---
-[[ui.sections.contents]]
-type = "text"
-id = "scan_target_title"
-name = "Target"
-variant = "subtitle"
+[[ui.sections]]
+id = "targets"
+tab = "scan"
 
 [[ui.sections.contents]]
 type = "row"
@@ -201,25 +176,12 @@ variant = "primary"
 icon = "shield"
 action = "scanner.noop"
 
+[[ui.sections]]
+id = "results"
+tab = "scan"
+
+
 [[ui.sections.contents]]
-type = "divider"
-id = "scan_div_target_end"
-
-# --- Subpart: Results ---
-[[ui.sections.contents]]
-type = "row"
-id = "scan_results_header_row"
-gap = "sm"
-justify = "space-between"
-align = "center"
-
-[[ui.sections.contents.children]]
-type = "text"
-id = "scan_results_title"
-name = "Results"
-variant = "subtitle"
-
-[[ui.sections.contents.children]]
 type = "button"
 id = "scan_results_refresh_bt"
 name = "Refresh"
@@ -256,23 +218,15 @@ variant = "danger"
 icon = "trash"
 action = "scanner.noop"
 
+
 # =========================================================
 # DATABASE TAB
 # =========================================================
 
 [[ui.sections]]
-id = "database_section"
+id = "database_status"
 tab = "database"
 
-[[ui.sections.contents]]
-type = "text"
-id = "database_title"
-name = "Database"
-variant = "title"
-
-[[ui.sections.contents]]
-type = "divider"
-id = "database_div_top"
 
 # --- Subpart: State ---
 [[ui.sections.contents]]
@@ -309,11 +263,11 @@ variant = "secondary"
 icon = "list"
 action = "scanner.noop"
 
-[[ui.sections.contents]]
-type = "divider"
-id = "database_div_state_end"
-
 # --- Subpart: Update ---
+[[ui.sections]]
+id = "database_update"
+tab = "database"
+
 [[ui.sections.contents]]
 type = "text"
 id = "database_update_title"
@@ -349,30 +303,14 @@ action = "scanner.noop"
 id = "quarantine_section"
 tab = "quarantine"
 
+
 [[ui.sections.contents]]
-type = "row"
-id = "quarantine_header_row"
-gap = "sm"
-justify = "space-between"
-align = "center"
-
-[[ui.sections.contents.children]]
-type = "text"
-id = "quarantine_title"
-name = "Quarantine"
-variant = "title"
-
-[[ui.sections.contents.children]]
 type = "button"
 id = "quarantine_refresh_bt"
 name = "Refresh"
 variant = "secondary"
 icon = "refresh"
 action = "scanner.noop"
-
-[[ui.sections.contents]]
-type = "divider"
-id = "quarantine_div_top"
 
 # --- Subpart: List ---
 [[ui.sections.contents]]

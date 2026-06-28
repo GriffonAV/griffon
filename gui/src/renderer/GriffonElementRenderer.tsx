@@ -83,25 +83,25 @@ export default function GriffonElementRenderer({
 
     case "tabs":
       return <GriffonTabs {...commonProps} />;
-    
+
     case "file_select":
       return <GriffonFileSelect {...commonProps} />;
 
     case "cleaner_table":
-        return <CleanerTable {...commonProps} />;
+      return <CleanerTable {...commonProps} />;
 
     case "cleaner_candidate_list":
-        return <CleanerCandidateList {...commonProps} />;
+      return <CleanerCandidateList {...commonProps} />;
 
     case "cleaner_delete_result":
-        return <CleanerDeleteResult {...commonProps} />;
+      return <CleanerDeleteResult {...commonProps} />;
 
     case "cleaner_run_overview":
-        return <CleanerRunOverview {...commonProps} />;
+      return <CleanerRunOverview {...commonProps} />;
     case "cleaner_file_type_selector":
-        return <CleanerFileTypeSelector {...commonProps} />;
+      return <CleanerFileTypeSelector {...commonProps} />;
     case "cleaner_dry_run_toggle":
-        return <CleanerDryRunToggle {...commonProps} />;
+      return <CleanerDryRunToggle {...commonProps} />;
     default:
       return null;
   }
