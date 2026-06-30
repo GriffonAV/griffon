@@ -15,72 +15,25 @@ uuid = "a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"
 
 [store]
 
-# Engine
-[store.data.engine_status]
-state = "unknown" # "ready" | "loading" | "error" | "stopped" | "unknown"
-message = ""
-
-# --- Scan tab ---
-
-# F7  – target path (file or directory)
-[store.data.scan_target]
-path = ""
-is_dir = false
-
-# F8 / F9 / F10 / F13 – scan configuration
-[store.data.scan_options]
-# F8  default mode: when true the advanced panel is collapsed and defaults are used
-default_mode = true
-# F9  threat types to detect (advanced)
-detect_malware = true
-detect_pua = true
-detect_ransomware = true
-detect_exploits = true
-# F10 performance (advanced)
-threads = 4
-# F13 archive scanning toggle
-scan_archives = true
-
-# F11 – analysis results
-[store.data.scan_result]
-ok = false
-ran = false       # whether a scan has been executed yet
-duration_ms = 0
-scanned_count = 0
-threat_count = 0
-clean = true
-threats = []      # list of { path, threat_name, threat_type }
-
-# F12 – threat handling: selected threats for delete / quarantine
-[store.data.threat_selection]
-paths = []
-
-[store.data.threat_action_result]
-ok = false
-action = ""  # "delete" | "quarantine"
-message = ""
-count = 0
-
-# --- Database tab ---
-
 [store.data.database_status]
-ok = false
-message = "database status unknown"
+message = "status unknown"
 rules_count = 0
-update_message = "test update message"
+update_message = ""
 
-# --- Quarantine tab ---
 
-[store.data.quarantine_list]
-ok = false
-items = [] # list of { name, original_path, quarantined_at, size }
 
-[store.data.selected_quarantine]
-name = ""
+[store.settings]
+recursive_scan = false
+include_archives = false
+threat_ransomware = false
+threat_keylogger = false
+thread_number = 1
+thread_mode = "auto"
 
-[store.data.restore_result]
-ok = false
-message = ""
+[store.data]
+selected_threats = []
+
+
 
 # =========================
 # UI
@@ -117,12 +70,14 @@ type = "checkbox"
 id = "threat_ransomware"
 label = "Ransomware"
 value = false
+action = "scanner.set_threat_ransomware"
 
 [[ui.sections.contents.children.children]]
 type = "checkbox"
 id = "threat_keylogger"
 label = "Keylogger"
 value = false
+action = "scanner.set_threat_keylogger"
 
 
 
@@ -136,12 +91,14 @@ type = "checkbox"
 id = "include_archives"
 label = "Include archived files"
 value = false
+action = "scanner.set_include_archives"
 
 [[ui.sections.contents.children.children]]
 type = "checkbox"
 id = "include_folders"
 label = "recursive scan"
 value = false
+action = "scanner.set_recursive_scan"
 
 
 [[ui.sections.contents.children.children]]
@@ -166,6 +123,7 @@ options = [
     {"value"= "custom", "label"= "Custom"}
     ]
 value = "auto"
+action = "scanner.set_thread_mode"
 
 
 [[ui.sections.contents.children.children.children]]
@@ -344,109 +302,121 @@ action = "scanner.delete_from_quarantine"
 
 
 # =========================
-# Interactions
+# Scanner Settings Interactions
 # =========================
 
-# ---- Engine ----
 
 [[interactions]]
-id = "check_engine"
-on = "scanner.check_engine"
+id = "set_archive_scan"
+on = "scanner.set_include_archives"
 
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.engine_status"
-fn = "check"
-returnType = "json"
-
-[[interactions]]
-id = "stop_engine"
-on = "scanner.stop_engine"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.engine_status"
-fn = "stop"
-returnType = "json"
-
-# ---- Scan configuration ----
-
-[[interactions]]
-id = "set_scan_target"
-on = "scanner.set_scan_target"
 
 [[interactions.steps]]
 type = "set"
-key = "store.data.scan_target"
+key = "store.settings.include_archives"
 from = "event.value"
 
+
 [[interactions]]
-id = "set_scan_options"
-on = "scanner.set_scan_options"
+id = "set_recursive_scan"
+on = "scanner.set_recursive_scan"
+
 
 [[interactions.steps]]
 type = "set"
-key = "store.data.scan_options"
+key = "store.settings.recursive_scan"
 from = "event.value"
 
-# ---- Run scan ----
+
+[[interactions]]
+id = "set_threat_ransomware"
+on = "scanner.set_threat_ransomware"
+
+[[interactions.steps]]
+type = "set"
+key = "store.settings.threat_ransomware"
+from = "event.value"
+
+
+[[interactions]]
+id = "set_threat_keylogger"
+on = "scanner.set_threat_keylogger"
+
+[[interactions.steps]]
+type = "set"
+key = "store.settings.threat_keylogger"
+from = "event.value"
+
+
+[[interactions]]
+id = "set_thread_number"
+on = "scanner.set_thread_number"    
+
+[[interactions.steps]]
+type = "set"
+key = "store.settings.thread_number"
+from = "event.value"
+
+
+[[interactions]]
+id = "set_thread_mode"
+on = "scanner.set_thread_mode"
+
+[[interactions.steps]]
+type = "set"
+key = "store.settings.thread_mode"
+from = "event.value"
+
+
+# =========================
+# Scanner function Interactions
+# =========================
+
 
 [[interactions]]
 id = "run_scan"
 on = "scanner.run_scan"
 
-# Clear previous results and selection before running
 [[interactions.steps]]
-type = "set"
+type = "execute_function"
 key = "store.data.scan_result"
-value = { ok = false, ran = false, duration_ms = 0, scanned_count = 0, threat_count = 0, clean = true, threats = [
-] }
+from = "store.settings"
+fn = "run_scan"
 
-[[interactions.steps]]
-type = "set"
-key = "store.data.threat_selection"
-value = { paths = [] }
+[[interactions]]
+id = "run_default_scan"
+on = "scanner.run_default_scan"
 
 [[interactions.steps]]
 type = "execute_function"
 key = "store.data.scan_result"
-from = "store.data.scan_options"
-fn = "scan"
-returnType = "json"
+from = "store.settings"
+fn = "run_default_scan"
 
-# ---- Threat handling (F12) ----
 
-[[interactions]]
-id = "set_threat_selection"
-on = "scanner.set_threat_selection"
 
-[[interactions.steps]]
-type = "set"
-key = "store.data.threat_selection"
-from = "event.value"
+
+# =========================
+# Scanner result Interactions
+# =========================
+
+
+
+
+
+# =========================
+# Quarantine function Interactions
+# =========================
 
 [[interactions]]
 id = "quarantine_selected_threats"
 on = "scanner.quarantine_selected_threats"
-
+    
 [[interactions.steps]]
 type = "execute_function"
-key = "store.data.threat_action_result"
-from = "store.data.threat_selection"
-fn = "quarantine"
-returnType = "json"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.scan_result"
-from = "store.data.scan_options"
-fn = "scan"
-returnType = "json"
-
-[[interactions.steps]]
-type = "set"
-key = "store.data.threat_selection"
-value = { paths = [] }
+key = "store.data.quarantine_result"
+from = "store.data.selected_threats"
+fn = "quarantine_selected_threats"
 
 [[interactions]]
 id = "delete_selected_threats"
@@ -454,91 +424,6 @@ on = "scanner.delete_selected_threats"
 
 [[interactions.steps]]
 type = "execute_function"
-key = "store.data.threat_action_result"
-from = "store.data.threat_selection"
-fn = "delete_threats"
-returnType = "json"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.scan_result"
-from = "store.data.scan_options"
-fn = "scan"
-returnType = "json"
-
-[[interactions.steps]]
-type = "set"
-key = "store.data.threat_selection"
-value = { paths = [] }
-
-# ---- Database ----
-
-[[interactions]]
-id = "check_rules"
-on = "scanner.check_rules"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.rules_info"
-fn = "check_rules"
-returnType = "json"
-
-[[interactions]]
-id = "run_update"
-on = "scanner.run_update"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.update_result"
-fn = "update"
-returnType = "json"
-
-# Refresh engine status after update
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.engine_status"
-fn = "check"
-returnType = "json"
-
-# ---- Quarantine ----
-
-[[interactions]]
-id = "load_quarantine"
-on = "scanner.load_quarantine"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.quarantine_list"
-fn = "list_quarantine"
-returnType = "json"
-
-[[interactions]]
-id = "set_selected_quarantine"
-on = "scanner.set_selected_quarantine"
-
-[[interactions.steps]]
-type = "set"
-key = "store.data.selected_quarantine"
-from = "event.value"
-
-[[interactions]]
-id = "restore_selected"
-on = "scanner.restore_selected"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.restore_result"
-from = "store.data.selected_quarantine"
-fn = "restore"
-returnType = "json"
-
-[[interactions.steps]]
-type = "execute_function"
-key = "store.data.quarantine_list"
-fn = "list_quarantine"
-returnType = "json"
-
-[[interactions.steps]]
-type = "set"
-key = "store.data.selected_quarantine"
-value = { name = "" }
+key = "store.data.delete_result"
+from = "store.data.selected_threats"
+fn = "delete_selected_threats"
