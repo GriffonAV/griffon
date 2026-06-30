@@ -56,3 +56,6 @@ eicar*
 
 quanrantine/
 *.sock
+
+griffon_cleaner_report.json
+config_griffon_daemon.json
