@@ -62,7 +62,7 @@ export function PluginToggleSettings() {
     }
 
     return (
-        <div className="flex flex-col gap-3 m-5 w-full">
+        <div className="flex flex-col gap-3 w-full">
             {plugins.map((plugin) => {
                 const isEnabled = pluginStatus[plugin.uuid] ?? true;
                 const isSwitching = switchingPlugins[plugin.uuid] ?? false;
@@ -75,17 +75,19 @@ export function PluginToggleSettings() {
                         <div className="flex items-center gap-3 min-w-0">
                             <ToyBrick className="shrink-0" />
 
-                            <div className="min-w-0">
-                                <p className="font-semibold truncate">
-                                    {plugin.display_name}
-                                </p>
-
+                            <div>
                                 <Link
                                     to={`/plugin/${plugin.file_name}`}
                                     className="text-sm text-muted-foreground hover:underline"
                                 >
-                                    Open plugin page
+                                    <p className="text-base font-semibold">{plugin.display_name}</p>
                                 </Link>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    {plugin.description || "No description available."}
+                                </p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    {plugin.file_name} • Version {plugin.version} • {plugin.author}
+                                </p>
                             </div>
                         </div>
 
@@ -113,6 +115,6 @@ export function PluginToggleSettings() {
                     </div>
                 );
             })}
-        </div>
+        </div >
     );
 }

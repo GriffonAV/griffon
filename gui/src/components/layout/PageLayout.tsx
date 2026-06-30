@@ -25,16 +25,19 @@ export const PageLayout: React.FC<PageProps> = ({
   mode = "scroll" // Defaults to scroll behavior if not specified
 }) => {
   // State for both modes
-  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string | null>(tabs?.[0] || null);
   const [activeTab, setActiveTab] = useState<number>(0);
 
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
+  const mainRef = useRef<HTMLElement>(null); // <-- Add this new ref
   const { toggleSidebar, isCollapsed } = useSidebar();
 
   // Scroll logic for "scroll" mode
   const scrollToSection = (index: number) => {
     sectionRefs.current[index]?.scrollIntoView({ behavior: "smooth" });
   };
+
+
 
   useEffect(() => {
     if (mode !== "scroll") return;
@@ -47,7 +50,11 @@ export const PageLayout: React.FC<PageProps> = ({
           }
         });
       },
-      { threshold: 0.5 }
+      {
+        root: mainRef.current, // Calculate intersections relative to the scrolling main container
+        rootMargin: "0px 0px -50% 0px", // Trigger when a section enters the top 50% of the view
+        threshold: 0 // Trigger as soon as the element hits the margin, regardless of its height
+      }
     );
 
     sectionRefs.current.forEach((ref) => {
@@ -107,7 +114,10 @@ export const PageLayout: React.FC<PageProps> = ({
       )}
 
       {/* Main Content Area */}
-      <main className={`flex flex-col m-2 mt-6 flex-1 overflow-auto sm:px-0 md:px-7 lg:px-36 gap-4 ${mode === "scroll" ? "items-start" : "items-center"}`}>
+      <main
+        ref={mainRef}
+        className={`flex flex-col m-2 mt-6 flex-1 overflow-auto sm:px-0 md:px-7 lg:px-36 gap-4 ${mode === "scroll" ? "items-start pb-[50vh]" : "items-center"}`}
+      >
         {mode === "scroll" ? (
           // Render all children, wrapped in refs for scrolling
           React.Children.map(children, (child, index) => (

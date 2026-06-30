@@ -6,6 +6,20 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { PluginToggleSettings } from "@/components/layout/PluginToggleSettings";
 import { PluginInstaller } from "@/components/layout/PluginInstaller";
 import { usePlugins } from "@/bindings/PluginContext";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { SquareArrowOutUpRight } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"; // <-- Added Shadcn Alert Dialog
 
 const PLUGIN_DOC_URL = "https://griffon-av.vercel.app/";
 
@@ -45,12 +59,8 @@ export default function SettingsPage() {
     }
   };
 
-  const handleDeletePlugin = async (pluginFileName: string, pluginDisplayName: string) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${pluginDisplayName}"?\n\nThis will remove the plugin .toml and .so files.`
-    );
-    if (!confirmed) return;
-
+  // Removed window.confirm, logic is now triggered securely by the AlertDialog
+  const handleDeletePlugin = async (pluginFileName: string) => {
     try {
       setPluginBeingDeleted(pluginFileName);
       await invoke("delete_plugin", { name: pluginFileName });
@@ -67,15 +77,15 @@ export default function SettingsPage() {
     <PageLayout
       title="Settings"
       navigation={true}
-      tabs={["Appearance", "Plugins"]}
+      tabs={["Appearance", "Notifications", "Plugins", "About"]}
     >
       {/* --- APPEARANCE TAB --- */}
-      <div title="Appearance" className="mt-2">
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h2 className="text-xl font-bold">Appearance</h2>
-          <div className="mt-5 flex flex-col gap-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <span className="text-sm font-medium">Choose theme:</span>
+      <div title="Appearance" className="mt-2 w-full">
+        <section className="rounded-md border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-semibold">Appearance</h2>
+          <div className="mt-6 flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
+              <span>Choose theme:</span>
               <ModeToggleGroup />
             </div>
             <ChangeThemeButtonTest />
@@ -83,45 +93,88 @@ export default function SettingsPage() {
         </section>
       </div>
 
+      <div title="Notifications" className="mt-2 w-full">
+        <section className="rounded-md border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-semibold">Notifications</h2>
+
+          <p className="mt-1 text-sm text-muted-foreground">
+            Enable or disable notifications for each installed plugin.
+          </p>
+
+          {plugins.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">No installed plugin found.</p>
+          ) : (
+            <div className="mt-4 flex flex-col gap-4">
+              {plugins.map((plugin) => (
+                <div
+                  key={plugin.uuid}
+                  className="flex flex-col gap-4 rounded-md border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="text-base font-semibold">{plugin.display_name}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {plugin.file_name} • Version {plugin.version} • {plugin.author}
+                    </p>
+                    <p className="mt-2 text-xs font-medium">
+                      Notifications:{" "}
+                      <span
+                        className={
+                          plugin.notifications_enabled
+                            ? "text-green-600"
+                            : "text-muted-foreground"
+                        }
+                      >
+                        {plugin.notifications_enabled ? "Enabled" : "Disabled"}
+                      </span>
+                    </p>
+                  </div>
+
+                  <Button
+                    variant={plugin.notifications_enabled ? "secondary" : "default"}
+                    disabled={pluginNotificationBeingSwitched === plugin.uuid}
+                    onClick={() => handleSwitchNotification(plugin.uuid, plugin.display_name)}
+                    className="cursor-pointer"
+                  >
+                    {pluginNotificationBeingSwitched === plugin.uuid
+                      ? "Switching..."
+                      : plugin.notifications_enabled
+                        ? "Disable notifications"
+                        : "Enable notifications"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+
       {/* --- PLUGINS TAB --- */}
-      <div title="Plugins" className="mt-2">
-        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+      <div title="Plugins" className="mt-2 w-full">
+        <section className="rounded-md border border-border bg-card p-6 shadow-sm">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-xl font-bold">Plugins</h2>
+                <h2 className="text-lg font-semibold">Plugins</h2>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
                   Add, enable, disable, delete plugins, and manage plugin notifications.
                 </p>
               </div>
 
-              <a
-                href={PLUGIN_DOC_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition hover:opacity-90 active:scale-95"
-              >
-                Open documentation
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
+              <Button asChild>
+                <a
+                  href={PLUGIN_DOC_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 cursor-pointer"
                 >
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                  <polyline points="15 3 21 3 21 9" />
-                  <line x1="10" y1="14" x2="21" y2="3" />
-                </svg>
-              </a>
+                  Open documentation
+                  <SquareArrowOutUpRight />
+                </a>
+              </Button>
             </div>
 
-            <div className="border-t border-border pt-5">
-              <h3 className="text-lg font-semibold">Add plugin</h3>
+            <div className="border-t border-border pt-6">
+              <h3 className="text-base font-semibold">Add plugin</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 Select a plugin manifest file and its compiled shared library. Griffon will copy
                 them into <code>.config/griffon</code>.
@@ -131,9 +184,9 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="border-t border-border pt-5">
+            <div className="border-t border-border pt-6">
               <div>
-                <h3 className="text-lg font-semibold">Installed plugins</h3>
+                <h3 className="text-base font-semibold">Installed plugins</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Toggle plugin status directly from the settings panel.
                 </p>
@@ -143,66 +196,8 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="border-t border-border pt-5">
-              <h3 className="text-lg font-semibold">Plugin notifications</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Enable or disable notifications for each installed plugin.
-              </p>
-
-              {plugins.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">No installed plugin found.</p>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  {plugins.map((plugin) => (
-                    <div
-                      key={plugin.uuid}
-                      className="flex flex-col gap-4 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="font-semibold">{plugin.display_name}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {plugin.description || "No description available."}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {plugin.file_name} • Version {plugin.version} • {plugin.author}
-                        </p>
-                        <p className="mt-2 text-xs font-medium">
-                          Notifications:{" "}
-                          <span
-                            className={
-                              plugin.notifications_enabled
-                                ? "text-green-600"
-                                : "text-muted-foreground"
-                            }
-                          >
-                            {plugin.notifications_enabled ? "Enabled" : "Disabled"}
-                          </span>
-                        </p>
-                      </div>
-
-                      <button
-                        type="button"
-                        disabled={pluginNotificationBeingSwitched === plugin.uuid}
-                        onClick={() => handleSwitchNotification(plugin.uuid, plugin.display_name)}
-                        className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${plugin.notifications_enabled
-                          ? "bg-secondary text-secondary-foreground hover:opacity-90"
-                          : "bg-primary text-primary-foreground hover:opacity-90"
-                          }`}
-                      >
-                        {pluginNotificationBeingSwitched === plugin.uuid
-                          ? "Switching..."
-                          : plugin.notifications_enabled
-                            ? "Disable notifications"
-                            : "Enable notifications"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-border pt-5">
-              <h3 className="text-lg font-semibold text-red-600">Delete plugins</h3>
+            <div className="border-t border-border pt-6">
+              <h3 className="text-base font-semibold text-red-600">Delete plugins</h3>
               <p className="mt-1 text-sm text-muted-foreground">
                 Permanently remove a plugin from Griffon. This action will delete its manifest and
                 shared library files.
@@ -211,36 +206,77 @@ export default function SettingsPage() {
               {plugins.length === 0 ? (
                 <p className="mt-4 text-sm text-muted-foreground">No installed plugin found.</p>
               ) : (
-                <div className="mt-4 space-y-3">
+                /* Added max-h-64 (approx 16rem) and overflow-y-auto for scrolling, plus pr-2 so the scrollbar doesn't hug the border */
+                <div className="mt-4 flex flex-col gap-2 max-h-64 overflow-y-auto pr-2">
                   {plugins.map((plugin) => (
                     <div
                       key={plugin.uuid}
-                      className="flex flex-col gap-4 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
+                      /* Reduced padding to p-3 and forced single row alignment for a compacter list */
+                      className="flex items-center justify-between rounded-md border border-border p-3"
                     >
-                      <div>
-                        <p className="font-semibold">{plugin.display_name}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {plugin.description || "No description available."}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {plugin.file_name} • Version {plugin.version} • {plugin.author}
-                        </p>
-                      </div>
+                      {/* Stripped out extra info to make the list smaller */}
+                      <p className="text-sm font-semibold">{plugin.display_name}</p>
 
-                      <button
-                        type="button"
-                        disabled={pluginBeingDeleted === plugin.file_name}
-                        onClick={() => handleDeletePlugin(plugin.file_name, plugin.display_name)}
-                        className="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {pluginBeingDeleted === plugin.file_name ? "Deleting..." : "Delete"}
-                      </button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="sm" /* Reduced button size for the compact row */
+                            disabled={pluginBeingDeleted === plugin.file_name}
+                            className="cursor-pointer"
+                          >
+                            {pluginBeingDeleted === plugin.file_name ? "Deleting..." : "Delete"}
+                          </Button>
+                        </AlertDialogTrigger>
+
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete {plugin.display_name}?</AlertDialogTitle>
+                            {/* Changed to asChild so we can render a custom div structure inside the description without HTML validation errors */}
+                            <AlertDialogDescription asChild>
+                              <div className="flex flex-col gap-3 mt-2 text-sm text-muted-foreground">
+                                <p>
+                                  Are you sure you want to delete this plugin? This action cannot be undone and will permanently remove the plugin files.
+                                </p>
+
+                                {/* Moved detailed information here into a visual "card" for review */}
+                                <div className="bg-muted p-3 rounded-md flex flex-col gap-1 text-left text-xs">
+                                  <p><strong className="text-foreground font-medium">Description:</strong> {plugin.description || "None"}</p>
+                                  <p><strong className="text-foreground font-medium">File:</strong> {plugin.file_name}</p>
+                                  <p><strong className="text-foreground font-medium">Version:</strong> {plugin.version}</p>
+                                  <p><strong className="text-foreground font-medium">Author:</strong> {plugin.author}</p>
+                                </div>
+                              </div>
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeletePlugin(plugin.file_name)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   ))}
                 </div>
               )}
             </div>
           </div>
+        </section>
+      </div>
+
+      <div title="About" className="mt-2 w-full">
+        <section className="rounded-md border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-semibold mb-2">About Griffon</h2>
+          <p className="text-sm text-muted-foreground flex items-center gap-2">
+            You are using Griffon in version
+            <Badge>0.3.0-alpha</Badge>.
+          </p>
         </section>
       </div>
     </PageLayout>

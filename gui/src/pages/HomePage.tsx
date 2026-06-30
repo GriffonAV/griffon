@@ -115,12 +115,17 @@ export default function HomePage() {
     return (
         <PageLayout title="Overview">
             <NoPluginLayout>
-                <div className="flex w-full flex-col gap-6">
-                    <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex w-full flex-col gap-3">
+                    <section className="rounded-xl border border-border bg-card p-3 shadow-sm">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                             <div>
                                 <div className="flex items-center gap-3">
-                                    <ShieldCheck className="size-8 text-primary" />
+                                    <img
+                                        src="/assets/logo.png"
+                                        alt="Griffon Logo"
+                                        className="h-9 w-9 object-contain"
+                                        style={{ imageRendering: "pixelated" }}
+                                    />
 
                                     <div>
                                         <h2 className="text-2xl font-bold">Griffon Dashboard</h2>
@@ -201,8 +206,8 @@ export default function HomePage() {
                         </div>
                     </section>
 
-                    <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-                        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <section className="grid gap-3 xl:grid-cols-[1.1fr_0.9fr]">
+                        <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
                             <div className="flex items-center justify-between gap-4">
                                 <div>
                                     <h3 className="text-xl font-bold">Recent plugin activity</h3>
@@ -255,8 +260,8 @@ export default function HomePage() {
                                                                 entry.level,
                                                             )}`}
                                                         >
-                              ● {entry.level}
-                            </span>
+                                                            ● {entry.level}
+                                                        </span>
                                                     </div>
 
                                                     <p className="mt-1 text-sm text-muted-foreground">
@@ -279,8 +284,8 @@ export default function HomePage() {
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-6">
-                            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                        <div className="flex flex-col gap-3">
+                            <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
                                 <h3 className="text-xl font-bold">Quick actions</h3>
 
                                 <p className="mt-1 text-sm text-muted-foreground">
@@ -315,16 +320,15 @@ export default function HomePage() {
                                         onClick={refreshBackgroundService}
                                     >
                                         <RefreshCw
-                                            className={`size-4 ${
-                                                isRefreshingService ? "animate-spin" : ""
-                                            }`}
+                                            className={`size-4 ${isRefreshingService ? "animate-spin" : ""
+                                                }`}
                                         />
                                         Refresh background service
                                     </Button>
                                 </div>
                             </div>
 
-                            <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+                            <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
                                 <div className="flex items-center justify-between gap-4">
                                     <div>
                                         <h3 className="text-xl font-bold">Installed plugins</h3>
@@ -348,7 +352,7 @@ export default function HomePage() {
                                         <Link
                                             key={plugin.uuid}
                                             to={`/plugin/${plugin.file_name}`}
-                                            className="rounded-md border border-border p-4 transition hover:bg-muted"
+                                            className="rounded-md border border-border p-3 transition hover:bg-muted"
                                         >
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="min-w-0">
