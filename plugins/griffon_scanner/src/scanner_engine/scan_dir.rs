@@ -7,7 +7,7 @@ use crate::scanner_engine::{ScanEngine, data_type::FileResult};
 
 impl ScanEngine {
     pub fn scan_dir(&self, root: &Path) -> Vec<FileResult> {
-        if self.scan_args.parallel {
+        if self.scan_args.threads != "off" {
             self.scan_dir_parallel(root)
         } else {
             self.scan_dir_sequential(root)

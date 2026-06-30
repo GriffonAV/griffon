@@ -44,6 +44,20 @@ impl ThreatCategory {
             Self::Other => "other",
         }
     }
+
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "ransomware" => Some(Self::Ransomware),
+            "trojans" => Some(Self::Trojan),
+            "backdoors" => Some(Self::Backdoor),
+            "cryptominers" => Some(Self::Cryptominer),
+            "webshells" => Some(Self::Webshell),
+            "rootkits" => Some(Self::Rootkit),
+            "spyware" => Some(Self::Spyware),
+            "apt" => Some(Self::Apt),
+            _ => None,
+        }
+    }
 }
 
 impl std::str::FromStr for ThreatCategory {
