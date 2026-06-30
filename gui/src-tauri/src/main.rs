@@ -55,22 +55,13 @@ fn default_true() -> bool {
     true
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 struct GriffonDaemonConfig {
     #[serde(default)]
     general: GriffonGeneralConfig,
 
     #[serde(default)]
     plugins: HashMap<String, GriffonPluginConfig>,
-}
-
-impl Default for GriffonDaemonConfig {
-    fn default() -> Self {
-        Self {
-            general: GriffonGeneralConfig::default(),
-            plugins: HashMap::new(),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize)]
