@@ -17,9 +17,9 @@ use abi_stable::{
 use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
 use serde::{Deserialize, Serialize};
 
+use crate::scanner_engine::ScanEngine;
 use crate::scanner_engine::scanargs::{PrepArgs, ScanArgs};
 use crate::scanner_engine::yara_engine::threat_category::ThreatCategory;
-use crate::scanner_engine::{ScanEngine, scanargs};
 use crate::scanner_quarantine::Quarantine;
 use crate::scanner_updater::ScannerUpdater;
 
@@ -206,7 +206,7 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                     include: opts
                         .threats
                         .iter()
-                        .filter_map(|s| ThreatCategory::from_str(s))
+                        .filter_map(|s| ThreatCategory::try_from_str(s))
                         .collect(),
                     exclude: Vec::new(),
                     yara_only: false,
@@ -249,7 +249,7 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                         "[LIBSCANNER] Signatures updated. Restarting engine to apply changes..."
                     );
                     stop_engine();
-                    std::thread::spawn(|| start_engine());
+                    std::thread::spawn(start_engine);
                 }
 
                 Ok(Ack::ok("Update completed successfully"))

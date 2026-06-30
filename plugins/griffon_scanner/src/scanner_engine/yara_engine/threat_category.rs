@@ -45,7 +45,8 @@ impl ThreatCategory {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    #[allow(dead_code)]
+    pub fn try_from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "ransomware" => Some(Self::Ransomware),
             "trojans" => Some(Self::Trojan),
