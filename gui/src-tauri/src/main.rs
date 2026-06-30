@@ -2,9 +2,11 @@ use ipc_protocol::ipc_payload_interface::{
     alloc_request_id, format_uuid_bytes, parse_uuid_16, recv_interface_response,
     send_interface_request, InterfaceRequest, InterfaceResponse,
 };
+use serde::Deserialize;
 use serde::Serialize;
+use std::collections::HashMap;
 use std::os::unix::net::UnixStream;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::thread;
 use tauri::Manager;
@@ -38,6 +40,7 @@ struct Plugin {
     version: String,
     author: String,
     description: String,
+    notifications_enabled: bool,
 }
 
 const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
@@ -47,6 +50,83 @@ const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
 } else {
     "/run/griffon/griffon.sock"
 };
+
+fn default_true() -> bool {
+    true
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct GriffonDaemonConfig {
+    #[serde(default)]
+    general: GriffonGeneralConfig,
+
+    #[serde(default)]
+    plugins: HashMap<String, GriffonPluginConfig>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GriffonGeneralConfig {
+    #[serde(default = "default_true")]
+    notifications_enabled: bool,
+}
+
+impl Default for GriffonGeneralConfig {
+    fn default() -> Self {
+        Self {
+            notifications_enabled: true,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct GriffonPluginConfig {
+    #[serde(default = "default_true")]
+    notifications_enabled: bool,
+}
+
+fn daemon_config_path() -> PathBuf {
+    if cfg!(debug_assertions) {
+        PathBuf::from("../../daemon/config_griffon_daemon.json")
+    } else {
+        PathBuf::from("/etc/griffon/config_griffon_daemon.json")
+    }
+}
+
+fn load_daemon_config() -> GriffonDaemonConfig {
+    let path = daemon_config_path();
+
+    match std::fs::read_to_string(&path) {
+        Ok(content) => match serde_json::from_str::<GriffonDaemonConfig>(&content) {
+            Ok(config) => config,
+            Err(e) => {
+                LOGGER.error(format!(
+                    "Failed to parse daemon config '{}': {}",
+                    path.display(),
+                    e
+                ));
+                GriffonDaemonConfig::default()
+            }
+        },
+        Err(e) => {
+            LOGGER.error(format!(
+                "Failed to read daemon config '{}': {}",
+                path.display(),
+                e
+            ));
+            GriffonDaemonConfig::default()
+        }
+    }
+}
+
+fn plugin_notifications_enabled(config: &GriffonDaemonConfig, plugin_uuid: &str) -> bool {
+    let plugin_enabled = config
+        .plugins
+        .get(plugin_uuid)
+        .map(|plugin| plugin.notifications_enabled)
+        .unwrap_or(config.general.notifications_enabled);
+
+    config.general.notifications_enabled && plugin_enabled
+}
 
 fn format_name(name: &str) -> String {
     name.replace(' ', "_").to_lowercase()
@@ -149,6 +229,8 @@ fn list_plugins() -> Result<Vec<Plugin>, String> {
     let entries = std::fs::read_dir(PLUGIN_MANIFEST_DIR).map_err(|e| e.to_string())?;
     let mut plugins = Vec::new();
 
+    let daemon_config = load_daemon_config();
+
     for entry in entries {
         let entry = entry.map_err(|e| e.to_string())?;
         let path = entry.path();
@@ -189,6 +271,10 @@ fn list_plugins() -> Result<Vec<Plugin>, String> {
             version: manifest.plugin.version.clone(),
             author: manifest.plugin.author.clone(),
             description: manifest.plugin.description.clone(),
+            notifications_enabled: plugin_notifications_enabled(
+                &daemon_config,
+                &manifest.plugin.uuid,
+            ),
         });
     }
 
@@ -295,6 +381,47 @@ fn switch_status_plugin_inner(
 
     LOGGER_NETWORK.debug(format!(
         "Switch status plugins sent with request_id={request_id}"
+    ));
+
+    Ok(())
+}
+
+#[tauri::command]
+fn switch_status_notification(
+    state: State<'_, DaemonConnection>,
+    plugin_uuid: String,
+    request_id: u32,
+) -> Result<(), String> {
+    switch_status_notification_inner(&state, &plugin_uuid, request_id)
+}
+
+fn switch_status_notification_inner(
+    conn: &DaemonConnection,
+    plugin_uuid_str: &str,
+    request_id: u32,
+) -> Result<(), String> {
+    LOGGER.debug("SWITCH NOTIFICATION STATUS");
+
+    let mut sock_guard = conn.0.lock().map_err(|e| e.to_string())?;
+
+    let mut sock = sock_guard
+        .as_mut()
+        .ok_or_else(|| "Daemon not connected".to_string())?;
+
+    let plugin_uuid = parse_uuid_16(Some(plugin_uuid_str)).ok_or_else(|| {
+        LOGGER.error("Invalid UUID format");
+        "Invalid UUID".to_string()
+    })?;
+
+    send_interface_request(
+        &mut sock,
+        &InterfaceRequest::SwitchStatusNotification { plugin_uuid },
+        request_id,
+    )
+    .map_err(|e| e.to_string())?;
+
+    LOGGER_NETWORK.debug(format!(
+        "Switch notification status sent with request_id={request_id}"
     ));
 
     Ok(())
@@ -500,6 +627,7 @@ fn main() {
             get_plugin_manifest,
             refresh_plugin,
             switch_status_plugin,
+            switch_status_notification,
             call_plugin,
             plugin_history::get_plugin_history,
             plugin_installer::install_plugin_files,

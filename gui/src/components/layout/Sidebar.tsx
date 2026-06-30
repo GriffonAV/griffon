@@ -12,105 +12,99 @@ import { invoke } from "@tauri-apps/api/core";
 import { useSidebar } from "@/providers/SidebarProvider.tsx";
 
 export function Sidebar() {
-    const { isCollapsed } = useSidebar();
-    const { plugins } = usePlugins();
-    const location = useLocation();
-    const [isRefreshing, setIsRefreshing] = useState(false);
+  const { isCollapsed } = useSidebar();
+  const { plugins, refreshPlugins } = usePlugins();
+  const location = useLocation();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-    return (
-        <aside
-            className={`transition-all duration-200 ease-in-out flex flex-col gap-2 ${
-                isCollapsed ? "w-min" : "w-48"
-            } m-2 pl-2 pt-6 pb-2`}
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true);
+
+      await invoke("refresh_plugin");
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      await refreshPlugins();
+    } catch (error) {
+      console.error("Failed to refresh Background Service:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  return (
+    <aside
+      className={`transition-all duration-200 ease-in-out flex flex-col gap-2 ${
+        isCollapsed ? "w-min" : "w-48"
+      } m-2 pl-2 pt-6 pb-2`}
+    >
+      <Link to="/dashboard">
+        <SidebarButton
+          icon={<LayoutDashboard />}
+          label="Overview"
+          isActive={location.pathname === "/dashboard" || location.pathname === "/"}
+          isCollapsed={isCollapsed}
+        />
+      </Link>
+
+      <Link to="/log">
+        <SidebarButton
+          icon={<Clock10 />}
+          label="Activity Log"
+          isActive={location.pathname === "/log"}
+          isCollapsed={isCollapsed}
+        />
+      </Link>
+
+      <SearchInput isCollapsed={isCollapsed} />
+
+      <div>
+        <Separator className="mt-2" />
+
+        {!isCollapsed && (
+          <span className="text-xs text-muted-foreground px-2 my-2 select-none">Extensions</span>
+        )}
+      </div>
+
+      {plugins.map((plugin) => (
+        <Link key={plugin.uuid} to={`/plugin/${plugin.file_name}`} className="block">
+          <SidebarButton
+            icon={<ToyBrick />}
+            label={plugin.display_name}
+            isActive={location.pathname === `/plugin/${plugin.file_name}`}
+            isCollapsed={isCollapsed}
+          />
+        </Link>
+      ))}
+
+      <div className="flex-1" />
+
+      <div
+        className={
+          isCollapsed ? "flex flex-col gap-2 justify-center" : "flex flex-row gap-2 justify-center"
+        }
+      >
+        <Button
+          title="Refresh Background Service"
+          variant="outline"
+          size="icon"
+          className="cursor-pointer"
+          disabled={isRefreshing}
+          onClick={handleRefresh}
         >
-            <Link to="/dashboard">
-                <SidebarButton
-                    icon={<LayoutDashboard />}
-                    label="Overview"
-                    isActive={location.pathname === "/dashboard" || location.pathname === "/"}
-                    isCollapsed={isCollapsed}
-                />
-            </Link>
+          <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
+        </Button>
 
-            <Link to="/log">
-                <SidebarButton
-                    icon={<Clock10 />}
-                    label="Activity Log"
-                    isActive={location.pathname === "/log"}
-                    isCollapsed={isCollapsed}
-                />
-            </Link>
+        <Link to="/settings">
+          <Button variant="outline" size="icon" className="cursor-pointer" title="Settings">
+            <Settings2 />
+          </Button>
+        </Link>
 
-            <SearchInput isCollapsed={isCollapsed} />
-
-            <div>
-                <Separator className="mt-2" />
-
-                {!isCollapsed && (
-                    <span className="text-xs text-muted-foreground px-2 my-2 select-none">
-                        Extensions
-                    </span>
-                )}
-            </div>
-
-            {plugins.map((plugin) => (
-                <Link key={plugin.uuid} to={`/plugin/${plugin.file_name}`} className="block">
-                    <SidebarButton
-                        icon={<ToyBrick />}
-                        label={plugin.display_name}
-                        isActive={location.pathname === `/plugin/${plugin.file_name}`}
-                        isCollapsed={isCollapsed}
-                    />
-                </Link>
-            ))}
-
-            <div className="flex-1" />
-
-            <div
-                className={
-                    isCollapsed
-                        ? "flex flex-col gap-2 justify-center"
-                        : "flex flex-row gap-2 justify-center"
-                }
-            >
-                <Button
-                    title="Refresh Background Service"
-                    variant="outline"
-                    size="icon"
-                    className="cursor-pointer"
-                    disabled={isRefreshing}
-                    onClick={async () => {
-                        try {
-                            setIsRefreshing(true);
-
-                            await Promise.all([
-                                invoke("refresh_plugin"),
-                                new Promise((resolve) => setTimeout(resolve, 500)),
-                            ]);
-                        } catch (error) {
-                            console.error("Failed to refresh Background Service:", error);
-                        } finally {
-                            setIsRefreshing(false);
-                        }
-                    }}
-                >
-                    <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
-                </Button>
-
-                <Link to="/settings">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="cursor-pointer"
-                        title="Settings"
-                    >
-                        <Settings2 />
-                    </Button>
-                </Link>
-
-                <ModeToggle />
-                <ContactButton />
-            </div>
-        </aside>
-    );
+        <ModeToggle />
+        <ContactButton />
+      </div>
+    </aside>
+  );
 }
