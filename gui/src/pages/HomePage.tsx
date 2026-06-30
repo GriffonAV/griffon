@@ -115,9 +115,12 @@ export default function HomePage() {
     return (
         <PageLayout title="Overview">
             <NoPluginLayout>
-                <div className="flex w-full flex-col gap-3">
-                    <section className="rounded-xl border border-border bg-card p-3 shadow-sm">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                {/* Standardized gap-4 for the main column layout */}
+                <div className="flex w-full flex-col gap-4">
+
+                    {/* Hero Section: standardized to rounded-md, p-6 */}
+                    <section className="rounded-md border border-border bg-card p-6 shadow-sm">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                             <div>
                                 <div className="flex items-center gap-3">
                                     <img
@@ -128,7 +131,8 @@ export default function HomePage() {
                                     />
 
                                     <div>
-                                        <h2 className="text-2xl font-bold">Griffon Dashboard</h2>
+                                        {/* Adjusted to standard Page Header size */}
+                                        <h2 className="text-lg font-semibold">Griffon Dashboard</h2>
 
                                         <p className="mt-1 text-sm text-muted-foreground">
                                             Overview of installed plugins, recent activity and system controls.
@@ -146,58 +150,51 @@ export default function HomePage() {
                                 <RefreshCw
                                     className={`size-4 ${isRefreshingService ? "animate-spin" : ""}`}
                                 />
-
                                 {isRefreshingService ? "Refreshing..." : "Refresh service"}
                             </Button>
                         </div>
                     </section>
 
+                    {/* Stats Section */}
                     <section className="grid gap-4 md:grid-cols-3">
-                        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                        {/* Standardized cards to rounded-md, p-6 */}
+                        <div className="rounded-md border border-border bg-card p-6 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <p className="text-sm font-medium text-muted-foreground">
                                     Installed plugins
                                 </p>
-
                                 <ToyBrick className="size-5 text-muted-foreground" />
                             </div>
-
                             <p className="mt-4 text-3xl font-bold">{plugins.length}</p>
-
                             <p className="mt-1 text-sm text-muted-foreground">
                                 Plugins detected by Griffon.
                             </p>
                         </div>
 
-                        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                        <div className="rounded-md border border-border bg-card p-6 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <p className="text-sm font-medium text-muted-foreground">
                                     History events
                                 </p>
-
                                 <History className="size-5 text-muted-foreground" />
                             </div>
-
                             <p className="mt-4 text-3xl font-bold">{historyEntries.length}</p>
-
                             <p className="mt-1 text-sm text-muted-foreground">
                                 Events found in plugin history files.
                             </p>
                         </div>
 
-                        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+                        <div className="rounded-md border border-border bg-card p-6 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <p className="text-sm font-medium text-muted-foreground">
                                     Latest event
                                 </p>
-
                                 <Clock10 className="size-5 text-muted-foreground" />
                             </div>
-
-                            <p className="mt-4 truncate text-lg font-bold">
+                            {/* Adjusted slightly so text doesn't overflow container bounds unexpectedly */}
+                            <p className="mt-4 truncate text-xl font-bold">
                                 {latestEvent ? formatEvent(latestEvent.event) : "No activity"}
                             </p>
-
                             <p className="mt-1 truncate text-sm text-muted-foreground">
                                 {latestEvent
                                     ? `${latestEvent.pluginName} • ${formatTimestamp(latestEvent.timestamp)}`
@@ -206,26 +203,28 @@ export default function HomePage() {
                         </div>
                     </section>
 
-                    <section className="grid gap-3 xl:grid-cols-[1.1fr_0.9fr]">
-                        <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+                    {/* Two Column Layout: standardized gap-4 */}
+                    <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+
+                        {/* Recent Plugin Activity Column */}
+                        <div className="rounded-md border border-border bg-card p-6 shadow-sm">
                             <div className="flex items-center justify-between gap-4">
                                 <div>
-                                    <h3 className="text-xl font-bold">Recent plugin activity</h3>
-
+                                    <h3 className="text-base font-semibold">Recent plugin activity</h3>
                                     <p className="mt-1 text-sm text-muted-foreground">
                                         Last events from the plugin history folder.
                                     </p>
                                 </div>
-
-                                <Link to="/log">
-                                    <Button variant="ghost" className="cursor-pointer gap-2">
+                                <Button asChild variant="ghost" className="cursor-pointer gap-2">
+                                    <Link to="/log">
                                         Open logs
                                         <ArrowRight className="size-4" />
-                                    </Button>
-                                </Link>
+                                    </Link>
+                                </Button>
                             </div>
 
-                            <div className="mt-5 flex flex-col gap-3">
+                            {/* Standardized spacing: mt-6, gap-4 */}
+                            <div className="mt-6 flex flex-col gap-4">
                                 {isLoadingHistory && (
                                     <p className="text-sm text-muted-foreground">
                                         Loading plugin history...
@@ -250,11 +249,10 @@ export default function HomePage() {
                                             key={`${entry.sourceFile}-${entry.timestamp}-${index}`}
                                             className="rounded-md border border-border p-4"
                                         >
-                                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                                 <div className="min-w-0">
                                                     <div className="flex flex-wrap items-center gap-2">
-                                                        <p className="font-semibold">{entry.pluginName}</p>
-
+                                                        <p className="text-sm font-semibold">{entry.pluginName}</p>
                                                         <span
                                                             className={`text-xs font-medium ${getLevelClass(
                                                                 entry.level,
@@ -263,19 +261,16 @@ export default function HomePage() {
                                                             ● {entry.level}
                                                         </span>
                                                     </div>
-
                                                     <p className="mt-1 text-sm text-muted-foreground">
                                                         {formatEvent(entry.event)}
                                                     </p>
-
                                                     {entry.path && (
-                                                        <p className="mt-2 truncate text-xs text-muted-foreground">
+                                                        <p className="mt-1 truncate text-xs text-muted-foreground">
                                                             {entry.path}
                                                         </p>
                                                     )}
                                                 </div>
-
-                                                <p className="shrink-0 text-xs text-muted-foreground">
+                                                <p className="shrink-0 text-xs text-muted-foreground mt-2 sm:mt-0">
                                                     {formatTimestamp(entry.timestamp)}
                                                 </p>
                                             </div>
@@ -284,34 +279,31 @@ export default function HomePage() {
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-3">
-                            <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
-                                <h3 className="text-xl font-bold">Quick actions</h3>
+                        {/* Quick Actions & Installed Plugins Column */}
+                        <div className="flex flex-col gap-4">
 
+                            {/* Quick Actions */}
+                            <div className="rounded-md border border-border bg-card p-6 shadow-sm">
+                                <h3 className="text-base font-semibold">Quick actions</h3>
                                 <p className="mt-1 text-sm text-muted-foreground">
                                     Common Griffon actions.
                                 </p>
 
-                                <div className="mt-5 grid gap-3">
-                                    <Link to="/log">
-                                        <Button
-                                            variant="outline"
-                                            className="w-full cursor-pointer justify-start gap-3"
-                                        >
+                                {/* Standardized inner gap to gap-2 for stacked buttons */}
+                                <div className="mt-6 flex flex-col gap-2">
+                                    <Button asChild variant="outline" className="w-full cursor-pointer justify-start gap-3">
+                                        <Link to="/log">
                                             <Activity className="size-4" />
                                             View activity log
-                                        </Button>
-                                    </Link>
+                                        </Link>
+                                    </Button>
 
-                                    <Link to="/settings">
-                                        <Button
-                                            variant="outline"
-                                            className="w-full cursor-pointer justify-start gap-3"
-                                        >
+                                    <Button asChild variant="outline" className="w-full cursor-pointer justify-start gap-3">
+                                        <Link to="/settings">
                                             <Settings2 className="size-4" />
                                             Manage settings
-                                        </Button>
-                                    </Link>
+                                        </Link>
+                                    </Button>
 
                                     <Button
                                         variant="outline"
@@ -320,28 +312,27 @@ export default function HomePage() {
                                         onClick={refreshBackgroundService}
                                     >
                                         <RefreshCw
-                                            className={`size-4 ${isRefreshingService ? "animate-spin" : ""
-                                                }`}
+                                            className={`size-4 ${isRefreshingService ? "animate-spin" : ""}`}
                                         />
                                         Refresh background service
                                     </Button>
                                 </div>
                             </div>
 
-                            <div className="rounded-xl border border-border bg-card p-3 shadow-sm">
+                            {/* Installed Plugins */}
+                            <div className="rounded-md border border-border bg-card p-6 shadow-sm">
                                 <div className="flex items-center justify-between gap-4">
                                     <div>
-                                        <h3 className="text-xl font-bold">Installed plugins</h3>
-
+                                        <h3 className="text-base font-semibold">Installed plugins</h3>
                                         <p className="mt-1 text-sm text-muted-foreground">
                                             Quick access to plugin pages.
                                         </p>
                                     </div>
-
                                     <ToyBrick className="size-5 text-muted-foreground" />
                                 </div>
 
-                                <div className="mt-5 flex flex-col gap-3">
+                                {/* Standardized inner gap to gap-2 for tight lists */}
+                                <div className="mt-6 flex flex-col gap-2">
                                     {plugins.length === 0 && (
                                         <div className="rounded-md border border-border p-4 text-sm text-muted-foreground">
                                             No plugin available.
@@ -352,19 +343,17 @@ export default function HomePage() {
                                         <Link
                                             key={plugin.uuid}
                                             to={`/plugin/${plugin.file_name}`}
-                                            className="rounded-md border border-border p-3 transition hover:bg-muted"
+                                            className="rounded-md border border-border p-3 transition hover:bg-accent/60 hover:text-foreground"
                                         >
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="min-w-0">
-                                                    <p className="truncate font-semibold">
+                                                    <p className="truncate text-sm font-semibold">
                                                         {plugin.display_name}
                                                     </p>
-
                                                     <p className="mt-1 truncate text-xs text-muted-foreground">
                                                         {plugin.uuid}
                                                     </p>
                                                 </div>
-
                                                 <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
                                             </div>
                                         </Link>
