@@ -281,6 +281,14 @@ export type CleanerDryRunToggleElement = {
   };
 };
 
+export type ScannerTableElement = {
+  type: "scanner_table";
+  id: string;
+  action?: string;
+  columns?: TableColumn[];
+  rows?: TableRowData[] | string;
+};
+
 export type GriffonElement =
   | TextElement
   | ButtonElement
@@ -300,4 +308,5 @@ export type GriffonElement =
   | ColumnElement
   | CleanerCandidateListElement
   | CleanerFileTypeSelectorElement
-  | CleanerDryRunToggleElement;
+  | CleanerDryRunToggleElement
+  | ScannerTableElement;
