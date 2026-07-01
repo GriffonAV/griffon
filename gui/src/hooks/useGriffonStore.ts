@@ -51,6 +51,8 @@ function setByPath(
         return false;
     }
 
+    console.debug(`setByPath: setting "${path}" to`, value);
+
     current[lastKey] = value;
     return true;
 }
@@ -106,15 +108,6 @@ async function CallPlgFnStep(
 
         const args = buildPluginArgs(resolvedValue);
 
-        console.debug(
-            `[GRIFFON-STORE] execute_function fn=${step.fn}`,
-            {
-                from: step.from,
-                resolvedValue,
-                args,
-            }
-        );
-
         const returnValue = await callPluginFunction(step.fn, args);
         let result: any = returnValue;
 
@@ -157,6 +150,38 @@ async function executeStep(
 
             setByPath(next, step.key, value);
             return next;
+        }
+
+        case "append_remove": {
+            if (!step.key) return next;
+
+            const current = resolveFromPath(step.key, { store: next }) ?? [];
+            const value = step.value;
+
+            if (!Array.isArray(current)) {
+                console.warn(`Current value at "${step.key}" is not an array. Cannot append or remove.`);
+                return next;
+            }
+
+            const hasFrom = typeof step.from === "string" && step.from.trim().length > 0;
+            if (!hasFrom && value === undefined) {
+                console.warn(`No value provided for append_remove step at "${step.key}".`);
+                return next;
+            }
+
+            const fromValue = resolveFromPath(step.from, { store: next, event });
+            if (fromValue === undefined) {
+                console.warn(`No value resolved from "${step.from}" for append_remove step at "${step.key}".`);
+                return next;
+            }
+
+            if (fromValue === true) {
+                setByPath(next, step.key, [...current, value]);
+                return next;
+            } else {
+                setByPath(next, step.key, current.filter((item: any) => item !== value));
+                return next;
+            }
         }
 
         case "increment": {

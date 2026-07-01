@@ -20,18 +20,25 @@ message = "status unknown"
 rules_count = 0
 update_message = ""
 
-
+[store.default_settings]
+folder = false
+archive = false
+threats = []
+threads = 1
+threading = "auto"
+paths = ["/home"]
 
 [store.settings]
-recursive_scan = false
-include_archives = false
-threat_ransomware = false
-threat_keylogger = false
-thread_number = 1
-thread_mode = "auto"
+folder = false
+archive = false
+threats = []
+threads = 1
+threading = "auto"
+paths = []
 
 [store.data]
 selected_threats = []
+scan_result = []
 
 
 
@@ -69,14 +76,14 @@ variant = "subtitle"
 type = "checkbox"
 id = "threat_ransomware"
 label = "Ransomware"
-value = false
+checked = false
 action = "scanner.set_threat_ransomware"
 
 [[ui.sections.contents.children.children]]
 type = "checkbox"
 id = "threat_keylogger"
 label = "Keylogger"
-value = false
+checked = false
 action = "scanner.set_threat_keylogger"
 
 
@@ -88,51 +95,51 @@ gap = "md"
 
 [[ui.sections.contents.children.children]]
 type = "checkbox"
-id = "include_archives"
+id = "archive"
 label = "Include archived files"
-value = false
-action = "scanner.set_include_archives"
+checked = false
+action = "scanner.set_archive"
 
 [[ui.sections.contents.children.children]]
 type = "checkbox"
 id = "include_folders"
 label = "recursive scan"
-value = false
-action = "scanner.set_recursive_scan"
+checked = false
+action = "scanner.set_folder"
 
 
 [[ui.sections.contents.children.children]]
 type = "row"
-id = "thread_number_row"
+id = "threads_row"
 gap = "sm"
 align = "center"
 
 
 [[ui.sections.contents.children.children.children]]
 type = "text"
-id = "thread_number"
+id = "threads"
 name = "thread number:"
 
 
 [[ui.sections.contents.children.children.children]]
 type = "select"
-id = "thread_number_select"
+id = "threads_select"
 options = [
     {"value"= "auto","label"= "Auto"},
     {"value"= "max", "label"= "Max"},
     {"value"= "custom", "label"= "Custom"}
     ]
 value = "auto"
-action = "scanner.set_thread_mode"
+action = "scanner.set_threading"
 
 
 [[ui.sections.contents.children.children.children]]
 type = "input"
-id = "thread_number_input"
+id = "threads_input"
 name = "Thread Number"
 placeholder = "Enter thread number..."
 input_type = "number"
-action = "scanner.set_thread_number"
+action = "scanner.set_threads"
 
 
 
@@ -308,24 +315,24 @@ action = "scanner.delete_from_quarantine"
 
 [[interactions]]
 id = "set_archive_scan"
-on = "scanner.set_include_archives"
+on = "scanner.set_archive"
 
 
 [[interactions.steps]]
 type = "set"
-key = "store.settings.include_archives"
-from = "event.value"
+key = "store.settings.archive"
+from = "event.checked"
 
 
 [[interactions]]
-id = "set_recursive_scan"
-on = "scanner.set_recursive_scan"
+id = "set_folder"
+on = "scanner.set_folder"
 
 
 [[interactions.steps]]
 type = "set"
-key = "store.settings.recursive_scan"
-from = "event.value"
+key = "store.settings.folder"
+from = "event.checked"
 
 
 [[interactions]]
@@ -333,9 +340,10 @@ id = "set_threat_ransomware"
 on = "scanner.set_threat_ransomware"
 
 [[interactions.steps]]
-type = "set"
-key = "store.settings.threat_ransomware"
-from = "event.value"
+type = "append_remove"
+key = "store.settings.threats"
+from = "event.checked"
+value = "ransomware"
 
 
 [[interactions]]
@@ -343,28 +351,29 @@ id = "set_threat_keylogger"
 on = "scanner.set_threat_keylogger"
 
 [[interactions.steps]]
+type = "append_remove"
+key = "store.settings.threats"
+from = "event.checked"
+value = "keylogger"
+
+
+[[interactions]]
+id = "set_threads"
+on = "scanner.set_threads"    
+
+[[interactions.steps]]
 type = "set"
-key = "store.settings.threat_keylogger"
+key = "store.settings.threads"
 from = "event.value"
 
 
 [[interactions]]
-id = "set_thread_number"
-on = "scanner.set_thread_number"    
+id = "set_threading"
+on = "scanner.set_threading"
 
 [[interactions.steps]]
 type = "set"
-key = "store.settings.thread_number"
-from = "event.value"
-
-
-[[interactions]]
-id = "set_thread_mode"
-on = "scanner.set_thread_mode"
-
-[[interactions.steps]]
-type = "set"
-key = "store.settings.thread_mode"
+key = "store.settings.threading"
 from = "event.value"
 
 
@@ -381,7 +390,7 @@ on = "scanner.run_scan"
 type = "execute_function"
 key = "store.data.scan_result"
 from = "store.settings"
-fn = "run_scan"
+fn = "scan"
 
 [[interactions]]
 id = "run_default_scan"
@@ -390,8 +399,8 @@ on = "scanner.run_default_scan"
 [[interactions.steps]]
 type = "execute_function"
 key = "store.data.scan_result"
-from = "store.settings"
-fn = "run_default_scan"
+from = "store.default_settings"
+fn = "scan"
 
 
 
