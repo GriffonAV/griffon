@@ -32,14 +32,18 @@ export default function GriffonText({
       : element.name ?? "";
 
   return (
-    <div
-      className={[
-        textVariantClass(element.variant),
-        toneTextClass(element.tone),
-        textAlignClass(element.align),
-      ].join(" ")}
-    >
-      {content}
+    <div>
+      {content &&
+        <div
+          className={[
+            textVariantClass(element.variant),
+            toneTextClass(element.tone),
+            textAlignClass(element.align),
+          ].join(" ")}
+        >
+          {content}
+        </div>
+      }
     </div>
   );
 }

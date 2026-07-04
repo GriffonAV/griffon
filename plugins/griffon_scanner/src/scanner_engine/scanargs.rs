@@ -13,8 +13,8 @@ pub struct ScanArgs {
     #[arg(short, long, default_value_t = false)]
     pub recursive: bool,
 
-    // path to scan: string, no flag just the path
-    pub path: PathBuf,
+    #[arg(value_name = "PATH", required = true)]
+    pub paths: Vec<PathBuf>,
 
     // yara only
     #[arg(long, default_value_t = true)]
@@ -24,10 +24,11 @@ pub struct ScanArgs {
     //--threads 4 — explicit count
     //--threads auto — let rayon decide (default, uses all cores)
     //--threads conservative — use max(1, cores / 2) to leave room for the rest of the system
+    //--threads off — disables parallelism, runs sequentially
     #[arg(long, default_value = "auto")]
     pub threads: String,
 
-    #[arg(long)]
+    #[arg(long, default_value_t = 1)]
     pub nb_threads: u32,
 
     #[arg(short, long, value_delimiter = ',')]
@@ -43,7 +44,7 @@ impl Default for ScanArgs {
         ScanArgs {
             archives: false,
             recursive: true,
-            path: PathBuf::new(),
+            paths: vec![],
             yara_only: false,
             threads: "auto".to_string(),
             nb_threads: 0,

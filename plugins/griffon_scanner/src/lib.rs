@@ -3,7 +3,7 @@ pub mod scanner_quarantine;
 pub mod scanner_updater;
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Mutex, OnceLock};
 
@@ -167,6 +167,22 @@ where
     })
 }
 
+#[derive(Serialize)]
+struct GuiThreat {
+    path: String,
+    name: String,
+    severity: String,
+}
+
+#[derive(Serialize)]
+struct GuiScanResponse {
+    total_scanned: u64,
+    total_skipped: u64,
+    total_errors: u64,
+    total_threats: u64,
+    threats: Vec<GuiThreat>,
+}
+
 fn registry() -> &'static HashMap<&'static str, Handler> {
     static REGISTRY: OnceLock<HashMap<&'static str, Handler>> = OnceLock::new();
     REGISTRY.get_or_init(|| {
@@ -195,7 +211,8 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
 
         m.insert(
             "scan",
-            command(|opts: ScanOptions| -> Result<serde_json::Value, String> {
+            command(|opts: ScanOptions| -> Result<GuiScanResponse, String> {
+                // Note: Return GuiScanResponse instead of serde_json::Value
                 if let Some(status) = engine_not_ready() {
                     return Err(status.message);
                 }
@@ -203,17 +220,16 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                 let mut lock = ENGINE.lock().unwrap();
                 let engine = lock.as_mut().ok_or("Engine state is invalid")?;
 
-                let path = if opts.paths.is_empty() {
-                    PathBuf::from(dirs::home_dir().ok_or("Failed to get user home directory")?)
+                let paths = if opts.paths.is_empty() {
+                    Vec::new()
                 } else {
-                    PathBuf::from(&opts.paths[0])
+                    opts.paths.clone()
                 };
+
                 let scanargs = ScanArgs {
                     archives: opts.archive,
                     recursive: opts.folder,
-                    path: path.clone(),
-
-                    // enum to string threads to string
+                    paths: paths.iter().map(PathBuf::from).collect(),
                     threads: opts.threading,
                     nb_threads: opts.threads,
                     include: opts
@@ -224,13 +240,32 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                     exclude: Vec::new(),
                     yara_only: false,
                 };
-                let report = engine.scan(path.as_path(), &scanargs);
 
-                serde_json::to_value(&report)
-                    .map_err(|e| format!("Failed to serialize report: {e}"))
+                let report = engine.scan(&scanargs);
+
+                // 1. Extract only the files that actually triggered threats
+                let gui_threats: Vec<GuiThreat> = report
+                    .results
+                    .iter()
+                    .flat_map(|res| {
+                        res.threats.iter().map(|t| GuiThreat {
+                            path: res.path.to_string_lossy().to_string(), // Use the file path
+                            name: t.name.clone(),
+                            severity: t.severity.to_string(),
+                        })
+                    })
+                    .collect();
+
+                // 2. Build the lightweight response
+                Ok(GuiScanResponse {
+                    total_scanned: report.total_scanned,
+                    total_skipped: report.total_skipped,
+                    total_errors: report.total_errors,
+                    total_threats: report.total_threats,
+                    threats: gui_threats,
+                })
             }),
         );
-
         m.insert(
             "db_state",
             command(|_: NoArgs| -> Result<serde_json::Value, String> {
@@ -244,7 +279,7 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
 
                 Ok(serde_json::json!({
                     "ok": true,
-                    "message": "Scanner is ready",
+                    "message": "Scanner is ready.",
                     "rules_count": rules_count,
                 }))
             }),
@@ -266,7 +301,9 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                     std::thread::spawn(start_engine);
                 }
 
-                Ok(Ack::ok("Update completed successfully"))
+                Ok(Ack::ok(
+                    "Rules updated successfully, Scanner will restart if it was running.",
+                ))
             }),
         );
 
@@ -305,8 +342,9 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                     .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
                 let manifests = q.list_sorted();
 
-                serde_json::to_value(&manifests)
-                    .map_err(|e| format!("Failed to serialize list: {e}"))
+                Ok(serde_json::json!({
+                    "quarantined_items": manifests,
+                }))
             }),
         );
 
@@ -322,17 +360,16 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
             }),
         );
 
-        // m.insert(
-        //     "q_delete",
-        //     command(|target: QuarantineTarget| -> Result<Ack, String> {
-        //         let q = Quarantine::new(&Quarantine::default_dir())
-        //             .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
-
-        //         q.delete_file(&target.name)
-        //             .map(|_| Ack::ok(format!("{} permanently deleted", target.name)))
-        //             .map_err(|e| format!("Failed to delete {}: {e}", target.name))
-        //     }),
-        // );
+        m.insert(
+            "q_delete",
+            command(|target: QuarantineTarget| -> Result<Ack, String> {
+                let q = Quarantine::new(&Quarantine::default_dir())
+                    .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
+                q.delete_quarantined_file(&target.name)
+                    .map(|_| Ack::ok(format!("Deleted {}", target.name)))
+                    .map_err(|e| format!("Failed to delete {}: {e}", target.name))
+            }),
+        );
 
         m
     })
@@ -404,7 +441,7 @@ extern "C" fn handle_message(msg: RString) -> RString {
 
     let payload = match parse_payload(raw_payload) {
         Ok(v) => v,
-        Err(e) => return RString::from(msg),
+        Err(_e) => return msg,
         // Err(e) => return RString::from(format!("ERR {e}")),
     };
 

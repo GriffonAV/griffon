@@ -1,3 +1,4 @@
+use core::fmt;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
@@ -10,6 +11,18 @@ pub enum Severity {
     High,
     #[allow(dead_code)]
     Critical,
+}
+
+impl fmt::Display for Severity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Severity::Low => "low",
+            Severity::Medium => "medium",
+            Severity::High => "high",
+            Severity::Critical => "critical",
+        };
+        write!(f, "{}", s)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]

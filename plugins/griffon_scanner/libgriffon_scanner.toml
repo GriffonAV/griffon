@@ -17,16 +17,20 @@ uuid = "a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"
 
 [store.data.database_status]
 message = "status unknown"
+error = ""
 rules_count = 0
-update_message = ""
+
+[store.data.database_update]
+message = ""
+error = ""
 
 [store.default_settings]
 folder = false
-archive = false
+archive = true
 threats = []
 threads = 1
 threading = "auto"
-paths = ["/home"]
+paths = ["/home/axis"]
 
 [store.settings]
 folder = false
@@ -40,6 +44,11 @@ paths = []
 selected_threats = []
 scan_result = []
 
+[store.q_list]
+threats = []
+
+[store.q_result]
+message = ""
 
 # =========================
 # UI
@@ -179,6 +188,7 @@ gap = "sm"
 [[ui.sections.contents.children]]
 type = "button"
 id = "quarantine_bt"
+confirmation = "Are you sure you want to quarantine the selected threats?"
 name = "Quarantine Selected"
 action = "scanner.quarantine_selected_threats"
 
@@ -186,6 +196,7 @@ action = "scanner.quarantine_selected_threats"
 [[ui.sections.contents.children]]
 type = "button"
 id = "delete_bt"
+confirmation = "Are you sure you want to delete the selected threats? This action is irreversible."
 name = "Delete Selected"
 action = "scanner.delete_selected_threats"
 
@@ -221,6 +232,12 @@ name = "{{store.data.database_status.message}}"
 
 [[ui.sections.contents]]
 type = "text"
+id = "database_error_text"
+tone = "danger"
+name = "{{store.data.database_status.error}}"
+
+[[ui.sections.contents]]
+type = "text"
 id = "rules_count_text"
 name = "{{store.data.database_status.rules_count}} rules loaded"
 
@@ -253,8 +270,12 @@ action = "scanner.force_update"
 [[ui.sections.contents]]
 type = "text"
 id = "update_message_text"
-name = "{{store.data.database_status.update_message}}"
+name = "{{store.data.database_update.message}}"
 
+[[ui.sections.contents]]
+type = "text"
+id = "update_error_text"
+name = "{{store.data.database_update.error}}"
 
 # =========================================================
 # QUARANTINE TAB
@@ -277,7 +298,7 @@ align = "center"
 type = "button"
 id = "quarantine_refresh_bt"
 name = "refresh"
-action = "scanner.check_rules"
+action = "scanner.q_list"
 
 
 [[ui.sections.contents]]
@@ -291,14 +312,16 @@ align = "center"
 type = "button"
 id = "quarantine_retore_bt"
 name = "restore selected"
-action = "scanner.restore_from_quarantine"
+confirmation = "Are you sure you want to restore the selected threats?"
+action = "scanner.q_restore"
 
 
 [[ui.sections.contents.children]]
 type = "button"
 id = "quarantine_delete_bt"
 name = "delete selected"
-action = "scanner.delete_from_quarantine"
+confirmation = "Are you sure you want to delete the selected threats? This action is irreversible."
+action = "scanner.q_delete"
 
 
 # =========================
@@ -457,3 +480,37 @@ type = "execute_function"
 key = "store.data.database_status"
 returnType = "json"
 fn = "db_update"
+
+# =========================
+# Quarantine function Interactions
+# =========================
+
+[[interactions.steps]]
+type = "q_list"
+on = "scanner.q_list"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.q_list"
+returnType = "json"
+fn = "q_list"
+
+[[interactions.steps]]
+type = "q_restore"
+on = "scanner.q_restore"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.q_result"
+returnType = "json"
+fn = "q_restore"
+
+[[interactions.steps]]
+type = "q_delete"
+on = "scanner.q_delete"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.q_result"
+returnType = "json"
+fn = "q_delete"

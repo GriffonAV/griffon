@@ -117,7 +117,7 @@ fn main() {
     let scan_args = ScanArgs {
         threads: threads.clone(),
         yara_only,
-        path: target.clone().into(),
+        paths: vec![target.clone().into()],
 
         ..Default::default()
     };
@@ -177,7 +177,7 @@ fn main() {
 
     for i in 0..iters {
         let t = Instant::now();
-        let report = scan_engine.scan(target_path, &scan_args);
+        let report = scan_engine.scan(&scan_args);
         scan_samples.push(duration_ms(t.elapsed()));
 
         // Capture counts from last iteration

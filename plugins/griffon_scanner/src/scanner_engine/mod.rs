@@ -2,7 +2,6 @@
 #[allow(unused_variables)]
 use crate::scanner_engine::data_type::ScanReport;
 use crate::scanner_engine::scanargs::{PrepArgs, ScanArgs};
-use std::path::Path;
 
 mod archive;
 pub mod data_type;
@@ -49,19 +48,18 @@ impl ScanEngine {
         ))
     }
 
-    pub fn scan(&mut self, path: &Path, args: &ScanArgs) -> ScanReport {
+    pub fn scan(&mut self, args: &ScanArgs) -> ScanReport {
         self.scan_args = args.clone();
         let mut report = ScanReport::default();
 
         let _ = Self::init_thread_pool(&args.threads);
 
-        log::info!("Rayon active threads: {}", rayon::current_num_threads());
-        if path.is_file() {
-            let results = self.scan_file(path);
-            report.add(results);
-        } else if path.is_dir() {
-            let results = self.scan_dir(path);
-            report.add(results);
+        for path in &args.paths {
+            if path.is_file() {
+                report.add(self.scan_file(path));
+            } else if path.is_dir() {
+                report.add(self.scan_dir(path));
+            }
         }
 
         report

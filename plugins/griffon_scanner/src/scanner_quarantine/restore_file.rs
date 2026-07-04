@@ -32,4 +32,19 @@ impl Quarantine {
         log::info!("Restored: {}", manifest.original_path.display());
         Ok(manifest.original_path)
     }
+
+    pub fn delete_quarantined_file(&self, quarantined_name: &str) -> Result<(), String> {
+        let dest_path = self.dir.join(quarantined_name);
+        let manifest_path = self
+            .dir
+            .join(quarantined_name.replace(".quarantined", ".json"));
+
+        std::fs::remove_file(&dest_path)
+            .map_err(|e| format!("Failed to delete quarantined file: {}", e))?;
+        std::fs::remove_file(&manifest_path)
+            .map_err(|e| format!("Failed to delete manifest file: {}", e))?;
+
+        log::info!("Deleted: {}", dest_path.display());
+        Ok(())
+    }
 }
