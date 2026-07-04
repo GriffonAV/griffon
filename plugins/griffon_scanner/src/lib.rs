@@ -145,15 +145,24 @@ where
     Box::new(move |payload: serde_json::Value| -> RString {
         let input: I = match serde_json::from_value(payload) {
             Ok(v) => v,
-            Err(e) => return RString::from(format!("ERR invalid arguments: {e}")),
+            Err(e) => {
+                let err_json = serde_json::json!({ "message": format!("invalid arguments: {e}") });
+                return RString::from(err_json.to_string());
+            }
         };
 
         match f(input) {
             Ok(output) => match serde_json::to_string(&output) {
                 Ok(json) => RString::from(json),
-                Err(e) => RString::from(format!("ERR json serialize: {e}")),
+                Err(e) => {
+                    let err_json = serde_json::json!({ "message": format!("json serialize: {e}") });
+                    RString::from(err_json.to_string())
+                }
             },
-            Err(e) => RString::from(format!("ERR: {e}")),
+            Err(e) => {
+                let err_json = serde_json::json!({ "message": e });
+                RString::from(err_json.to_string())
+            }
         }
     })
 }
@@ -231,7 +240,8 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
 
                 Ok(serde_json::json!({
                     "ok": true,
-                    "yara_count": rules_count,
+                    "message": "Scanner is ready",
+                    "rules_count": rules_count,
                 }))
             }),
         );
@@ -390,7 +400,8 @@ extern "C" fn handle_message(msg: RString) -> RString {
 
     let payload = match parse_payload(raw_payload) {
         Ok(v) => v,
-        Err(e) => return RString::from(format!("ERR {e}")),
+        Err(e) => return RString::from(msg),
+        // Err(e) => return RString::from(format!("ERR {e}")),
     };
 
     match registry().get(function) {

@@ -1,4 +1,4 @@
-# Griffon Plugin Manifest: Antivirus Scanner — layout draft (primitives only)
+# Griffon Plugin Manifest: File Picker Demo
 [plugin]
 name = "Griffon Scanner"
 id = "a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"
@@ -8,14 +8,38 @@ description = "YARA & Hash Antivirus Scanner plugin for scanning, managing signa
 tabs = ["scan", "database", "quarantine"]
 uuid = "a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"
 
+
 # =========================
-# Store (placeholder shape, not wired to real logic yet)
+# Store
 # =========================
 
 [store]
 
-[store.data.placeholder]
-note = "store left minimal until generic input components exist"
+[store.data.database_status]
+message = "status unknown"
+rules_count = 0
+update_message = ""
+
+[store.default_settings]
+folder = false
+archive = false
+threats = []
+threads = 1
+threading = "auto"
+paths = ["/home"]
+
+[store.settings]
+folder = false
+archive = false
+threats = []
+threads = 1
+threading = "auto"
+paths = []
+
+[store.data]
+selected_threats = []
+scan_result = []
+
 
 # =========================
 # UI
@@ -28,153 +52,118 @@ note = "store left minimal until generic input components exist"
 # =========================================================
 
 [[ui.sections]]
-id = "settings"
+id = "parameters"
 tab = "scan"
 
-# Threat types
 [[ui.sections.contents]]
 type = "row"
-id = "scan_settings_threats_row"
-gap = "sm"
-justify = "space-between"
-align = "center"
+id = "scan_parameters_row"
+gap = "lg"
 
 [[ui.sections.contents.children]]
+type = "column"
+id = "threats_type_column"
+gap = "md"
+
+[[ui.sections.contents.children.children]]
 type = "text"
-id = "scan_settings_threats_label"
-name = "Threat types"
-variant = "label"
+id = "threats_type_title"
+name = "Threats types"
+variant = "subtitle"
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "threat_ransomware"
+label = "Ransomware"
+checked = false
+action = "scanner.set_threat_ransomware"
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "threat_keylogger"
+label = "Keylogger"
+checked = false
+action = "scanner.set_threat_keylogger"
+
 
 [[ui.sections.contents.children]]
-type = "button"
-id = "scan_settings_threats_bt"
-name = "Select…"
-variant = "secondary"
-action = "scanner.noop"
+type = "column"
+id = "scan_options_column"
+gap = "md"
 
-# Thread count
-[[ui.sections.contents]]
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "archive"
+label = "Include archived files"
+checked = false
+action = "scanner.set_archive"
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "include_folders"
+label = "recursive scan"
+checked = false
+action = "scanner.set_folder"
+
+
+[[ui.sections.contents.children.children]]
 type = "row"
-id = "scan_settings_threads_row"
+id = "threads_row"
 gap = "sm"
-justify = "space-between"
 align = "center"
 
-[[ui.sections.contents.children]]
+
+[[ui.sections.contents.children.children.children]]
 type = "text"
-id = "scan_settings_threads_label"
-name = "Number of threads"
-variant = "label"
+id = "threads"
+name = "thread number:"
 
-[[ui.sections.contents.children]]
-type = "button"
-id = "scan_settings_threads_bt"
-name = "Set…"
-variant = "secondary"
-action = "scanner.noop"
 
-# Archive handling
-[[ui.sections.contents]]
-type = "row"
-id = "scan_settings_archive_row"
-gap = "sm"
-justify = "space-between"
-align = "center"
+[[ui.sections.contents.children.children.children]]
+type = "select"
+id = "threads_select"
+options = [
+    { "value" = "auto", "label" = "Auto" },
+    { "value" = "max", "label" = "Max" },
+    { "value" = "custom", "label" = "Custom" },
+]
+value = "auto"
+action = "scanner.set_threading"
 
-[[ui.sections.contents.children]]
-type = "text"
-id = "scan_settings_archive_label"
-name = "Scan inside archives"
-variant = "label"
 
-[[ui.sections.contents.children]]
-type = "button"
-id = "scan_settings_archive_bt"
-name = "Toggle"
-variant = "secondary"
-action = "scanner.noop"
+[[ui.sections.contents.children.children.children]]
+type = "input"
+id = "threads_input"
+name = "Thread Number"
+placeholder = "Enter thread number..."
+input_type = "number"
+action = "scanner.set_threads"
 
-# Recursive handling
-[[ui.sections.contents]]
-type = "row"
-id = "scan_settings_recursive_row"
-gap = "sm"
-justify = "space-between"
-align = "center"
-
-[[ui.sections.contents.children]]
-type = "text"
-id = "scan_settings_recursive_label"
-name = "Recursive scan"
-variant = "label"
-
-[[ui.sections.contents.children]]
-type = "button"
-id = "scan_settings_recursive_bt"
-name = "Toggle"
-variant = "secondary"
-action = "scanner.noop"
 
 [[ui.sections]]
-id = "targets"
+id = "scan"
 tab = "scan"
 
-[[ui.sections.contents]]
-type = "row"
-id = "scan_target_file_row"
-gap = "sm"
-justify = "space-between"
-align = "center"
-
-[[ui.sections.contents.children]]
-type = "text"
-id = "scan_target_file_label"
-name = "File"
-variant = "label"
-
-[[ui.sections.contents.children]]
-type = "button"
-id = "scan_target_file_bt"
-name = "Choose file…"
-variant = "secondary"
-icon = "file"
-action = "scanner.noop"
 
 [[ui.sections.contents]]
 type = "row"
-id = "scan_target_folder_row"
+id = "scan_bt_row"
 gap = "sm"
-justify = "space-between"
-align = "center"
 
-[[ui.sections.contents.children]]
-type = "text"
-id = "scan_target_folder_label"
-name = "Folder"
-variant = "label"
-
-[[ui.sections.contents.children]]
-type = "button"
-id = "scan_target_folder_bt"
-name = "Choose folder…"
-variant = "secondary"
-icon = "folder"
-action = "scanner.noop"
-
-[[ui.sections.contents]]
-type = "row"
-id = "scan_launch_row"
-gap = "sm"
-justify = "flex-end"
-align = "center"
 
 [[ui.sections.contents.children]]
 type = "button"
 id = "run_scan_bt"
-name = "Start analysis"
-variant = "primary"
-icon = "shield"
-action = "scanner.noop"
+name = "Run scan"
+action = "scanner.run_scan"
+
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "run_default_scan_bt"
+name = "Default scan (/home)"
+action = "scanner.run_default_scan"
+
 
 [[ui.sections]]
 id = "results"
@@ -182,41 +171,23 @@ tab = "scan"
 
 
 [[ui.sections.contents]]
-type = "button"
-id = "scan_results_refresh_bt"
-name = "Refresh"
-variant = "secondary"
-icon = "refresh"
-action = "scanner.noop"
-
-[[ui.sections.contents]]
-type = "text"
-id = "scan_results_placeholder"
-name = "No analysis run yet."
-variant = "description"
-
-[[ui.sections.contents]]
 type = "row"
-id = "scan_results_action_row"
+id = "scan_results_row"
 gap = "sm"
-justify = "flex-end"
-align = "center"
+
 
 [[ui.sections.contents.children]]
 type = "button"
-id = "scan_results_quarantine_bt"
-name = "Move to quarantine"
-variant = "secondary"
-icon = "shield-off"
-action = "scanner.noop"
+id = "quarantine_bt"
+name = "Quarantine Selected"
+action = "scanner.quarantine_selected_threats"
+
 
 [[ui.sections.contents.children]]
 type = "button"
-id = "scan_results_delete_bt"
-name = "Delete selected"
-variant = "danger"
-icon = "trash"
-action = "scanner.noop"
+id = "delete_bt"
+name = "Delete Selected"
+action = "scanner.delete_selected_threats"
 
 
 # =========================================================
@@ -228,57 +199,35 @@ id = "database_status"
 tab = "database"
 
 
-# --- Subpart: State ---
 [[ui.sections.contents]]
 type = "row"
-id = "database_state_row"
-gap = "sm"
-justify = "space-between"
-align = "center"
-
-[[ui.sections.contents.children]]
-type = "text"
-id = "database_state_label"
-name = "Database state"
-variant = "label"
-
-[[ui.sections.contents.children]]
-type = "text"
-id = "database_state_value"
-name = "Unknown"
-variant = "description"
-
-[[ui.sections.contents]]
-type = "row"
-id = "database_check_row"
+id = "database_refresh_row"
 gap = "sm"
 justify = "flex-end"
 align = "center"
 
+
 [[ui.sections.contents.children]]
 type = "button"
-id = "database_check_bt"
-name = "Check"
-variant = "secondary"
-icon = "list"
-action = "scanner.noop"
+id = "database_refresh_bt"
+name = "refresh"
+action = "scanner.check_rules"
 
-# --- Subpart: Update ---
+
+[[ui.sections.contents]]
+type = "text"
+id = "database_status_text"
+name = "{{store.data.database_status.message}}"
+
+[[ui.sections.contents]]
+type = "text"
+id = "rules_count_text"
+name = "{{store.data.database_status.rules_count}} rules loaded"
+
+
 [[ui.sections]]
 id = "database_update"
 tab = "database"
-
-[[ui.sections.contents]]
-type = "text"
-id = "database_update_title"
-name = "Update"
-variant = "subtitle"
-
-[[ui.sections.contents]]
-type = "text"
-id = "database_update_desc"
-name = "Download and apply the latest YARA rules and hash lists."
-variant = "description"
 
 [[ui.sections.contents]]
 type = "row"
@@ -290,34 +239,46 @@ align = "center"
 [[ui.sections.contents.children]]
 type = "button"
 id = "database_update_bt"
-name = "Update now"
-variant = "primary"
-icon = "download"
-action = "scanner.noop"
+name = "update database"
+action = "scanner.run_update"
+
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "database_force_update_bt"
+name = "force update"
+action = "scanner.force_update"
+
+
+[[ui.sections.contents]]
+type = "text"
+id = "update_message_text"
+name = "{{store.data.database_status.update_message}}"
+
 
 # =========================================================
 # QUARANTINE TAB
 # =========================================================
 
 [[ui.sections]]
-id = "quarantine_section"
+id = "quarantined_files"
 tab = "quarantine"
 
 
 [[ui.sections.contents]]
+type = "row"
+id = "quarantine_refresh_row"
+gap = "sm"
+justify = "flex-end"
+align = "center"
+
+
+[[ui.sections.contents.children]]
 type = "button"
 id = "quarantine_refresh_bt"
-name = "Refresh"
-variant = "secondary"
-icon = "refresh"
-action = "scanner.noop"
+name = "refresh"
+action = "scanner.check_rules"
 
-# --- Subpart: List ---
-[[ui.sections.contents]]
-type = "text"
-id = "quarantine_list_placeholder"
-name = "No quarantined files."
-variant = "description"
 
 [[ui.sections.contents]]
 type = "row"
@@ -328,29 +289,171 @@ align = "center"
 
 [[ui.sections.contents.children]]
 type = "button"
-id = "quarantine_restore_bt"
-name = "Restore selected"
-variant = "secondary"
-icon = "undo"
-action = "scanner.noop"
+id = "quarantine_retore_bt"
+name = "restore selected"
+action = "scanner.restore_from_quarantine"
+
 
 [[ui.sections.contents.children]]
 type = "button"
 id = "quarantine_delete_bt"
-name = "Delete selected"
-variant = "danger"
-icon = "trash"
-action = "scanner.noop"
+name = "delete selected"
+action = "scanner.delete_from_quarantine"
+
 
 # =========================
-# Interactions (placeholder, no-op for now)
+# Scanner Settings Interactions
 # =========================
+
 
 [[interactions]]
-id = "noop"
-on = "scanner.noop"
+id = "set_archive_scan"
+on = "scanner.set_archive"
+
 
 [[interactions.steps]]
 type = "set"
-key = "store.data.placeholder"
-value = { note = "not wired yet" }
+key = "store.settings.archive"
+from = "event.checked"
+
+
+[[interactions]]
+id = "set_folder"
+on = "scanner.set_folder"
+
+
+[[interactions.steps]]
+type = "set"
+key = "store.settings.folder"
+from = "event.checked"
+
+
+[[interactions]]
+id = "set_threat_ransomware"
+on = "scanner.set_threat_ransomware"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.threats"
+from = "event.checked"
+value = "ransomware"
+
+
+[[interactions]]
+id = "set_threat_keylogger"
+on = "scanner.set_threat_keylogger"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.threats"
+from = "event.checked"
+value = "keylogger"
+
+
+[[interactions]]
+id = "set_threads"
+on = "scanner.set_threads"
+
+[[interactions.steps]]
+type = "set"
+key = "store.settings.threads"
+from = "event.value"
+
+
+[[interactions]]
+id = "set_threading"
+on = "scanner.set_threading"
+
+[[interactions.steps]]
+type = "set"
+key = "store.settings.threading"
+from = "event.value"
+
+
+# =========================
+# Scanner function Interactions
+# =========================
+
+
+[[interactions]]
+id = "run_scan"
+on = "scanner.run_scan"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.scan_result"
+from = "store.settings"
+fn = "scan"
+
+[[interactions]]
+id = "run_default_scan"
+on = "scanner.run_default_scan"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.scan_result"
+from = "store.default_settings"
+fn = "scan"
+
+# =========================
+# Scanner result Interactions
+# =========================
+
+
+# =========================
+# Quarantine function Interactions
+# =========================
+
+[[interactions]]
+id = "quarantine_selected_threats"
+on = "scanner.quarantine_selected_threats"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.quarantine_result"
+from = "store.data.selected_threats"
+fn = "quarantine_selected_threats"
+
+[[interactions]]
+id = "delete_selected_threats"
+on = "scanner.delete_selected_threats"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.delete_result"
+from = "store.data.selected_threats"
+fn = "delete_selected_threats"
+
+# =========================
+# Database function Interactions
+# =========================
+
+[[interactions]]
+id = "check_rules"
+on = "scanner.check_rules"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.database_status"
+from = "store.data.database_status"
+fn = "db_state"
+
+[[interactions]]
+id = "run_update"
+on = "scanner.run_update"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.database_status"
+from = "store.data.database_status"
+fn = "db_update"
+
+[[interactions]]
+id = "force_update"
+on = "scanner.force_update"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.database_status"
+from = "store.data.database_status"
+fn = "db_update"
