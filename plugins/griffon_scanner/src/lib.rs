@@ -3,7 +3,7 @@ pub mod scanner_quarantine;
 pub mod scanner_updater;
 
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::{Mutex, OnceLock};
 
@@ -203,7 +203,11 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                 let mut lock = ENGINE.lock().unwrap();
                 let engine = lock.as_mut().ok_or("Engine state is invalid")?;
 
-                let path = PathBuf::from(&opts.paths[0]);
+                let path = if opts.paths.is_empty() {
+                    PathBuf::from(dirs::home_dir().ok_or("Failed to get user home directory")?)
+                } else {
+                    PathBuf::from(&opts.paths[0])
+                };
                 let scanargs = ScanArgs {
                     archives: opts.archive,
                     recursive: opts.folder,

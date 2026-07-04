@@ -34,10 +34,10 @@ impl ScanEngine {
 
         // Self::init_thread_pool(&args.threads)?;
 
-        if !args.yara_only {
-            self.load_hash_db(args)
-                .expect("Failed to load signature DB");
-        }
+        // if !args.yara_only {
+        //     self.load_hash_db(args)
+        //         .expect("Failed to load signature DB");
+        // }
         self.load_yara_rules(args)
             .expect("Failed to load YARA rules");
 
