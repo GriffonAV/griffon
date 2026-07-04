@@ -79,6 +79,10 @@ export function PluginProvider({ children }: { children: ReactNode }) {
 
         const { requestId, promise } = createPendingRequest();
 
+        if (args.length === 0) {
+            args = ["{}"];
+        }
+
         await invoke("call_plugin", {
             pluginUuid: currentManifest.plugin.uuid,
             fnName,

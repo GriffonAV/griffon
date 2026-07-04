@@ -435,7 +435,7 @@ on = "scanner.check_rules"
 [[interactions.steps]]
 type = "execute_function"
 key = "store.data.database_status"
-from = "store.data.database_status"
+returnType = "json"
 fn = "db_state"
 
 [[interactions]]
@@ -445,7 +445,7 @@ on = "scanner.run_update"
 [[interactions.steps]]
 type = "execute_function"
 key = "store.data.database_status"
-from = "store.data.database_status"
+returnType = "json"
 fn = "db_update"
 
 [[interactions]]
@@ -455,5 +455,5 @@ on = "scanner.force_update"
 [[interactions.steps]]
 type = "execute_function"
 key = "store.data.database_status"
-from = "store.data.database_status"
+returnType = "json"
 fn = "db_update"
