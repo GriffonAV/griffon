@@ -630,7 +630,7 @@ fn main() {
             switch_status_notification,
             call_plugin,
             plugin_history::get_plugin_history,
-            plugin_installer::install_plugin_files,
+            plugin_installer::install_plugin_zip,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");
