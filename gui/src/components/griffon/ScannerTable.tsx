@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import type { ScannerTableElement, Threat } from "@/components/types";
 import { Checkbox } from "../ui/checkbox";
+import { resolveFromPath } from "@/lib/utils";
 
 type Props = {
   element: ScannerTableElement;
@@ -23,9 +24,9 @@ type ScanData = {
   threats: [Threat];
 };
 
-export default function ScannerTable({ element, onAction }: Props) {
+export default function ScannerTable({ element, store = {}, onAction }: Props) {
 
-  var scanData: ScanData = JSON.parse(element.scan_data ?? "{}");
+  var scanData: ScanData = JSON.parse(resolveFromPath(element.scan_data, {store}) ?? "{}");
   const rows: Threat[] = scanData.threats;
 
   return (
