@@ -26,8 +26,8 @@ async function switchPluginStatus(
 }
 
 export function PluginToggleSettings() {
-    const { plugins } = usePlugins();
-    const [pluginStatus, setPluginStatus] = useState<Record<string, boolean>>({});
+    const { plugins, pluginStatus, setPluginStatus } = usePlugins();
+    // const [pluginStatus, setPluginStatus] = useState<Record<string, boolean>>({});
     const [switchingPlugins, setSwitchingPlugins] = useState<Record<string, boolean>>({});
 
     async function handleSwitchPlugin(pluginUuid: string) {
