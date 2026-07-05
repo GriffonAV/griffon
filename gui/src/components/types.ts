@@ -170,6 +170,17 @@ export type TableColumn = {
   label: string;
 };
 
+export type ScannerTableColumn = {
+  key: keyof Threat;
+  label: string;
+};
+
+export type Threat = {
+  path: string;
+  name: string;
+  severity: string;
+};
+
 export type TableRowData = {
   id?: string;
   [key: string]: string | number | boolean | null | undefined;
@@ -285,8 +296,8 @@ export type ScannerTableElement = {
   type: "scanner_table";
   id: string;
   action?: string;
-  columns?: TableColumn[];
-  rows?: TableRowData[] | string;
+  columns?: ScannerTableColumn[];
+  scan_data?: string;
 };
 
 export type GriffonElement =

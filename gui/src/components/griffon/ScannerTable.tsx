@@ -6,25 +6,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { ScannerTableElement } from "@/components/types";
-import { resolveFromPath } from "@/lib/utils";
-
-import GriffonCheckbox from "./GriffonCheckbox";
+import type { ScannerTableElement, Threat } from "@/components/types";
+import { Checkbox } from "../ui/checkbox";
 
 type Props = {
   element: ScannerTableElement;
   store: Record<string, any>;
+  onAction?: (action: string, event?: any) => void;
 };
 
-export default function ScannerTable({ element, store = {} }: Props) {
-  
-  const rows =
-    typeof element.rows === "string"
-      ? resolveFromPath(element.rows, {store}) as any[] | undefined
-      : [];
+type ScanData = {
+  total_scanned: number;
+  total_skipped: number;
+  total_errors: number;
+  total_threats: number;
+  threats: [Threat];
+};
 
-  console.log("rows", rows);
-  
+export default function ScannerTable({ element, onAction }: Props) {
+
+  var scanData: ScanData = JSON.parse(element.scan_data ?? "{}");
+  const rows: Threat[] = scanData.threats;
+
   return (
     <div id={element.id} className="w-full overflow-x-auto rounded-md border">
       <Table>
@@ -39,28 +42,19 @@ export default function ScannerTable({ element, store = {} }: Props) {
 
         <TableBody>
           {rows?.map((row, rowIndex) => (
-            <TableRow key={row.id ?? rowIndex}>
+            <TableRow key={rowIndex}>
               {element.columns?.map((column) => (
-                <TableCell key={`${row.id ?? rowIndex}-${column.key}`}>
+                <TableCell key={`${rowIndex}-${column.key}`}>
                   {String(row[column.key] ?? "")}
                 </TableCell>
               ))}
               <TableCell>
-                <GriffonCheckbox
-                  element={{
-                    id: `${element.id}-checkbox-${rowIndex}`,
-                    type: "checkbox",
-                    label: "Select",
-                    checked: !!store?.data?.selected_threats?.some(
-                      (item: any) => item.id === row.id
-                    )
-                  }}
-                  onAction={(action, updatedElement) => {
-                    if (element.action) {
-                      // Call the action handler with the updated element
-                      console.log("Action triggered:", action, updatedElement);
-                      // You can implement your action handling logic here
-                    }
+                <Checkbox
+                  onCheckedChange={(checked) => {
+                    onAction?.(element.action ?? "", {
+                      value: row.path,
+                      checked: checked,
+                    });
                   }}
                 />
               </TableCell>
