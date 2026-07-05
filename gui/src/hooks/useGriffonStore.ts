@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { PluginManifest, InteractionStep } from "@/bindings/PluginContext";
 import { usePlugins } from "@/bindings/PluginContext";
-import { resolveFromPath } from "@/lib/utils";
+import { resolveFromPath, resolveTemplate } from "@/lib/utils";
 
 export type GriffonStore = Record<string, any>;
 
@@ -156,7 +156,7 @@ async function executeStep(
             if (!step.key) return next;
 
             const current = resolveFromPath(step.key, { store: next }) ?? [];
-            const value = step.value;
+            const value = resolveTemplate(step.value ?? "", { store: next, event });
 
             if (!Array.isArray(current)) {
                 console.warn(`Current value at "${step.key}" is not an array. Cannot append or remove.`);
@@ -169,13 +169,13 @@ async function executeStep(
                 return next;
             }
 
-            const fromValue = resolveFromPath(step.from, { store: next, event });
-            if (fromValue === undefined) {
+            const toggleValue = resolveFromPath(step.from, { store: next, event });
+            if (toggleValue === undefined) {
                 console.warn(`No value resolved from "${step.from}" for append_remove step at "${step.key}".`);
                 return next;
             }
 
-            if (fromValue === true) {
+            if (toggleValue === true) {
                 setByPath(next, step.key, [...current, value]);
                 return next;
             } else {
@@ -214,6 +214,14 @@ async function executeStep(
 
         case "execute_function": {
             return await CallPlgFnStep(step, next, callPluginFunction, event);
+        }
+
+        case "log": {
+            if (!step.key) return next;
+
+            const value = resolveFromPath(step.key, { store: next, event });
+            console.log(`Log step for key "${step.key}":`, value);
+            return next;
         }
 
         default: {

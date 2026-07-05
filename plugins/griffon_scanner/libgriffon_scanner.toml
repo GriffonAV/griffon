@@ -42,7 +42,7 @@ paths = []
 
 [store.data]
 selected_threats = []
-scan_result = []
+scan_result = ""
 
 [store.q_list]
 threats = []
@@ -177,6 +177,20 @@ action = "scanner.run_default_scan"
 [[ui.sections]]
 id = "results"
 tab = "scan"
+
+
+[[ui.sections.contents]]
+id = "result_table"
+type = "scanner_table"
+action = "scanner.select_threat"
+columns = [
+    { "key" = "path", "label" = "Path" },
+    { "key" = "name", "label" = "Name" },
+    { "key" = "severity", "label" = "Severity" }
+]
+scan_data = "{{store.data.scan_result}}"
+
+
 
 
 [[ui.sections.contents]]
@@ -421,6 +435,16 @@ fn = "scan"
 # =========================
 # Scanner result Interactions
 # =========================
+
+[[interactions]]
+id = "select_threat"
+on = "scanner.select_threat"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.data.selected_threats"
+value = "{{event.value}}"
+from = "event.checked"
 
 
 # =========================
