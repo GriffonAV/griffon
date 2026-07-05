@@ -5,6 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export function resolveTemplate(value: string, context: { store: any; event?: any }) {
+  return value.replace(/\{\{(.*?)\}\}/g, (_, rawKey) => {
+    const path = String(rawKey).trim();
+    const resolved = resolveFromPath(path, context);
+    return resolved !== undefined && resolved !== null ? String(resolved) : "";
+  });
+}
+
 export function resolveFromPath(
   path: string | null | undefined,
   context: { store: Record<string, any>; event?: any }
