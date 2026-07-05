@@ -30,7 +30,7 @@ archive = true
 threats = []
 threads = 1
 threading = "auto"
-paths = ["/home/axis"]
+paths = ["/home"]
 
 [store.settings]
 folder = false

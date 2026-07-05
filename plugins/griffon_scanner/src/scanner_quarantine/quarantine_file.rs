@@ -88,4 +88,11 @@ impl Quarantine {
 
         Ok(dest_path)
     }
+
+    pub fn quarantine_files(&self, paths: &[PathBuf]) -> Result<(), String> {
+        for path in paths {
+            self.quarantine_file(path)?;
+        }
+        Ok(())
+    }
 }

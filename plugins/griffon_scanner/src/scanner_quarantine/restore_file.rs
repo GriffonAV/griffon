@@ -33,6 +33,13 @@ impl Quarantine {
         Ok(manifest.original_path)
     }
 
+    pub fn restore_files(&self, quarantined_names: &[String]) -> Result<(), String> {
+        for name in quarantined_names {
+            self.restore_file(name)?;
+        }
+        Ok(())
+    }
+
     pub fn delete_quarantined_file(&self, quarantined_name: &str) -> Result<(), String> {
         let dest_path = self.dir.join(quarantined_name);
         let manifest_path = self
@@ -45,6 +52,13 @@ impl Quarantine {
             .map_err(|e| format!("Failed to delete manifest file: {}", e))?;
 
         log::info!("Deleted: {}", dest_path.display());
+        Ok(())
+    }
+
+    pub fn delete_quarantined_files(&self, quarantined_names: &[String]) -> Result<(), String> {
+        for name in quarantined_names {
+            self.delete_quarantined_file(name)?;
+        }
         Ok(())
     }
 }
