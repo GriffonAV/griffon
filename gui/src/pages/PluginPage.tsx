@@ -19,7 +19,7 @@ export default function PluginPage() {
 
 
   if (isManifestLoading || !currentManifest?.plugin) {
-    return <div>Loading plugin...</div>;
+    return <div>Loading extension...</div>;
   }
 
   return (

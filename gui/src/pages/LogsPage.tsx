@@ -41,7 +41,6 @@ function getLevelClass(level: string) {
     }
 }
 
-// --- NEW COMPONENT: Compact, Expandable Log Row ---
 function LogEntryRow({ entry, isAllTab }: { entry: PluginHistoryEntry; isAllTab: boolean }) {
     const [expanded, setExpanded] = useState(false);
 
@@ -51,22 +50,18 @@ function LogEntryRow({ entry, isAllTab }: { entry: PluginHistoryEntry; isAllTab:
             onClick={() => setExpanded(!expanded)}
         >
             <div className="flex items-center gap-3 min-w-0">
-                {/* Expand Icon */}
                 <div className="shrink-0 text-muted-foreground">
                     {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
                 </div>
 
-                {/* Timestamp */}
                 <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0 w-32">
                     {formatTimestamp(entry.timestamp)}
                 </span>
 
-                {/* Level */}
                 <span className={`text-xs font-bold w-16 shrink-0 ${getLevelClass(entry.level)}`}>
                     {entry.level}
                 </span>
 
-                {/* Plugin Name (Only show in 'All' tab to avoid redundancy) */}
                 {isAllTab && (
                     <span className="text-xs font-semibold w-24 truncate shrink-0 text-foreground">
                         {entry.pluginName}
@@ -80,7 +75,6 @@ function LogEntryRow({ entry, isAllTab }: { entry: PluginHistoryEntry; isAllTab:
                 </span>
             </div>
 
-            {/* Expanded Details Section */}
             {expanded && (
                 <div className="mt-2 mb-1 ml-7 flex flex-col gap-1 text-xs bg-muted/40 p-3 rounded-md border border-border/50">
                     <p><strong className="text-foreground">Message:</strong> <span className="font-mono text-muted-foreground">{entry.message}</span></p>
@@ -130,12 +124,10 @@ export default function LogsPage() {
             {tabsList.map((tabName) => {
                 const isAllTab = tabName === "All";
 
-                // Filter entries specifically for this tab
                 const tabEntries = entries.filter(
                     (entry) => isAllTab || entry.pluginName === tabName
                 );
 
-                // Apply the level filter
                 const filteredTabEntries = tabEntries.filter((entry) => {
                     const entryLevel = entry.level.toUpperCase().startsWith("WARN") ? "WARN" : entry.level.toUpperCase();
                     return levelFilter === "ALL" || entryLevel === levelFilter;
@@ -144,10 +136,8 @@ export default function LogsPage() {
                 return (
                     <div key={tabName} title={tabName} className="mt-2 w-full h-full">
                         <NoPluginLayout>
-                            {/* Adjusted padding and height to make it feel less bulky */}
                             <section className="flex flex-col h-[calc(100vh-9.5rem)] w-full rounded-md border border-border bg-card shadow-sm overflow-hidden">
 
-                                {/* Tighter Header & Filter Section */}
                                 <div className="shrink-0 p-4 border-b border-border flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-muted/10">
                                     <div className="flex items-center gap-4">
                                         <div className="flex items-center gap-2">
@@ -159,7 +149,6 @@ export default function LogsPage() {
 
                                         <div className="h-4 w-[1px] bg-border hidden sm:block"></div>
 
-                                        {/* Inline Filter */}
                                         <div className="flex items-center gap-2">
                                             <Filter className="size-3.5 text-muted-foreground" />
                                             <div className="flex bg-muted p-0.5 rounded-md gap-0.5">
@@ -193,7 +182,6 @@ export default function LogsPage() {
                                     </Button>
                                 </div>
 
-                                {/* Status Messages */}
                                 {error && (
                                     <div className="m-4 shrink-0 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-500">
                                         {error}
@@ -202,7 +190,7 @@ export default function LogsPage() {
 
                                 {!loading && !error && tabEntries.length === 0 && (
                                     <div className="m-4 shrink-0 rounded-md border border-border p-4 text-sm text-muted-foreground text-center">
-                                        No plugin history found for {isAllTab ? "any plugins" : tabName}.
+                                        No Extension history found for {isAllTab ? "any extensions" : tabName}.
                                     </div>
                                 )}
 

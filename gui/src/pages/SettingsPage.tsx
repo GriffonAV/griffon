@@ -108,9 +108,9 @@ export default function SettingsPage() {
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold">Plugins</h2>
+                <h2 className="text-lg font-semibold">Extensions</h2>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-                  Add, enable, disable, delete plugins, and manage plugin notifications.
+                  Add, enable, disable, delete extensions, and manage extension notifications.
                 </p>
               </div>
 
@@ -128,9 +128,9 @@ export default function SettingsPage() {
             </div>
 
             <div className="border-t border-border pt-6">
-              <h3 className="text-base font-semibold">Add plugin</h3>
+              <h3 className="text-base font-semibold">Add Extension</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Install a plugin by providing its shared library file. You can also find plugins in the{" "}
+                Install an extension by providing its shared library file. You can also find extensions in the{" "}
               </p>
               <div className="mt-4">
                 <PluginInstaller onInstalled={refreshPluginUi} />
@@ -139,9 +139,9 @@ export default function SettingsPage() {
 
             <div className="border-t border-border pt-6">
               <div>
-                <h3 className="text-base font-semibold">Installed plugins</h3>
+                <h3 className="text-base font-semibold">Installed extensions</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Toggle plugin status directly from the settings panel.
+                  Toggle extension status directly from the settings panel.
                 </p>
               </div>
               <div className="mt-4">
@@ -150,9 +150,9 @@ export default function SettingsPage() {
             </div>
 
             <div className="border-t border-border pt-6">
-              <h3 className="text-base font-semibold text-red-600">Delete plugins</h3>
+              <h3 className="text-base font-semibold text-red-600">Delete extensions</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Permanently remove a plugin from Griffon. This action will delete its manifest and
+                Permanently remove an extension from Griffon. This action will delete its manifest and
                 shared library files.
               </p>
 

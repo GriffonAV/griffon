@@ -104,15 +104,15 @@ export default function HomePage() {
 
                     <div className="grid gap-4 md:grid-cols-3">
                         <div className="rounded-md border border-border bg-card p-4">
-                            <p className="text-sm font-medium text-muted-foreground">Installed Plugins</p>
+                            <p className="text-sm font-medium text-muted-foreground">Installed Extensions</p>
                             <p className="mt-2 text-2xl font-bold">{plugins.length}</p>
                         </div>
                         <div className="rounded-md border border-border bg-card p-4">
-                            <p className="text-sm font-medium text-muted-foreground">Total History Events</p>
+                            <p className="text-sm font-medium text-muted-foreground">Activity Entries</p>
                             <p className="mt-2 text-2xl font-bold">{historyEntries.length}</p>
                         </div>
                         <div className="rounded-md border border-border bg-card p-4">
-                            <p className="text-sm font-medium text-muted-foreground">Latest Event</p>
+                            <p className="text-sm font-medium text-muted-foreground">Latest activity</p>
                             <div className="mt-2">
                                 <p className="truncate text-base font-bold">
                                     {latestEvent ? formatEvent(latestEvent.event) : "No activity"}
@@ -128,12 +128,12 @@ export default function HomePage() {
 
                         <div className="flex flex-col gap-3">
                             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                                Installed Plugins
+                                Installed Extensions
                             </h3>
 
                             {plugins.length === 0 ? (
                                 <p className="text-sm text-muted-foreground border border-border rounded-md p-4 bg-muted/20">
-                                    No plugins currently installed.
+                                    No extensions currently installed.
                                 </p>
                             ) : (
                                 <div className="flex flex-col gap-2">
