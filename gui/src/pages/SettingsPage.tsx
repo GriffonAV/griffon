@@ -3,8 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { ChangeThemeButtonTest, ModeToggleGroup } from "@/components/layout/ModeToggle";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { PluginToggleSettings } from "@/components/layout/PluginToggleSettings";
-import { PluginInstaller } from "@/components/layout/PluginInstaller";
+import { PluginToggleSettings } from "@/components/settings/PluginToggleSettings";
+import { PluginInstaller } from "@/components/settings/PluginInstaller";
 import { usePlugins } from "@/bindings/PluginContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"; // <-- Added Shadcn Alert Dialog
+import { NotificationSettingsTable } from "@/components/settings/NotificationSettingsTable";
+import { DeletePluginTable } from "@/components/settings/DeletePluginTable";
 
 const PLUGIN_DOC_URL = "https://griffon-av.vercel.app/";
 
@@ -101,50 +103,12 @@ export default function SettingsPage() {
             Enable or disable notifications for each installed plugin.
           </p>
 
-          {plugins.length === 0 ? (
-            <p className="mt-4 text-sm text-muted-foreground">No installed plugin found.</p>
-          ) : (
-            <div className="mt-4 flex flex-col gap-4">
-              {plugins.map((plugin) => (
-                <div
-                  key={plugin.uuid}
-                  className="flex flex-col gap-4 rounded-md border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="text-base font-semibold">{plugin.display_name}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {plugin.file_name} • Version {plugin.version} • {plugin.author}
-                    </p>
-                    <p className="mt-2 text-xs font-medium">
-                      Notifications:{" "}
-                      <span
-                        className={
-                          plugin.notifications_enabled
-                            ? "text-green-600"
-                            : "text-muted-foreground"
-                        }
-                      >
-                        {plugin.notifications_enabled ? "Enabled" : "Disabled"}
-                      </span>
-                    </p>
-                  </div>
-
-                  <Button
-                    variant={plugin.notifications_enabled ? "secondary" : "default"}
-                    disabled={pluginNotificationBeingSwitched === plugin.uuid}
-                    onClick={() => handleSwitchNotification(plugin.uuid, plugin.display_name)}
-                    className="cursor-pointer"
-                  >
-                    {pluginNotificationBeingSwitched === plugin.uuid
-                      ? "Switching..."
-                      : plugin.notifications_enabled
-                        ? "Disable notifications"
-                        : "Enable notifications"}
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Replace the old list with the new component */}
+          <NotificationSettingsTable
+            plugins={plugins}
+            switchingPluginUuid={pluginNotificationBeingSwitched}
+            onToggle={handleSwitchNotification}
+          />
         </section>
       </div>
 
@@ -176,8 +140,7 @@ export default function SettingsPage() {
             <div className="border-t border-border pt-6">
               <h3 className="text-base font-semibold">Add plugin</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Select a plugin manifest file and its compiled shared library. Griffon will copy
-                them into <code>.config/griffon</code>.
+                Install a plugin by providing its shared library file. You can also find plugins in the{" "}
               </p>
               <div className="mt-4">
                 <PluginInstaller onInstalled={refreshPluginUi} />
@@ -203,68 +166,12 @@ export default function SettingsPage() {
                 shared library files.
               </p>
 
-              {plugins.length === 0 ? (
-                <p className="mt-4 text-sm text-muted-foreground">No installed plugin found.</p>
-              ) : (
-                /* Added max-h-64 (approx 16rem) and overflow-y-auto for scrolling, plus pr-2 so the scrollbar doesn't hug the border */
-                <div className="mt-4 flex flex-col gap-2 max-h-64 overflow-y-auto pr-2">
-                  {plugins.map((plugin) => (
-                    <div
-                      key={plugin.uuid}
-                      /* Reduced padding to p-3 and forced single row alignment for a compacter list */
-                      className="flex items-center justify-between rounded-md border border-border p-3"
-                    >
-                      {/* Stripped out extra info to make the list smaller */}
-                      <p className="text-sm font-semibold">{plugin.display_name}</p>
-
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="sm" /* Reduced button size for the compact row */
-                            disabled={pluginBeingDeleted === plugin.file_name}
-                            className="cursor-pointer"
-                          >
-                            {pluginBeingDeleted === plugin.file_name ? "Deleting..." : "Delete"}
-                          </Button>
-                        </AlertDialogTrigger>
-
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete {plugin.display_name}?</AlertDialogTitle>
-                            {/* Changed to asChild so we can render a custom div structure inside the description without HTML validation errors */}
-                            <AlertDialogDescription asChild>
-                              <div className="flex flex-col gap-3 mt-2 text-sm text-muted-foreground">
-                                <p>
-                                  Are you sure you want to delete this plugin? This action cannot be undone and will permanently remove the plugin files.
-                                </p>
-
-                                {/* Moved detailed information here into a visual "card" for review */}
-                                <div className="bg-muted p-3 rounded-md flex flex-col gap-1 text-left text-xs">
-                                  <p><strong className="text-foreground font-medium">Description:</strong> {plugin.description || "None"}</p>
-                                  <p><strong className="text-foreground font-medium">File:</strong> {plugin.file_name}</p>
-                                  <p><strong className="text-foreground font-medium">Version:</strong> {plugin.version}</p>
-                                  <p><strong className="text-foreground font-medium">Author:</strong> {plugin.author}</p>
-                                </div>
-                              </div>
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeletePlugin(plugin.file_name)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Replace the old mapping logic with the new component */}
+              <DeletePluginTable
+                plugins={plugins}
+                pluginBeingDeleted={pluginBeingDeleted}
+                onDelete={handleDeletePlugin}
+              />
             </div>
           </div>
         </section>

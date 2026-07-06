@@ -69,17 +69,8 @@ export function PluginInstaller({ onInstalled }: PluginInstallerProps) {
     };
 
     return (
-        <div className="rounded-lg border border-border p-4 space-y-4">
-            <div>
-                <h2 className="text-xl font-bold">Install plugin</h2>
-
-                <p className="text-sm text-muted-foreground">
-                    Select the plugin archive (.zip). It will be extracted and copied to{" "}
-                    <code>.config/griffon</code>.
-                </p>
-            </div>
-
-            <div className="space-y-3">
+        <div>
+            <div className="space-y-3 mb-3">
                 <div className="flex items-center gap-3">
                     <button
                         type="button"
