@@ -68,7 +68,7 @@ export default function SettingsPage() {
     <PageLayout
       title="Settings"
       navigation={true}
-      tabs={["Appearance", "Notifications", "Plugins", "About"]}
+      tabs={["Appearance", "Notifications", "Extensions", "About"]}
     >
       {/* --- APPEARANCE TAB --- */}
       <div title="Appearance" className="mt-2 w-full">
@@ -89,7 +89,7 @@ export default function SettingsPage() {
           <h2 className="text-lg font-semibold">Notifications</h2>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Enable or disable notifications globally or for each installed plugin.
+            Enable or disable notifications globally or for each installed extension.
           </p>
 
           <GlobalNotificationToggle onToggle={refreshPluginUi} />
@@ -102,8 +102,8 @@ export default function SettingsPage() {
         </section>
       </div>
 
-      {/* --- PLUGINS TAB --- */}
-      <div title="Plugins" className="mt-2 w-full">
+      {/* --- EXTENSIONS TAB --- */}
+      <div title="Extensions" className="mt-2 w-full">
         <section className="rounded-md border border-border bg-card p-6 shadow-sm">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

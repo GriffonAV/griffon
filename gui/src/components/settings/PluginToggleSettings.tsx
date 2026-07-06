@@ -56,7 +56,7 @@ export function PluginToggleSettings() {
     if (plugins.length === 0) {
         return (
             <p className="m-5 text-sm text-muted-foreground">
-                No plugin available.
+                No extensions available.
             </p>
         );
     }

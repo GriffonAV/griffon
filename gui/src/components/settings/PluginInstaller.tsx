@@ -22,7 +22,7 @@ export function PluginInstaller({ onInstalled }: PluginInstallerProps) {
             multiple: false,
             filters: [
                 {
-                    name: "Griffon Plugin Archive",
+                    name: "Griffon Extension Archive",
                     extensions: ["zip"],
                 },
             ],
@@ -36,29 +36,28 @@ export function PluginInstaller({ onInstalled }: PluginInstallerProps) {
 
     const installPlugin = async () => {
         if (!zipPath) {
-            setStatus("Please select a plugin .zip file.");
+            setStatus("Please select an extension .zip file.");
             return;
         }
 
         try {
             setIsInstalling(true);
-            setStatus("Installing plugin...");
+            setStatus("Installing extension...");
 
-            // Make sure to match this new command name in your Rust backend
             const result = await invoke<InstalledPlugin>("install_plugin_zip", {
                 zipPath,
             });
 
-            setStatus(`Plugin installed successfully in ${result.plugin_dir}. Refreshing plugin list...`);
+            setStatus(`Extension installed successfully in ${result.plugin_dir}. Refreshing extension list...`);
 
             try {
                 await onInstalled?.();
                 setZipPath(null);
-                setStatus(`Plugin installed successfully in ${result.plugin_dir}.`);
+                setStatus(`Extension installed successfully in ${result.plugin_dir}.`);
             } catch (refreshError) {
                 console.error(refreshError);
                 setStatus(
-                    `Plugin installed successfully in ${result.plugin_dir}, but the plugin list could not be refreshed.`
+                    `Extension installed successfully in ${result.plugin_dir}, but the extension list could not be refreshed.`
                 );
             }
         } catch (error) {
@@ -92,7 +91,7 @@ export function PluginInstaller({ onInstalled }: PluginInstallerProps) {
                 disabled={!zipPath || isInstalling}
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >
-                {isInstalling ? "Installing..." : "Install plugin"}
+                {isInstalling ? "Installing..." : "Install extension"}
             </button>
 
             {status && (
