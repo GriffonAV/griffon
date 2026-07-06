@@ -38,8 +38,6 @@ fn ensure_extension(path: &Path, expected: &str) -> Result<(), String> {
     }
 }
 
-// ... Keep your existing copy_file_to_dir and install_plugin_files if you still need them ...
-
 #[tauri::command]
 pub fn install_plugin_zip(zip_path: String) -> Result<InstalledPlugin, String> {
     let zip_src = PathBuf::from(&zip_path);
@@ -55,7 +53,6 @@ pub fn install_plugin_zip(zip_path: String) -> Result<InstalledPlugin, String> {
     fs::create_dir_all(&plugin_dir)
         .map_err(|err| format!("Failed to create plugin directory: {}", err))?;
 
-    // Open the zip archive
     let file =
         fs::File::open(&zip_src).map_err(|err| format!("Failed to open zip file: {}", err))?;
     let mut archive =
@@ -64,7 +61,6 @@ pub fn install_plugin_zip(zip_path: String) -> Result<InstalledPlugin, String> {
     let mut installed_toml = None;
     let mut installed_so = None;
 
-    // Iterate over files in the zip
     for i in 0..archive.len() {
         let mut file = archive
             .by_index(i)
@@ -80,7 +76,6 @@ pub fn install_plugin_zip(zip_path: String) -> Result<InstalledPlugin, String> {
             .and_then(|e| e.to_str())
             .unwrap_or_default();
 
-        // We only care about .toml and .so files
         if extension == "toml" || extension == "so" {
             let file_name = outpath
                 .file_name()
@@ -101,7 +96,6 @@ pub fn install_plugin_zip(zip_path: String) -> Result<InstalledPlugin, String> {
         }
     }
 
-    // Ensure both files were found and extracted
     let toml_path =
         installed_toml.ok_or_else(|| "No .toml file found in the zip archive".to_string())?;
     let so_path = installed_so.ok_or_else(|| "No .so file found in the zip archive".to_string())?;

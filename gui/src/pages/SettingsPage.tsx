@@ -9,19 +9,9 @@ import { usePlugins } from "@/bindings/PluginContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SquareArrowOutUpRight } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"; // <-- Added Shadcn Alert Dialog
 import { NotificationSettingsTable } from "@/components/settings/NotificationSettingsTable";
 import { DeletePluginTable } from "@/components/settings/DeletePluginTable";
+import { GlobalNotificationToggle } from "@/components/settings/GlobalNotificationToggle";
 
 const PLUGIN_DOC_URL = "https://griffon-av.vercel.app/";
 
@@ -30,7 +20,6 @@ const createRequestId = () => {
 };
 
 export default function SettingsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const { plugins, refreshPlugins } = usePlugins();
 
   const [pluginBeingDeleted, setPluginBeingDeleted] = useState<string | null>(null);
@@ -100,10 +89,11 @@ export default function SettingsPage() {
           <h2 className="text-lg font-semibold">Notifications</h2>
 
           <p className="mt-1 text-sm text-muted-foreground">
-            Enable or disable notifications for each installed plugin.
+            Enable or disable notifications globally or for each installed plugin.
           </p>
 
-          {/* Replace the old list with the new component */}
+          <GlobalNotificationToggle onToggle={refreshPluginUi} />
+
           <NotificationSettingsTable
             plugins={plugins}
             switchingPluginUuid={pluginNotificationBeingSwitched}

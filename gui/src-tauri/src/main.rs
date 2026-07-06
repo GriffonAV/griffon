@@ -56,7 +56,7 @@ fn default_true() -> bool {
     true
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 struct GriffonDaemonConfig {
     #[serde(default)]
     general: GriffonGeneralConfig,
@@ -65,7 +65,7 @@ struct GriffonDaemonConfig {
     plugins: HashMap<String, GriffonPluginConfig>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct GriffonGeneralConfig {
     #[serde(default = "default_true")]
     notifications_enabled: bool,
@@ -79,7 +79,7 @@ impl Default for GriffonGeneralConfig {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 struct GriffonPluginConfig {
     #[serde(default = "default_true")]
     notifications_enabled: bool,
@@ -117,6 +117,28 @@ fn load_daemon_config() -> GriffonDaemonConfig {
             GriffonDaemonConfig::default()
         }
     }
+}
+
+#[tauri::command]
+fn get_global_notification_status() -> Result<bool, String> {
+    let config = load_daemon_config(); // Read current config[cite: 5]
+    Ok(config.general.notifications_enabled)
+}
+
+#[tauri::command]
+fn toggle_global_notifications() -> Result<bool, String> {
+    let path = daemon_config_path(); // Get config path[cite: 5]
+    let mut config = load_daemon_config();
+
+    config.general.notifications_enabled = !config.general.notifications_enabled;
+
+    let json = serde_json::to_string_pretty(&config)
+        .map_err(|e| format!("Failed to serialize config: {}", e))?;
+
+    std::fs::write(&path, json)
+        .map_err(|e| format!("Failed to write config to {}: {}", path.display(), e))?;
+
+    Ok(config.general.notifications_enabled)
 }
 
 fn plugin_notifications_enabled(config: &GriffonDaemonConfig, plugin_uuid: &str) -> bool {
@@ -487,7 +509,6 @@ fn run_reader_loop(mut read_sock: UnixStream, app_handle: tauri::AppHandle) {
         match recv_interface_response(&mut read_sock) {
             Ok(resp) => {
                 match resp {
-                    // ... Keep all your existing Ok(resp) match arms exactly as they are ...
                     InterfaceResponse::SwitchDone { request_id, enable } => {
                         let _ = app_handle.emit(
                             "plugin-switch-done",
@@ -614,6 +635,8 @@ fn main() {
             plugin_history::get_plugin_history,
             plugin_installer::install_plugin_zip,
             force_reconnect,
+            get_global_notification_status,
+            toggle_global_notifications,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");
