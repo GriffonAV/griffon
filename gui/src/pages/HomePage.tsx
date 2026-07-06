@@ -6,6 +6,7 @@ import {
     Clock10,
     RefreshCw,
     Settings2,
+    Sparkles,
 } from "lucide-react";
 
 import { NoPluginLayout } from "@/bindings/component/layout/NoPluginLayout";
@@ -78,7 +79,12 @@ export default function HomePage() {
         <PageLayout title="Overview">
             <NoPluginLayout>
                 <div className="flex w-full flex-col gap-6">
-
+                    <div className="flex items-center gap-3 rounded-md border border-primary/20 bg-primary/10 p-3 text-sm text-primary shadow-sm">
+                        <Sparkles className="size-4 shrink-0" />
+                        <p>
+                            <strong className="font-semibold">Griffon 0.3.0 is out!</strong> Enjoy the new minimalist dashboard, global notification controls, and improved plugin history.
+                        </p>
+                    </div>
                     <div className="flex items-center justify-between border-b border-border pb-4">
                         <div>
                             <h2 className="text-xl font-bold tracking-tight">Dashboard</h2>
