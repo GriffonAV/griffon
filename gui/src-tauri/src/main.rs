@@ -1,6 +1,6 @@
 use ipc_protocol::ipc_payload_interface::{
-    alloc_request_id, format_uuid_bytes, parse_uuid_16, recv_interface_response,
-    send_interface_request, InterfaceRequest, InterfaceResponse,
+    alloc_request_id, parse_uuid_16, recv_interface_response, send_interface_request,
+    InterfaceRequest, InterfaceResponse,
 };
 use serde::Deserialize;
 use serde::Serialize;
