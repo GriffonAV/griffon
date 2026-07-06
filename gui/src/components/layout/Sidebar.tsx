@@ -86,7 +86,7 @@ export function Sidebar() {
           isCollapsed ? "flex flex-col gap-2 justify-center" : "flex flex-row gap-2 justify-center"
         }
       >
-        <Button
+        {/* <Button
           title="Refresh Background Service"
           variant="outline"
           size="icon"
@@ -95,7 +95,7 @@ export function Sidebar() {
           onClick={handleRefresh}
         >
           <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
-        </Button>
+        </Button> */}
 
         <Link to="/settings">
           <Button variant="outline" size="icon" className="cursor-pointer" title="Settings">

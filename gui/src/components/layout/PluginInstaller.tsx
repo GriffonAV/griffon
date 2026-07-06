@@ -13,48 +13,30 @@ type PluginInstallerProps = {
 };
 
 export function PluginInstaller({ onInstalled }: PluginInstallerProps) {
-    const [tomlPath, setTomlPath] = useState<string | null>(null);
-    const [soPath, setSoPath] = useState<string | null>(null);
+    const [zipPath, setZipPath] = useState<string | null>(null);
     const [status, setStatus] = useState<string | null>(null);
     const [isInstalling, setIsInstalling] = useState(false);
 
-    const pickToml = async () => {
+    const pickZip = async () => {
         const selected = await open({
             multiple: false,
             filters: [
                 {
-                    name: "Griffon plugin manifest",
-                    extensions: ["toml"],
+                    name: "Griffon Plugin Archive",
+                    extensions: ["zip"],
                 },
             ],
         });
 
         if (typeof selected === "string") {
-            setTomlPath(selected);
-            setStatus(null);
-        }
-    };
-
-    const pickSo = async () => {
-        const selected = await open({
-            multiple: false,
-            filters: [
-                {
-                    name: "Griffon plugin library",
-                    extensions: ["so"],
-                },
-            ],
-        });
-
-        if (typeof selected === "string") {
-            setSoPath(selected);
+            setZipPath(selected);
             setStatus(null);
         }
     };
 
     const installPlugin = async () => {
-        if (!tomlPath || !soPath) {
-            setStatus("Please select both a .toml file and a .so file.");
+        if (!zipPath) {
+            setStatus("Please select a plugin .zip file.");
             return;
         }
 
@@ -62,19 +44,16 @@ export function PluginInstaller({ onInstalled }: PluginInstallerProps) {
             setIsInstalling(true);
             setStatus("Installing plugin...");
 
-            const result = await invoke<InstalledPlugin>("install_plugin_files", {
-                tomlPath,
-                soPath,
+            // Make sure to match this new command name in your Rust backend
+            const result = await invoke<InstalledPlugin>("install_plugin_zip", {
+                zipPath,
             });
 
             setStatus(`Plugin installed successfully in ${result.plugin_dir}. Refreshing plugin list...`);
 
             try {
                 await onInstalled?.();
-
-                setTomlPath(null);
-                setSoPath(null);
-
+                setZipPath(null);
                 setStatus(`Plugin installed successfully in ${result.plugin_dir}.`);
             } catch (refreshError) {
                 console.error(refreshError);
@@ -95,7 +74,7 @@ export function PluginInstaller({ onInstalled }: PluginInstallerProps) {
                 <h2 className="text-xl font-bold">Install plugin</h2>
 
                 <p className="text-sm text-muted-foreground">
-                    Select the plugin manifest and shared library. They will be copied to{" "}
+                    Select the plugin archive (.zip). It will be extracted and copied to{" "}
                     <code>.config/griffon</code>.
                 </p>
             </div>
@@ -104,28 +83,14 @@ export function PluginInstaller({ onInstalled }: PluginInstallerProps) {
                 <div className="flex items-center gap-3">
                     <button
                         type="button"
-                        onClick={pickToml}
+                        onClick={pickZip}
                         className="rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground"
                     >
-                        Select .toml
+                        Select .zip
                     </button>
 
                     <span className="text-sm text-muted-foreground truncate">
-                        {tomlPath ?? "No TOML file selected"}
-                    </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={pickSo}
-                        className="rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground"
-                    >
-                        Select .so
-                    </button>
-
-                    <span className="text-sm text-muted-foreground truncate">
-                        {soPath ?? "No SO file selected"}
+                        {zipPath ?? "No ZIP file selected"}
                     </span>
                 </div>
             </div>
@@ -133,7 +98,7 @@ export function PluginInstaller({ onInstalled }: PluginInstallerProps) {
             <button
                 type="button"
                 onClick={installPlugin}
-                disabled={!tomlPath || !soPath || isInstalling}
+                disabled={!zipPath || isInstalling}
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {isInstalling ? "Installing..." : "Install plugin"}

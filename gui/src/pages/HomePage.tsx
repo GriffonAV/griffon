@@ -293,7 +293,7 @@ export default function HomePage() {
                                 <div className="mt-6 flex flex-col gap-2">
                                     <Button asChild variant="outline" className="w-full cursor-pointer justify-start gap-3">
                                         <Link to="/log">
-                                            <Activity className="size-4" />
+                                            <Clock10 />
                                             View activity log
                                         </Link>
                                     </Button>

@@ -7,6 +7,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc;
 use std::sync::Mutex;
 use std::thread;
 use tauri::Manager;
@@ -461,94 +462,84 @@ fn refresh_plugin_inner(conn: &DaemonConnection) -> Result<(), String> {
     Ok(())
 }
 
-fn start_reader_thread(mut read_sock: UnixStream, app_handle: tauri::AppHandle) {
-    thread::spawn(move || {
-        LOGGER_NETWORK.debug("Reader thread started");
+struct ReconnectSender(mpsc::Sender<()>);
 
-        loop {
-            match recv_interface_response(&mut read_sock) {
-                Ok(resp) => match resp {
+#[tauri::command]
+fn force_reconnect(
+    conn: tauri::State<'_, DaemonConnection>,
+    sender: tauri::State<'_, ReconnectSender>,
+) {
+    LOGGER_NETWORK.info("Manual reconnect triggered");
+
+    if let Ok(mut sock_guard) = conn.0.lock() {
+        if let Some(sock) = sock_guard.take() {
+            let _ = sock.shutdown(std::net::Shutdown::Both);
+        }
+    }
+
+    let _ = sender.0.send(());
+}
+
+fn run_reader_loop(mut read_sock: UnixStream, app_handle: tauri::AppHandle) {
+    LOGGER_NETWORK.debug("Reader loop started");
+
+    loop {
+        match recv_interface_response(&mut read_sock) {
+            Ok(resp) => {
+                match resp {
+                    // ... Keep all your existing Ok(resp) match arms exactly as they are ...
                     InterfaceResponse::SwitchDone { request_id, enable } => {
-                        LOGGER_NETWORK.info(format!(
-                            "SwitchDone received {} enable:{}",
-                            request_id, enable
-                        ));
-
                         let _ = app_handle.emit(
                             "plugin-switch-done",
-                            serde_json::json!({
-                                "request_id": request_id,
-                                "enable": enable
-                            }),
+                            serde_json::json!({ "request_id": request_id, "enable": enable }),
                         );
                     }
-                    InterfaceResponse::Ok { request_id } => {
-                        LOGGER_NETWORK.info(format!("Ok received {}", request_id));
-                        // let _ = app_handle.emit(
-                        //     "daemon-ok",
-                        //     serde_json::json!({
-                        //         "request_id": request_id
-                        //     }),
-                        // ); I comment it because annoying
-                    }
-                    InterfaceResponse::CallAccepted { request_id } => {
-                        LOGGER_NETWORK.info(format!(
-                            "Call accepted received for request_id={request_id}"
-                        ));
-                    }
+                    InterfaceResponse::Ok { request_id: _ } => {}
+                    InterfaceResponse::CallAccepted { request_id: _ } => {}
                     InterfaceResponse::Plugins {
-                        request_id,
-                        plugins,
+                        request_id: _,
+                        plugins: _,
                     } => {
-                        LOGGER_NETWORK.info(format!(
-                            "Plugins list received: {} plugin(s) from request_id={request_id}",
-                            plugins.len()
-                        ));
-                        for plugin in plugins {
-                            println!(
-                                "- UUID: {:?} | NAME: {} | PATH: {} | FUNCTIONS: {:?} | STATUS: {}",
-                                format_uuid_bytes(&plugin.plugin_uuid),
-                                plugin.name,
-                                plugin.path,
-                                plugin.functions,
-                                plugin.status
-                            );
-                        }
                         let _ = app_handle.emit("plugins-updated", ());
                     }
                     InterfaceResponse::Error {
-                        request_id,
-                        message,
-                    } => {
-                        LOGGER_NETWORK.error(format!("Request {request_id} error={message}"));
-                    }
+                        request_id: _,
+                        message: _,
+                    } => {}
                     InterfaceResponse::CallResult {
                         request_id,
                         ok,
                         output,
                     } => {
-                        LOGGER_NETWORK
-                            .info(format!("Call {request_id} result={ok} output={output}"));
-                        let _ = app_handle.emit(
-                            "plugin-call-result",
-                            serde_json::json!({
-                                "request_id": request_id,
-                                "ok": ok,
-                                "output": output
-                            }),
-                        );
+                        let _ = app_handle.emit("plugin-call-result", serde_json::json!({ "request_id": request_id, "ok": ok, "output": output }));
                     }
-                },
-                Err(e) => {
-                    LOGGER_NETWORK.error(format!(
-                        "Reader thread stopped, failed to receive response: {e}"
-                    ));
-                    break;
                 }
             }
+            Err(e) => {
+                let error_msg = format!("Reader thread stopped, failed to receive response: {}", e);
+                LOGGER_NETWORK.error(&error_msg);
+
+                // 1. Emit the disconnect event to the frontend
+                let _ = app_handle.emit(
+                    "daemon-status",
+                    serde_json::json!({
+                        "status": "Disconnected",
+                        "error": error_msg
+                    }),
+                );
+
+                // 2. Clear the connection from the app state so commands know it's disconnected
+                let state = app_handle.state::<DaemonConnection>();
+                if let Ok(mut sock_guard) = state.0.lock() {
+                    *sock_guard = None;
+                }
+
+                // 3. Break the loop to trigger the reconnect sleep
+                break;
+            }
         }
-    });
-} // TMP FROM CLI TO DEBUG
+    }
+}
 
 fn main() {
     tauri::Builder::default()
@@ -565,14 +556,12 @@ fn main() {
 
             thread::spawn({
                 let app_handle = app_handle.clone();
-                move || {
-                    thread::sleep(std::time::Duration::from_millis(500));
-
-                    // print DAEMON_SOCK_PATH for debug
+                move || loop {
                     LOGGER_NETWORK.debug(format!(
                         "Attempting to connect to daemon at: {}",
                         DAEMON_SOCK_PATH
                     ));
+
                     match UnixStream::connect(DAEMON_SOCK_PATH) {
                         Ok(stream) => {
                             let state = app_handle.state::<DaemonConnection>();
@@ -581,40 +570,33 @@ fn main() {
                                 let mut sock_guard = state.0.lock().unwrap();
                                 *sock_guard = Some(stream.try_clone().unwrap());
                                 LOGGER_NETWORK.info("Successfully connected to Griffon Daemon");
-                                LOGGER_NETWORK.debug(format!("socket: {:?}", sock_guard));
                             }
-                            let _ = app_handle.emit("daemon-status", "Connected");
 
-                            start_reader_thread(stream.try_clone().unwrap(), app_handle.clone());
+                            let _ = app_handle.emit(
+                                "daemon-status",
+                                serde_json::json!({
+                                    "status": "Connected"
+                                }),
+                            );
 
-                            // TMP FOR TEST
-                            // if let Err(e) = refresh_plugin_inner(&state) {
-                            //     LOGGER_NETWORK.error(format!("Failed to refresh plugins: {e}"));
-                            // }
-                            // let vec_empty = Vec::new();
-                            // if let Err(e) = call_plugin_inner(
-                            //     &state,
-                            //     "6e9e800a-0d0c-4f74-8265-7b9ab0234582",
-                            //     "ping",
-                            //     vec_empty,
-                            // ) {
-                            //     LOGGER_NETWORK
-                            //         .error(format!("Failed to switch status plugins: {e}"));
-                            // }
-                            // if let Err(e) = switch_status_plugin_inner(
-                            //     &state,
-                            //     "6e9e800a-0d0c-4f74-8265-7b9ab0234582",
-                            // ) {
-                            //     LOGGER_NETWORK
-                            //         .error(format!("Failed to switch status plugins: {e}"));
-                            // }
-                            // END OF TMP FOR TEST
+                            run_reader_loop(stream.try_clone().unwrap(), app_handle.clone());
                         }
                         Err(e) => {
-                            LOGGER_NETWORK.error(format!("Failed to connect: {}", e));
-                            let _ = app_handle.emit("daemon-status", "Disconnected");
+                            let error_msg = format!("Failed to connect: {}", e);
+                            LOGGER_NETWORK.error(&error_msg);
+
+                            let _ = app_handle.emit(
+                                "daemon-status",
+                                serde_json::json!({
+                                    "status": "Disconnected",
+                                    "error": error_msg
+                                }),
+                            );
                         }
                     }
+
+                    LOGGER_NETWORK.info("Waiting 10 seconds before reconnecting...");
+                    thread::sleep(std::time::Duration::from_secs(10));
                 }
             });
 
@@ -631,6 +613,7 @@ fn main() {
             call_plugin,
             plugin_history::get_plugin_history,
             plugin_installer::install_plugin_zip,
+            force_reconnect,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");

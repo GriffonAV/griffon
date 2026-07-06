@@ -13,7 +13,7 @@ static LOGGER_NETWORK: Logger = Logger::new("CLI-NETWORK", LogLevel::Debug, None
 const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
     // "/tmp/griffon-dev.sock"
     // Use a fixed path in the Griffon directory to avoid issues with some IDEs that create random temp directories
-    "../../griffon.sock"
+    "./griffon.sock"
 } else {
     "/run/griffon/griffon.sock"
 };
