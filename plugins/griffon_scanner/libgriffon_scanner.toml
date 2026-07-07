@@ -89,11 +89,52 @@ action = "scanner.set_threat_ransomware"
 
 [[ui.sections.contents.children.children]]
 type = "checkbox"
-id = "threat_keylogger"
-label = "Keylogger"
+id = "threat_Trojan"
+label = "Trojan"
 checked = false
-action = "scanner.set_threat_keylogger"
+action = "scanner.set_threat_trojan"
 
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "threat_Backdoor"
+label = "Backdoor"
+checked = false
+action = "scanner.set_threat_backdoor"
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "threat_Cryptominer"
+label = "Cryptominer"
+checked = false
+action = "scanner.set_threat_cryptominer"
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "threat_Webshell"
+label = "Webshell"
+checked = false
+action = "scanner.set_threat_webshell"
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "threat_Rootkit"
+label = "Rootkit"
+checked = false
+action = "scanner.set_threat_rootkit"
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "threat_Spyware"
+label = "Spyware"
+checked = false
+action = "scanner.set_threat_spyware"
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
+id = "threat_Apt"
+label = "Apt"
+checked = false
+action = "scanner.set_threat_apt"
 
 [[ui.sections.contents.children]]
 type = "column"
@@ -153,6 +194,34 @@ action = "scanner.set_threads"
 id = "scan"
 tab = "scan"
 
+[[ui.sections.contents]]
+type = "row"
+id = "select_folder_row"
+gap = "sm"
+
+
+[[ui.sections.contents.children]]
+type = "file_select_button"
+id = "select_folder_bt"
+name = "Select folder"
+action = "scanner.select_folder"
+accept_directory = true
+
+
+[[ui.sections.contents.children]]
+type = "file_select_button"
+id = "select_file_bt"
+name = "Select file"
+action = "scanner.select_file"
+accept_directory = false
+
+
+[[ui.sections.contents]]
+id = "target_table"
+type = "scanner_target_table"
+targets = "store.settings.paths"
+action = "scanner.remove_target"
+
 
 [[ui.sections.contents]]
 type = "row"
@@ -183,14 +252,12 @@ tab = "scan"
 id = "result_table"
 type = "scanner_table"
 action = "scanner.select_threat"
+scan_result = "store.data.scan_result"
 columns = [
     { "key" = "path", "label" = "Path" },
     { "key" = "name", "label" = "Name" },
     { "key" = "severity", "label" = "Severity" }
 ]
-scan_data = "{{store.data.scan_result}}"
-
-
 
 
 [[ui.sections.contents]]
@@ -377,14 +444,81 @@ value = "ransomware"
 
 
 [[interactions]]
-id = "set_threat_keylogger"
-on = "scanner.set_threat_keylogger"
+id = "set_threat_trojan"
+on = "scanner.set_threat_trojan"
 
 [[interactions.steps]]
 type = "append_remove"
 key = "store.settings.threats"
 from = "event.checked"
-value = "keylogger"
+value = "trojans"
+
+
+[[interactions]]
+id = "set_threat_backdoor"
+on = "scanner.set_threat_backdoor"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.threats"
+from = "event.checked"
+value = "backdoors"
+
+
+[[interactions]]
+id = "set_threat_cryptominer"
+on = "scanner.set_threat_cryptominer"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.threats"
+from = "event.checked"
+value = "cryptominers"
+
+
+[[interactions]]
+id = "set_threat_webshell"
+on = "scanner.set_threat_webshell"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.threats"
+from = "event.checked"
+value = "webshells"
+
+
+[[interactions]]
+id = "set_threat_rootkit"
+on = "scanner.set_threat_rootkit"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.threats"
+from = "event.checked"
+value = "rootkits"
+
+
+[[interactions]]
+id = "set_threat_spyware"
+on = "scanner.set_threat_spyware"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.threats"
+from = "event.checked"
+value = "spyware"
+
+
+[[interactions]]
+id = "set_threat_apt"
+on = "scanner.set_threat_apt"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.threats"
+from = "event.checked"
+value = "apt"
+
 
 
 [[interactions]]
@@ -406,6 +540,54 @@ type = "set"
 key = "store.settings.threading"
 from = "event.value"
 
+
+# =========================
+# Scanner target Interactions
+# =========================
+
+[[interactions]]
+id = "select_folder"
+on = "scanner.select_folder"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.paths"
+value = "{{event.value}}"
+from = "event.append"
+
+[[interactions.steps]]
+type = "log"
+key = "store.settings.paths"
+
+
+[[interactions]]
+id = "select_file"
+on = "scanner.select_file"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.paths"
+value = "{{event.value}}"
+from = "event.append"
+
+[[interactions.steps]]
+type = "log"
+key = "store.settings.paths"
+
+[[interactions]]
+id = "remove_target"
+on = "scanner.remove_target"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.paths"
+value = "{{event.value}}"
+from = "event.append"
+
+
+[[interactions.steps]]
+type = "log"
+key = "store.settings.paths"
 
 # =========================
 # Scanner function Interactions

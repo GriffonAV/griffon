@@ -14,6 +14,7 @@ import GriffonGroup from "@/components/griffon/GriffonGroup";
 import GriffonRow from "@/components/griffon/GriffonRow";
 import GriffonColumn from "@/components/griffon/GriffonColumn";
 import GriffonFileSelect from "@/components/griffon/GriffonFileSelect";
+import GriffonFileSelectButton from "@/components/griffon/GriffonFileSelectButton";
 
 import CleanerTable from "@/components/griffon/CleanerTable";
 import CleanerCandidateList from "@/components/griffon/CleanerCandidateList";
@@ -23,6 +24,7 @@ import CleanerFileTypeSelector from "@/components/griffon/CleanerFileTypeSelecto
 import CleanerDryRunToggle from "@/components/griffon/CleanerDryRunToggle.tsx";
 
 import ScannerTable from "@/components/griffon/ScannerTable";
+import ScannerTargetTable from "@/components/griffon/ScannerTargetTable"
 
 
 interface GriffonElementRendererProps {
@@ -91,6 +93,9 @@ export default function GriffonElementRenderer({
     case "file_select":
       return <GriffonFileSelect {...commonProps} />;
 
+    case "file_select_button":
+      return <GriffonFileSelectButton {...commonProps} />;
+
     case "cleaner_table":
       return <CleanerTable {...commonProps} />;
 
@@ -111,6 +116,9 @@ export default function GriffonElementRenderer({
 
     case "scanner_table":
       return <ScannerTable {...commonProps} />;
+
+    case "scanner_target_table":
+      return <ScannerTargetTable {...commonProps} />;
 
     default:
       return null;
