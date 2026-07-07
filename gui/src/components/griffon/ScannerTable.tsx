@@ -25,44 +25,60 @@ type ScanData = {
 };
 
 export default function ScannerTable({ element, store = {}, onAction }: Props) {
-
-  var scanData: ScanData = JSON.parse(resolveFromPath(element.scan_data, {store}) ?? "{}");
+  var scan_result = resolveFromPath(element.scan_result, {store})
+  var scanData: ScanData = scan_result ? JSON.parse(scan_result) : {};
   const rows: Threat[] = scanData.threats;
 
   return (
-    <div id={element.id} className="w-full overflow-x-auto rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {element.columns?.map((column) => (
-              <TableHead key={column.key}>{column.label}</TableHead>
-            ))}
-            <TableHead key="select">Select</TableHead>
-          </TableRow>
-        </TableHeader>
+    <div>
+      {scanData.total_scanned > 0 && (
+        <div className="flex items-center gap-6 text-sm text-muted-foreground mb-4">
+          <div>
+            <span className="font-medium text-foreground">Files scanned:</span>{" "}
+            {scanData.total_scanned}
+          </div>
 
-        <TableBody>
-          {rows?.map((row, rowIndex) => (
-            <TableRow key={rowIndex}>
+          <div>
+            <span className="font-medium text-foreground">Threats found:</span>{" "}
+            {scanData.total_threats}
+          </div>
+        </div>
+      )}
+      <div id={element.id} className="w-full overflow-x-auto rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
               {element.columns?.map((column) => (
-                <TableCell key={`${rowIndex}-${column.key}`}>
-                  {String(row[column.key] ?? "")}
-                </TableCell>
+                <TableHead key={column.key}>{column.label}</TableHead>
               ))}
-              <TableCell>
-                <Checkbox
-                  onCheckedChange={(checked) => {
-                    onAction?.(element.action ?? "", {
-                      value: row.path,
-                      checked: checked,
-                    });
-                  }}
-                />
-              </TableCell>
+              <TableHead key="select">Select</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+
+          <TableBody>
+            {rows?.map((row, rowIndex) => (
+              <TableRow key={rowIndex}>
+                {element.columns?.map((column) => (
+                  <TableCell key={`${rowIndex}-${column.key}`}>
+                    {String(row[column.key] ?? "")}
+                  </TableCell>
+                ))}
+                <TableCell>
+                  <Checkbox
+                    onCheckedChange={(checked) => {
+                      onAction?.(element.action ?? "", {
+                        value: row.path,
+                        checked: checked,
+                      });
+                    }}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
+
   );
 }

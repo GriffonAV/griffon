@@ -297,7 +297,14 @@ export type ScannerTableElement = {
   id: string;
   action?: string;
   columns?: ScannerTableColumn[];
-  scan_data?: string;
+  scan_result?: string;
+};
+
+export type ScannerTargetTableElement = {
+  type: "scanner_target_table";
+  id: string;
+  action?: string;
+  targets?: string;
 };
 
 export type GriffonElement =
