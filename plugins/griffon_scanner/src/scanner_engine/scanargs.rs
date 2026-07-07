@@ -58,6 +58,10 @@ impl ScanArgs {
     pub fn get_active_categories(&self) -> Vec<ThreatCategory> {
         let all = ThreatCategory::all();
 
+        if self.include.contains(&ThreatCategory::All) {
+            return all.to_vec();
+        }
+
         if !self.include.is_empty() {
             return self.include.clone();
         }

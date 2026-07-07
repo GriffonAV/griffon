@@ -25,7 +25,7 @@ message = ""
 error = ""
 
 [store.default_settings]
-folder = false
+folder = true
 archive = true
 threats = []
 threads = 1
@@ -82,6 +82,13 @@ variant = "subtitle"
 
 [[ui.sections.contents.children.children]]
 type = "checkbox"
+id = "threat_all"
+label = "All"
+checked = true
+action = "scanner.set_threat_all"
+
+[[ui.sections.contents.children.children]]
+type = "checkbox"
 id = "threat_ransomware"
 label = "Ransomware"
 checked = false
@@ -94,12 +101,12 @@ label = "Trojan"
 checked = false
 action = "scanner.set_threat_trojan"
 
-[[ui.sections.contents.children.children]]
-type = "checkbox"
-id = "threat_Backdoor"
-label = "Backdoor"
-checked = false
-action = "scanner.set_threat_backdoor"
+# [[ui.sections.contents.children.children]]
+# type = "checkbox"
+# id = "threat_Backdoor"
+# label = "Backdoor"
+# checked = false
+# action = "scanner.set_threat_backdoor"
 
 [[ui.sections.contents.children.children]]
 type = "checkbox"
@@ -108,12 +115,12 @@ label = "Cryptominer"
 checked = false
 action = "scanner.set_threat_cryptominer"
 
-[[ui.sections.contents.children.children]]
-type = "checkbox"
-id = "threat_Webshell"
-label = "Webshell"
-checked = false
-action = "scanner.set_threat_webshell"
+# [[ui.sections.contents.children.children]]
+# type = "checkbox"
+# id = "threat_Webshell"
+# label = "Webshell"
+# checked = false
+# action = "scanner.set_threat_webshell"
 
 [[ui.sections.contents.children.children]]
 type = "checkbox"
@@ -122,12 +129,12 @@ label = "Rootkit"
 checked = false
 action = "scanner.set_threat_rootkit"
 
-[[ui.sections.contents.children.children]]
-type = "checkbox"
-id = "threat_Spyware"
-label = "Spyware"
-checked = false
-action = "scanner.set_threat_spyware"
+# [[ui.sections.contents.children.children]]
+# type = "checkbox"
+# id = "threat_Spyware"
+# label = "Spyware"
+# checked = false
+# action = "scanner.set_threat_spyware"
 
 [[ui.sections.contents.children.children]]
 type = "checkbox"
@@ -162,7 +169,6 @@ id = "threads_row"
 gap = "sm"
 align = "center"
 
-
 [[ui.sections.contents.children.children.children]]
 type = "text"
 id = "threads"
@@ -176,6 +182,7 @@ options = [
     { "value" = "auto", "label" = "Auto" },
     { "value" = "max", "label" = "Max" },
     { "value" = "custom", "label" = "Custom" },
+    { "value" = "off", "label" = "Off" },
 ]
 value = "auto"
 action = "scanner.set_threading"
@@ -242,7 +249,6 @@ id = "run_default_scan_bt"
 name = "Default scan (/home)"
 action = "scanner.run_default_scan"
 
-
 [[ui.sections]]
 id = "results"
 tab = "scan"
@@ -256,15 +262,13 @@ scan_result = "store.data.scan_result"
 columns = [
     { "key" = "path", "label" = "Path" },
     { "key" = "name", "label" = "Name" },
-    { "key" = "severity", "label" = "Severity" }
+    { "key" = "severity", "label" = "Severity" },
 ]
-
 
 [[ui.sections.contents]]
 type = "row"
 id = "scan_results_row"
 gap = "sm"
-
 
 [[ui.sections.contents.children]]
 type = "button"
@@ -290,7 +294,6 @@ action = "scanner.delete_selected_threats"
 id = "database_status"
 tab = "database"
 
-
 [[ui.sections.contents]]
 type = "row"
 id = "database_refresh_row"
@@ -298,13 +301,11 @@ gap = "sm"
 justify = "flex-end"
 align = "center"
 
-
 [[ui.sections.contents.children]]
 type = "button"
 id = "database_refresh_bt"
 name = "refresh"
 action = "scanner.check_rules"
-
 
 [[ui.sections.contents]]
 type = "text"
@@ -321,7 +322,6 @@ name = "{{store.data.database_status.error}}"
 type = "text"
 id = "rules_count_text"
 name = "{{store.data.database_status.rules_count}} rules loaded"
-
 
 [[ui.sections]]
 id = "database_update"
@@ -431,6 +431,15 @@ type = "set"
 key = "store.settings.folder"
 from = "event.checked"
 
+[[interactions]]
+id = "set_threat_all"
+on = "scanner.set_threat_all"
+
+[[interactions.steps]]
+type = "append_remove"
+key = "store.settings.threats"
+from = "event.checked"
+value = "all"
 
 [[interactions]]
 id = "set_threat_ransomware"
@@ -518,7 +527,6 @@ type = "append_remove"
 key = "store.settings.threats"
 from = "event.checked"
 value = "apt"
-
 
 
 [[interactions]]

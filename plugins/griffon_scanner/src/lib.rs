@@ -110,7 +110,7 @@ pub struct ScanOptions {
     threading: String,
 
     #[serde(default)]
-    threads: u32,
+    threads: String,
 
     #[serde(default)]
     threats: Vec<String>,
@@ -176,6 +176,7 @@ struct GuiThreat {
 
 #[derive(Serialize)]
 struct GuiScanResponse {
+    message: String,
     total_scanned: u64,
     total_skipped: u64,
     total_errors: u64,
@@ -231,7 +232,7 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                     recursive: opts.folder,
                     paths: paths.iter().map(PathBuf::from).collect(),
                     threads: opts.threading,
-                    nb_threads: opts.threads,
+                    nb_threads: opts.threads.parse::<u32>().unwrap_or(1),
                     include: opts
                         .threats
                         .iter()
@@ -243,7 +244,6 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
 
                 let report = engine.scan(&scanargs);
 
-                // 1. Extract only the files that actually triggered threats
                 let gui_threats: Vec<GuiThreat> = report
                     .results
                     .iter()
@@ -256,8 +256,11 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                     })
                     .collect();
 
-                // 2. Build the lightweight response
                 Ok(GuiScanResponse {
+                    message: format!(
+                        "Scan completed: {} files scanned, {} threats found",
+                        report.total_scanned, report.total_threats
+                    ),
                     total_scanned: report.total_scanned,
                     total_skipped: report.total_skipped,
                     total_errors: report.total_errors,
