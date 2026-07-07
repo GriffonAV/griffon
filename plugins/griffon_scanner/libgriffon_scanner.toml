@@ -649,7 +649,7 @@ on = "scanner.quarantine_selected_threats"
 type = "execute_function"
 key = "store.data.quarantine_result"
 from = "store.data.selected_threats"
-fn = "quarantine_selected_threats"
+fn = "quarantine"
 
 [[interactions]]
 id = "delete_selected_threats"
@@ -659,7 +659,7 @@ on = "scanner.delete_selected_threats"
 type = "execute_function"
 key = "store.data.delete_result"
 from = "store.data.selected_threats"
-fn = "delete_selected_threats"
+fn = "delete"
 
 # =========================
 # Database function Interactions
