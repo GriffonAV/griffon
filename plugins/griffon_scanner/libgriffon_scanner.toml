@@ -28,7 +28,7 @@ error = ""
 folder = true
 archive = true
 threats = []
-threads = 1
+threads = "1"
 threading = "auto"
 paths = ["/home"]
 
@@ -36,16 +36,21 @@ paths = ["/home"]
 folder = false
 archive = false
 threats = []
-threads = 1
+threads = "1"
 threading = "auto"
 paths = []
 
 [store.data]
-selected_threats = []
 scan_result = ""
 
+[store.selected_threats]
+paths = []
+
 [store.q_list]
-threats = []
+quarantined_items = []
+
+[store.q_selected]
+file_name = []
 
 [store.q_result]
 message = ""
@@ -383,6 +388,18 @@ action = "scanner.q_list"
 
 
 [[ui.sections.contents]]
+type = "table"
+id = "quarantine_table"
+columns = [
+    { "key" = "quarantined_at", "label" = "Quarantined at" },
+    { "key" = "original_path", "label" = "Name"},
+    { "key" = "quarantine_name", "label" = "file_name", "hide" = true, "transmit" = true },
+]
+from = "store.q_list.quarantined_items"
+action = "scanner.quarantine_table_select"
+
+
+[[ui.sections.contents]]
 type = "row"
 id = "quarantine_actions_row"
 gap = "sm"
@@ -632,7 +649,7 @@ on = "scanner.select_threat"
 
 [[interactions.steps]]
 type = "append_remove"
-key = "store.data.selected_threats"
+key = "store.selected_threats.paths"
 value = "{{event.value}}"
 from = "event.checked"
 
@@ -648,8 +665,18 @@ on = "scanner.quarantine_selected_threats"
 [[interactions.steps]]
 type = "execute_function"
 key = "store.data.quarantine_result"
-from = "store.data.selected_threats"
+from = "store.selected_threats"
 fn = "quarantine"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.q_list"
+returnType = "json"
+fn = "q_list"
+
+[[interactions.steps]]
+type = "log"
+key = "store.q_list"
 
 [[interactions]]
 id = "delete_selected_threats"
@@ -658,7 +685,7 @@ on = "scanner.delete_selected_threats"
 [[interactions.steps]]
 type = "execute_function"
 key = "store.data.delete_result"
-from = "store.data.selected_threats"
+from = "store.selected_threats"
 fn = "delete"
 
 # =========================
@@ -699,32 +726,46 @@ fn = "db_update"
 # Quarantine function Interactions
 # =========================
 
-[[interactions.steps]]
-type = "q_list"
+[[interactions]]
+id = "q_list"
 on = "scanner.q_list"
 
 [[interactions.steps]]
 type = "execute_function"
-key = "store.data.q_list"
+key = "store.q_list"
 returnType = "json"
 fn = "q_list"
 
+[[interactions]]
+id = "quarantine_table_select"
+on = "scanner.quarantine_table_select"
+
 [[interactions.steps]]
-type = "q_restore"
+type = "append_remove"
+key = "store.q_selected.file_name"
+value = "{{event.value}}"
+from = "event.checked"
+
+[[interactions.steps]]
+type = "log"
+key = "store.q_selected.file_name"
+
+[[interactions]]
+id = "q_restore"
 on = "scanner.q_restore"
 
 [[interactions.steps]]
 type = "execute_function"
-key = "store.data.q_result"
+key = "store.q_selected"
 returnType = "json"
 fn = "q_restore"
 
-[[interactions.steps]]
-type = "q_delete"
+[[interactions]]
+id = "q_delete"
 on = "scanner.q_delete"
 
 [[interactions.steps]]
 type = "execute_function"
-key = "store.data.q_result"
+key = "store.q_selected"
 returnType = "json"
 fn = "q_delete"

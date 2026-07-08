@@ -168,6 +168,8 @@ export type ProgressElement = BaseElement & {
 export type TableColumn = {
   key: string;
   label: string;
+  hide?: boolean;
+  transmit?: boolean;
 };
 
 export type ScannerTableColumn = {
@@ -190,6 +192,8 @@ export type TableElement = BaseElement & {
   type: "table";
   columns?: TableColumn[];
   rows?: TableRowData[];
+  from?: string;
+  action?: string;
 };
 
 export type GriffonInteractionStep =
@@ -306,6 +310,13 @@ export type ScannerTargetTableElement = {
   action?: string;
   targets?: string;
 };
+
+export type ScannerQuarantineElement = {
+  type: "scanner_quarantine_table";
+  id: string;
+  action?: string;
+  targets?: string;
+}
 
 export type GriffonElement =
   | TextElement
