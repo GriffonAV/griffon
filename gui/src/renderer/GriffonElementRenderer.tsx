@@ -30,7 +30,7 @@ import ScannerTargetTable from "@/components/griffon/ScannerTargetTable"
 interface GriffonElementRendererProps {
   element: any;
   store?: Record<string, any>;
-  onAction?: (action: string, event?: any) => void;
+  onAction?: (action: string, event?: any) => any;
 }
 
 export default function GriffonElementRenderer({

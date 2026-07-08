@@ -1,10 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 interface GriffonButtonProps {
     element: any;
     confirmation?: "Are you sure you want to perform this action?";
-    onAction?: (action: string, event?: any) => void;
+    onAction?: (action: string, event?: any) => Promise<void>;
 }
 
 export default function GriffonButton({
@@ -27,14 +29,24 @@ export default function GriffonButton({
                 ? "lg"
                 : "default";
 
-    function handleClick() {
-        if (element.action) {
-            onAction?.(element.action, {
+    async function handleClick() {
+        if (!element.action || loading) return;
+
+        setLoading(true);
+
+
+        try {
+            await onAction?.(element.action, {
                 source: element.id,
                 type: "click",
             });
+        } finally {
+            setLoading(false);
         }
+
     }
+
+    const [loading, setLoading] = useState(false);
 
     return (
         <div>
@@ -77,7 +89,8 @@ export default function GriffonButton({
                 ) : (
 
                     <Button variant={variant} size={size} onClick={handleClick}>
-                        {element.name}
+                        { element.name }
+                        { loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" /> }
                     </Button>
                 )
 
