@@ -41,3 +41,6 @@ target
 .config/
 gui/
 website/
+daemon/
+**/eicar_com.*
+rules/
