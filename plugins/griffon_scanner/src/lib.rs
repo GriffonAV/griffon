@@ -315,7 +315,9 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
             command(|target: PathTarget| -> Result<Ack, String> {
                 let q = Quarantine::new(&Quarantine::default_dir())
                     .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
-
+                if target.paths.is_empty() {
+                    return Err("No paths provided for quarantine".into());
+                }
                 let pathbufs = target.paths.iter().map(PathBuf::from).collect::<Vec<_>>();
                 q.quarantine_files(&pathbufs)
                     .map(|_| Ack::ok(format!("{} quarantined successfully", target.paths[0])))
@@ -330,6 +332,9 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
             command(|target: PathTarget| -> Result<Ack, String> {
                 let q = Quarantine::new(&Quarantine::default_dir())
                     .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
+                if target.paths.is_empty() {
+                    return Err("No paths provided for quarantine".into());
+                }
                 let pathbufs = target.paths.iter().map(PathBuf::from).collect::<Vec<_>>();
                 q.quarantine_files(&pathbufs)
                     .map(|_| Ack::ok(format!("{} quarantined successfully", target.paths[0])))
@@ -355,7 +360,9 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
             command(|target: QuarantineTarget| -> Result<Ack, String> {
                 let q = Quarantine::new(&Quarantine::default_dir())
                     .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
-
+                if target.names.is_empty() {
+                    return Err("No names provided for restore".into());
+                }
                 q.restore_files(&target.names)
                     .map(|_path| Ack::ok("Files restored"))
                     .map_err(|e| format!("Failed to restore {}: {e}", target.names[0]))
@@ -367,7 +374,9 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
             command(|target: QuarantineTarget| -> Result<Ack, String> {
                 let q = Quarantine::new(&Quarantine::default_dir())
                     .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
-
+                if target.names.is_empty() {
+                    return Err("No names provided for delete".into());
+                }
                 q.delete_quarantined_files(&target.names)
                     .map(|_| Ack::ok("Deleted quarantined files"))
                     .map_err(|e| format!("Failed to delete quarantined file: {e}"))
@@ -444,7 +453,7 @@ extern "C" fn handle_message(msg: RString) -> RString {
 
     let payload = match parse_payload(raw_payload) {
         Ok(v) => v,
-        Err(_e) => return msg,
+        Err(_e) => return RString::from(format!("ERR invalid payload json: {raw_payload}")),
         // Err(e) => return RString::from(format!("ERR {e}")),
     };
 

@@ -34,6 +34,9 @@ impl Quarantine {
     }
 
     pub fn restore_files(&self, quarantined_names: &[String]) -> Result<(), String> {
+        if quarantined_names.is_empty() {
+            return Err("No names provided for restore".into());
+        }
         for name in quarantined_names {
             self.restore_file(name)?;
         }
@@ -56,6 +59,9 @@ impl Quarantine {
     }
 
     pub fn delete_quarantined_files(&self, quarantined_names: &[String]) -> Result<(), String> {
+        if quarantined_names.is_empty() {
+            return Err("No names provided for delete".into());
+        }
         for name in quarantined_names {
             self.delete_quarantined_file(name)?;
         }

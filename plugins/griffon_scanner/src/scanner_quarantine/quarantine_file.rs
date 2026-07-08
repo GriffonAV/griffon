@@ -90,6 +90,9 @@ impl Quarantine {
     }
 
     pub fn quarantine_files(&self, paths: &[PathBuf]) -> Result<(), String> {
+        if paths.is_empty() {
+            return Err("No paths provided for quarantine".into());
+        }
         for path in paths {
             self.quarantine_file(path)?;
         }
