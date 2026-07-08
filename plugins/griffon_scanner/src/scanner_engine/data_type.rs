@@ -71,6 +71,7 @@ pub struct ScanReport {
     pub total_skipped: u64,
     pub total_threats: u64,
     pub total_errors: u64,
+    pub time_taken: f64,
 }
 
 impl ScanReport {

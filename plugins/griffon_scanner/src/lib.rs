@@ -123,7 +123,7 @@ struct PathTarget {
 #[derive(Deserialize)]
 struct QuarantineTarget {
     /// Name of the quarantined item, as returned by `q_list`.
-    names: Vec<String>,
+    file_name: Vec<String>,
 }
 
 // =========================================================
@@ -181,6 +181,7 @@ struct GuiScanResponse {
     total_skipped: u64,
     total_errors: u64,
     total_threats: u64,
+    time_taken: f64,
     threats: Vec<GuiThreat>,
 }
 
@@ -266,6 +267,7 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                     total_errors: report.total_errors,
                     total_threats: report.total_threats,
                     threats: gui_threats,
+                    time_taken: report.time_taken,
                 })
             }),
         );
@@ -280,9 +282,15 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                 let engine = lock.as_ref().ok_or("Engine state is invalid")?;
                 let rules_count = engine.yara_rules.as_ref().map_or(0, |r| r.rule_count());
 
+                let updater = ScannerUpdater::default();
+                let update_status = match updater.check_for_updates() {
+                    Ok(msg) => msg,
+                    Err(e) => format!("Failed to check for updates: {e}"),
+                };
+
                 Ok(serde_json::json!({
                     "ok": true,
-                    "message": "Scanner is ready.",
+                    "message": format!("Engine is ready, {}.", update_status),
                     "rules_count": rules_count,
                 }))
             }),
@@ -338,7 +346,7 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                 let pathbufs = target.paths.iter().map(PathBuf::from).collect::<Vec<_>>();
                 q.quarantine_files(&pathbufs)
                     .map(|_| Ack::ok(format!("{} quarantined successfully", target.paths[0])))
-                    .map_err(|e| format!("Failed to quarantine {}: {e}", target.paths[0]))
+                    .map_err(|e| e.to_string())
             }),
         );
 
@@ -356,16 +364,16 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
         );
 
         m.insert(
-            "restore",
+            "q_restore",
             command(|target: QuarantineTarget| -> Result<Ack, String> {
                 let q = Quarantine::new(&Quarantine::default_dir())
                     .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
-                if target.names.is_empty() {
+                if target.file_name.is_empty() {
                     return Err("No names provided for restore".into());
                 }
-                q.restore_files(&target.names)
+                q.restore_files(&target.file_name)
                     .map(|_path| Ack::ok("Files restored"))
-                    .map_err(|e| format!("Failed to restore {}: {e}", target.names[0]))
+                    .map_err(|e| format!("Failed to restore {}: {e}", target.file_name[0]))
             }),
         );
 
@@ -374,10 +382,10 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
             command(|target: QuarantineTarget| -> Result<Ack, String> {
                 let q = Quarantine::new(&Quarantine::default_dir())
                     .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
-                if target.names.is_empty() {
+                if target.file_name.is_empty() {
                     return Err("No names provided for delete".into());
                 }
-                q.delete_quarantined_files(&target.names)
+                q.delete_quarantined_files(&target.file_name)
                     .map(|_| Ack::ok("Deleted quarantined files"))
                     .map_err(|e| format!("Failed to delete quarantined file: {e}"))
             }),
@@ -437,7 +445,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     info.push(Tuple2(
         RString::from("function"),
         RString::from(
-            "check/stop/scan/quarantine/delete/db_state/db_update/q_list/q_delete/restore",
+            "check/stop/scan/quarantine/delete/db_state/db_update/q_list/q_delete/q_restore",
         ),
     ));
 

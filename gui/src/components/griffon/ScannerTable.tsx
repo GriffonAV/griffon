@@ -21,11 +21,12 @@ type ScanData = {
   total_skipped: number;
   total_errors: number;
   total_threats: number;
+  time_taken: number;
   threats: [Threat];
 };
 
 export default function ScannerTable({ element, store = {}, onAction }: Props) {
-  var scan_result = resolveFromPath(element.scan_result, {store})
+  var scan_result = resolveFromPath(element.scan_result, { store })
   var scanData: ScanData = scan_result ? JSON.parse(scan_result) : {};
   const rows: Threat[] = scanData.threats;
 
@@ -42,6 +43,11 @@ export default function ScannerTable({ element, store = {}, onAction }: Props) {
             <span className="font-medium text-foreground">Threats found:</span>{" "}
             {scanData.total_threats}
           </div>
+          <div>
+            <span className="font-medium text-foreground">Time taken:</span>{" "}
+            {scanData.time_taken.toFixed(2)} s
+          </div>
+
         </div>
       )}
       <div id={element.id} className="w-full overflow-x-auto rounded-md border">

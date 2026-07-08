@@ -55,6 +55,14 @@ file_name = []
 [store.q_result]
 message = ""
 
+[store.quarantine_result]
+message = ""
+error = ""
+
+[store.q_restore_result]
+message = ""
+error = ""
+
 # =========================
 # UI
 # =========================
@@ -290,6 +298,17 @@ confirmation = "Are you sure you want to delete the selected threats? This actio
 name = "Delete Selected"
 action = "scanner.delete_selected_threats"
 
+[[ui.sections.contents]]
+type = "text"
+id = "quarantine_result_text"
+name = "{{store.quarantine_result.message}}"
+
+[[ui.sections.contents]]
+type = "text"
+id = "quarantine_result_error_text"
+tone = "danger"
+name = "{{store.quarantine_result.error}}"
+
 
 # =========================================================
 # DATABASE TAB
@@ -392,7 +411,7 @@ type = "table"
 id = "quarantine_table"
 columns = [
     { "key" = "quarantined_at", "label" = "Quarantined at" },
-    { "key" = "original_path", "label" = "Name"},
+    { "key" = "original_path", "label" = "Name" },
     { "key" = "quarantine_name", "label" = "file_name", "hide" = true, "transmit" = true },
 ]
 from = "store.q_list.quarantined_items"
@@ -420,6 +439,17 @@ id = "quarantine_delete_bt"
 name = "delete selected"
 confirmation = "Are you sure you want to delete the selected threats? This action is irreversible."
 action = "scanner.q_delete"
+
+[[ui.sections.contents]]
+type = "text"
+id = "q_restore_result_text"
+name = "{{store.q_restore_result.message}}"
+
+[[ui.sections.contents]]
+type = "text"
+id = "q_restore_result_error_text"
+tone = "danger"
+name = "{{store.q_restore_result.error}}"
 
 
 # =========================
@@ -664,8 +694,9 @@ on = "scanner.quarantine_selected_threats"
 
 [[interactions.steps]]
 type = "execute_function"
-key = "store.data.quarantine_result"
+key = "store.quarantine_result"
 from = "store.selected_threats"
+returnType = "json"
 fn = "quarantine"
 
 [[interactions.steps]]
@@ -684,8 +715,9 @@ on = "scanner.delete_selected_threats"
 
 [[interactions.steps]]
 type = "execute_function"
-key = "store.data.delete_result"
+key = "store.quarantine_result"
 from = "store.selected_threats"
+returnType = "json"
 fn = "delete"
 
 # =========================
@@ -756,7 +788,8 @@ on = "scanner.q_restore"
 
 [[interactions.steps]]
 type = "execute_function"
-key = "store.q_selected"
+key = "store.q_restore_result"
+from = "store.q_selected"
 returnType = "json"
 fn = "q_restore"
 
@@ -766,6 +799,7 @@ on = "scanner.q_delete"
 
 [[interactions.steps]]
 type = "execute_function"
-key = "store.q_selected"
+key = "store.q_restore_result"
+from = "store.q_selected"
 returnType = "json"
 fn = "q_delete"

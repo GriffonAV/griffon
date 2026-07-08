@@ -49,6 +49,7 @@ impl ScanEngine {
     }
 
     pub fn scan(&mut self, args: &ScanArgs) -> ScanReport {
+        let timer = std::time::Instant::now();
         self.scan_args = args.clone();
         let mut report = ScanReport::default();
 
@@ -62,6 +63,7 @@ impl ScanEngine {
             }
         }
 
+        report.time_taken = timer.elapsed().as_secs_f64();
         report
     }
 

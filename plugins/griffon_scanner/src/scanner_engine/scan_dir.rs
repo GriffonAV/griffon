@@ -1,9 +1,43 @@
 use std::path::Path;
 
 use rayon::iter::{ParallelBridge, ParallelIterator};
-use walkdir::WalkDir;
+use walkdir::{DirEntry, WalkDir};
 
 use crate::scanner_engine::{ScanEngine, data_type::FileResult};
+
+fn is_valid_entry(entry: &DirEntry) -> bool {
+    let path = entry.path();
+    let is_dir = entry.file_type().is_dir();
+
+    if is_dir {
+        if let Some(path_str) = path.to_str()
+            && matches!(
+                path_str,
+                "/dev" | "/proc" | "/sys" | "/run" | "/mnt" | "/media" | "/lost+found"
+            )
+        {
+            log::debug!("Skipping system directory: {}", path_str);
+            return false;
+        }
+
+        let name = entry.file_name().to_string_lossy();
+        if matches!(
+            name.as_ref(),
+            ".git"
+                | ".svn"
+                | ".hg"
+                | "node_modules"
+                | "target"
+                | "vendor"
+                | "__pycache__"
+                | "build"
+        ) {
+            return false;
+        }
+    }
+
+    true
+}
 
 impl ScanEngine {
     pub fn scan_dir(&self, root: &Path) -> Vec<FileResult> {
@@ -21,8 +55,9 @@ impl ScanEngine {
             WalkDir::new(root)
                 .follow_links(false)
                 .into_iter()
-                .par_bridge() // Actually enables Rayon parallelism
-                .filter_map(Result::ok) // Silently skips permission errors/unreadable entries
+                .filter_entry(is_valid_entry)
+                .par_bridge()
+                .filter_map(Result::ok)
                 .filter(|e| e.file_type().is_file())
                 .flat_map(|e| self.scan_file(e.path()))
                 .collect()
@@ -48,6 +83,7 @@ impl ScanEngine {
             WalkDir::new(root)
                 .follow_links(false)
                 .into_iter()
+                .filter_entry(is_valid_entry)
                 .filter_map(Result::ok)
                 .filter(|e| e.file_type().is_file())
                 .flat_map(|e| self.scan_file(e.path()))

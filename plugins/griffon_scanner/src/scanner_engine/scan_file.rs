@@ -9,8 +9,38 @@ use crate::scanner_engine::{
 const MAX_DEPTH: u32 = 5;
 const MAX_ENTRY_SIZE: usize = 100 * 1024 * 1024; // 100MB per entry
 
+const MAX_FILE_SIZE: u64 = 50 * 1024 * 1024;
+
 impl ScanEngine {
     pub fn scan_file(&self, path: &Path) -> Vec<FileResult> {
+        if let Ok(metadata) = std::fs::metadata(path)
+            && metadata.len() > MAX_FILE_SIZE
+        {
+            log::debug!("Skipped {} (Exceeds 50MB limit)", path.display());
+            return vec![FileResult {
+                path: path.to_path_buf(),
+                threats: vec![],
+                skipped: true,
+                error: Some("File exceeds maximum scan size".to_string()),
+            }];
+        }
+
+        if let Ok(Some(kind)) = infer::get_from_path(path) {
+            let mime = kind.mime_type();
+            if mime.starts_with("video/")
+                || mime.starts_with("audio/")
+                || mime.starts_with("image/")
+            {
+                log::debug!("Skipped {} (Safe media type: {})", path.display(), mime);
+                return vec![FileResult {
+                    path: path.to_path_buf(),
+                    threats: vec![],
+                    skipped: true,
+                    error: Some(format!("Skipped safe media type: {}", mime)),
+                }];
+            }
+        }
+
         let bytes = match std::fs::read(path) {
             Ok(b) => b,
             Err(e) => {
