@@ -145,3 +145,119 @@ impl ScanEngine {
         result
     }
 }
+
+// ######################################## tests
+
+#[cfg(test)]
+mod tests {
+    use crate::scanner_engine::ScanEngine;
+    use crate::scanner_engine::scanargs::{PrepArgs, ScanArgs};
+    use std::path::{Path, PathBuf};
+
+    fn setup_test_engine() -> ScanEngine {
+        let mut engine = ScanEngine::new();
+        let prep = PrepArgs::default();
+        engine.prepare(&prep).expect("Engine prep failed in test");
+        engine
+    }
+
+    #[test]
+    fn test_clean_file_returns_no_threats() {
+        let mut engine = setup_test_engine();
+
+        let args = ScanArgs {
+            paths: vec![PathBuf::from(file!())],
+            ..Default::default()
+        };
+
+        let report = engine.scan(&args);
+
+        assert_eq!(report.total_threats, 0, "Clean file should have 0 threats");
+    }
+
+    #[test]
+    fn test_eicar_file_is_detected() {
+        let mut engine = setup_test_engine();
+
+        let args = ScanArgs {
+            paths: vec![PathBuf::from("tests/fixtures/eicar.com")],
+            ..Default::default()
+        };
+
+        let report = engine.scan(&args);
+
+        assert!(report.total_threats > 0, "EICAR file must be detected");
+    }
+
+    #[test]
+    fn test_eicar_zip_is_detected() {
+        let mut engine = setup_test_engine();
+
+        let args = ScanArgs {
+            paths: vec![PathBuf::from("tests/fixtures/eicar.zip")],
+            archives: true,
+            ..Default::default()
+        };
+
+        let report = engine.scan(&args);
+
+        assert!(
+            report.total_threats > 0,
+            "Scanner failed to detect EICAR inside the ZIP archive"
+        );
+    }
+
+    #[test]
+    fn test_eicar_nested_zip_is_detected() {
+        let mut engine = setup_test_engine();
+        let args = ScanArgs {
+            paths: vec![PathBuf::from("tests/fixtures/eicar_nested.zip")],
+            archives: true,
+            ..Default::default()
+        };
+
+        let report = engine.scan(&args);
+
+        assert!(
+            report.total_threats > 0,
+            "Scanner failed to recurse and detect EICAR inside the nested ZIP archive"
+        );
+    }
+
+    #[test]
+    fn test_large_file_is_skipped() {
+        let engine = setup_test_engine();
+
+        let path = Path::new("tests/fixtures/dummy_fs/large_file.dat");
+        let results = engine.scan_file(path);
+
+        assert_eq!(results.len(), 1, "Should return exactly one FileResult");
+        assert!(
+            results[0].skipped,
+            "File > 50MB should be marked as skipped"
+        );
+
+        let error_msg = results[0].error.as_deref().unwrap_or("");
+        assert!(
+            error_msg.contains("maximum scan size"),
+            "Should contain the size limit error message"
+        );
+    }
+
+    #[test]
+    fn test_media_file_is_skipped() {
+        let engine = setup_test_engine();
+
+        let path = Path::new("tests/fixtures/dummy_fs/media/image.png");
+        let results = engine.scan_file(path);
+
+        assert_eq!(results.len(), 1, "Should return exactly one FileResult");
+        assert!(results[0].skipped, "Media file should be marked as skipped");
+
+        let error_msg = results[0].error.as_deref().unwrap_or("");
+        assert!(
+            error_msg.contains("safe media type"),
+            "Should contain the media type error message"
+        );
+    }
+}

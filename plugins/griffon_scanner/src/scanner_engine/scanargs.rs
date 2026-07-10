@@ -42,7 +42,7 @@ pub struct ScanArgs {
 impl Default for ScanArgs {
     fn default() -> Self {
         ScanArgs {
-            archives: false,
+            archives: true,
             recursive: true,
             paths: vec![],
             yara_only: false,

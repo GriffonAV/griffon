@@ -329,7 +329,7 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                 let pathbufs = target.paths.iter().map(PathBuf::from).collect::<Vec<_>>();
                 q.quarantine_files(&pathbufs)
                     .map(|_| Ack::ok(format!("{} quarantined successfully", target.paths[0])))
-                    .map_err(|e| format!("Failed to quarantine {}: {e}", target.paths[0]))
+                    .map_err(|e| e.to_string())
             }),
         );
 
