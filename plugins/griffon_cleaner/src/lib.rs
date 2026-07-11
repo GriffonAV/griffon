@@ -1,6 +1,7 @@
 pub mod analysis;
 pub mod api;
 pub mod cache_paths;
+pub mod cleaner_metrics;
 pub mod config;
 pub mod context;
 pub mod front_report;
@@ -19,6 +20,7 @@ pub use analysis::*;
 pub use api::*;
 pub use cache_paths::*;
 use chrono::Utc;
+pub use cleaner_metrics::*;
 pub use config::*;
 pub use context::*;
 pub use front_report::*;
@@ -310,6 +312,21 @@ pub fn execute_cleaner_payload_with_filters(
     })
 }
 
+pub fn execute_cleaner_metrics_payload() -> CleanerResult<CleanerMetricsJson> {
+    execute_cleaner_metrics_payload_with_filters(CleanerFilters::default())
+}
+
+pub fn execute_cleaner_metrics_payload_with_filters(
+    filters: CleanerFilters,
+) -> CleanerResult<CleanerMetricsJson> {
+    let (ctx, _config_path) = build_execution_context_with_filters(filters)?;
+    let modules = default_modules();
+    let report = run_modules(&ctx, &modules)?;
+    let labels = build_cleaner_metrics_labels(ctx.dry_run);
+
+    Ok(build_cleaner_metrics_json(&report, labels))
+}
+
 pub fn execute_cleaner_front_payload() -> CleanerResult<FrontCleanerPayload> {
     execute_cleaner_front_payload_with_filters(CleanerFilters::default())
 }
@@ -534,6 +551,13 @@ fn serialize_raw_payload(payload: CleanerExportPayload) -> RString {
     }
 }
 
+fn serialize_metrics_payload(payload: CleanerMetricsJson) -> RString {
+    match serde_json::to_string(&payload) {
+        Ok(json) => RString::from(json),
+        Err(e) => RString::from(format!("ERR json serialize metrics payload: {e}")),
+    }
+}
+
 fn execute_run_front_with_args(args: &str) -> RString {
     let filters = match parse_filters_from_command_args(args) {
         Ok(filters) => filters,
@@ -554,6 +578,18 @@ fn execute_run_raw_with_args(args: &str) -> RString {
 
     match execute_cleaner_payload_with_filters(filters) {
         Ok(payload) => serialize_raw_payload(payload),
+        Err(err) => RString::from(format!("ERR cleaner: {}", err)),
+    }
+}
+
+fn execute_run_metrics_with_args(args: &str) -> RString {
+    let filters = match parse_filters_from_command_args(args) {
+        Ok(filters) => filters,
+        Err(e) => return RString::from(format!("ERR invalid run_metrics filters: {e}")),
+    };
+
+    match execute_cleaner_metrics_payload_with_filters(filters) {
+        Ok(payload) => serialize_metrics_payload(payload),
         Err(err) => RString::from(format!("ERR cleaner: {}", err)),
     }
 }
@@ -678,7 +714,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     ));
     info.push(Tuple2(
         RString::from("function"),
-        RString::from("run/run_raw/run_front/list_candidates/delete_selected"),
+        RString::from("run/run_raw/run_front/run_metrics/list_candidates/delete_selected"),
     ));
     info.push(Tuple2(
         RString::from("UUID"),
@@ -705,6 +741,13 @@ extern "C" fn handle_message(msg: RString) -> RString {
         "fn:run_raw" | "run_raw" => {
             return match execute_cleaner_payload() {
                 Ok(payload) => serialize_raw_payload(payload),
+                Err(err) => RString::from(format!("ERR cleaner: {}", err)),
+            };
+        }
+
+        "fn:run_metrics" | "run_metrics" => {
+            return match execute_cleaner_metrics_payload() {
+                Ok(payload) => serialize_metrics_payload(payload),
                 Err(err) => RString::from(format!("ERR cleaner: {}", err)),
             };
         }
@@ -736,6 +779,16 @@ extern "C" fn handle_message(msg: RString) -> RString {
             .trim();
 
         return execute_run_front_with_args(args);
+    }
+
+    if raw.starts_with("fn:run_metrics") || raw.starts_with("run_metrics") {
+        let args = raw
+            .strip_prefix("fn:run_metrics")
+            .or_else(|| raw.strip_prefix("run_metrics"))
+            .unwrap_or("")
+            .trim();
+
+        return execute_run_metrics_with_args(args);
     }
 
     if raw.starts_with("fn:run_raw") || raw.starts_with("run_raw") {
@@ -794,6 +847,18 @@ extern "C" fn handle_message(msg: RString) -> RString {
 
             match execute_cleaner_front_payload_with_filters(filters) {
                 Ok(payload) => serialize_front_payload(payload),
+                Err(err) => RString::from(format!("ERR cleaner: {}", err)),
+            }
+        }
+
+        "run_metrics" => {
+            let filters = match parse_filters_from_payload(req.payload) {
+                Ok(filters) => filters,
+                Err(e) => return RString::from(format!("ERR invalid cleaner filters: {e}")),
+            };
+
+            match execute_cleaner_metrics_payload_with_filters(filters) {
+                Ok(payload) => serialize_metrics_payload(payload),
                 Err(err) => RString::from(format!("ERR cleaner: {}", err)),
             }
         }
