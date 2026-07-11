@@ -45,17 +45,25 @@ out/
 dist/
 
 /rules
-/malwares
-/samples
-/target
-/eicar_files
 /grafana
-
-*.log
-eicar*
-
 quanrantine/
+
+
 *.sock
 
+## griffon log
+
+*.log
 griffon_cleaner_report.json
 config_griffon_daemon.json
+
+## testing
+
+.vagrant/
+/eicar_files
+eicar*
+**/tests/fixtures/eicar.com
+**/tests/fixtures/eicar.zip
+**/tests/fixtures/eicar_nested.zip
+**/tests/fixtures/dummy_fs/
+**/tests/fixtures/heavy_fs/
