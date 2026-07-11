@@ -153,8 +153,23 @@ mod tests {
     use crate::scanner_engine::ScanEngine;
     use crate::scanner_engine::scanargs::{PrepArgs, ScanArgs};
     use std::path::{Path, PathBuf};
+    use std::sync::Once;
+
+    use crate::scanner_updater::ScannerUpdater;
+
+    static INIT: Once = Once::new();
 
     fn setup_test_engine() -> ScanEngine {
+        INIT.call_once(|| {
+            println!("[+] Initializing YARA rules for test suite...");
+            let updater = ScannerUpdater::default();
+
+            // In debug mode, this saves to the local "rules/" directory
+            if let Err(e) = updater.update() {
+                panic!("CRITICAL: Failed to download YARA rules for testing: {}", e);
+            }
+        });
+
         let mut engine = ScanEngine::new();
         let prep = PrepArgs::default();
         engine.prepare(&prep).expect("Engine prep failed in test");
