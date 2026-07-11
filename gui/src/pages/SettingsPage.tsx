@@ -172,7 +172,7 @@ export default function SettingsPage() {
           <h2 className="text-lg font-semibold mb-2">About Griffon</h2>
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             You are using Griffon in version
-            <Badge>0.3.0-alpha</Badge>.
+            <Badge>0.3.0</Badge>.
           </p>
         </section>
       </div>
