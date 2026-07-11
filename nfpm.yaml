@@ -44,23 +44,23 @@ contents:
       mode: 0644
 
 # plugins
-  - src: ./target/release/libplugin_template.so
-    dst: /usr/lib/griffon/plugins/libplugin_template.so
-    file_info:
-      mode: 0644
-
   - src: ./target/release/libgriffon_cleaner.so
     dst: /usr/lib/griffon/plugins/libgriffon_cleaner.so
     file_info:
       mode: 0644
 
-   # Plugin configs
-  - src: ./plugins/plugin_template/plugin_template.toml
-    dst: /usr/lib/griffon/plugins/plugin_template.toml
+  - src: ./target/release/libgriffon_scanner.so
+    dst: /usr/lib/griffon/plugins/libgriffon_scanner.so
     file_info:
       mode: 0644
 
-- src: ./plugins/griffon_scanner/libgriffon_scanner.toml
+   # Plugin configs
+  - src: ./plugins/griffon_cleaner/libgriffon_cleaner.toml
+    dst: /usr/lib/griffon/plugins/libgriffon_cleaner.toml
+    file_info:
+      mode: 0644
+
+  - src: ./plugins/griffon_scanner/libgriffon_scanner.toml
     dst: /usr/lib/griffon/plugins/libgriffon_scanner.toml
     file_info:
       mode: 0644

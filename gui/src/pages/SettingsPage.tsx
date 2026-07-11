@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ChangeThemeButtonTest, ModeToggleGroup } from "@/components/layout/ModeToggle";
 import { PageLayout } from "@/components/layout/PageLayout";

@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Copy, Minus, Square, X, Github, Bell } from "lucide-react";
+import { Copy, Minus, Square, X, Github } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import DaemonConnection from "@/bindings/component/layout/DaemonConnection";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Separator } from "../ui/separator";
 import { NotificationIndicator } from "./NotificationIndicator";
 
 function TitleBar() {
