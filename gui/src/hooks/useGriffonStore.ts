@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { PluginManifest, InteractionStep } from "@/bindings/PluginContext";
 import { usePlugins } from "@/bindings/PluginContext";
-import { resolveFromPath } from "@/lib/utils";
+import { resolveFromPath, resolveTemplate } from "@/lib/utils";
 
 export type GriffonStore = Record<string, any>;
 
@@ -50,6 +50,8 @@ function setByPath(
         console.warn(`setByPath: key does not exist ("${path}")`);
         return false;
     }
+
+    console.debug(`setByPath: setting "${path}" to`, value);
 
     current[lastKey] = value;
     return true;
@@ -106,15 +108,6 @@ async function CallPlgFnStep(
 
         const args = buildPluginArgs(resolvedValue);
 
-        console.debug(
-            `[GRIFFON-STORE] execute_function fn=${step.fn}`,
-            {
-                from: step.from,
-                resolvedValue,
-                args,
-            }
-        );
-
         const returnValue = await callPluginFunction(step.fn, args);
         let result: any = returnValue;
 
@@ -159,6 +152,38 @@ async function executeStep(
             return next;
         }
 
+        case "append_remove": {
+            if (!step.key) return next;
+
+            const current = resolveFromPath(step.key, { store: next }) ?? [];
+            const value = resolveTemplate(step.value ?? "", { store: next, event });
+
+            if (!Array.isArray(current)) {
+                console.warn(`Current value at "${step.key}" is not an array. Cannot append or remove.`);
+                return next;
+            }
+
+            const hasFrom = typeof step.from === "string" && step.from.trim().length > 0;
+            if (!hasFrom && value === undefined) {
+                console.warn(`No value provided for append_remove step at "${step.key}".`);
+                return next;
+            }
+
+            const toggleValue = resolveFromPath(step.from, { store: next, event });
+            if (toggleValue === undefined) {
+                console.warn(`No value resolved from "${step.from}" for append_remove step at "${step.key}".`);
+                return next;
+            }
+
+            if (toggleValue === true) {
+                setByPath(next, step.key, [...current, value]);
+                return next;
+            } else {
+                setByPath(next, step.key, current.filter((item: any) => item !== value));
+                return next;
+            }
+        }
+
         case "increment": {
             if (!step.key) return next;
 
@@ -189,6 +214,14 @@ async function executeStep(
 
         case "execute_function": {
             return await CallPlgFnStep(step, next, callPluginFunction, event);
+        }
+
+        case "log": {
+            if (!step.key) return next;
+
+            const value = resolveFromPath(step.key, { store: next, event });
+            console.log(`Log step for key "${step.key}":`, value);
+            return next;
         }
 
         default: {

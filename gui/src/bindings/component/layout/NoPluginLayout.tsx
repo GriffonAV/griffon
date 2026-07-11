@@ -10,16 +10,16 @@ export function NoPluginLayout({ children }: { children: ReactNode }) {
     return (
       <div className="flex flex-col items-start gap-4 p-6 text-sm text-muted-foreground">
         <div>
-          <p className="font-medium text-foreground">No plugins installed</p>
+          <p className="font-medium text-foreground">No extensions installed</p>
 
           <p className="mt-2">
-            It looks like you don't have any plugins installed yet. Go to the plugin settings page
+            It looks like you don't have any extensions installed yet. Go to the extension settings page
             to add one.
           </p>
         </div>
 
         <Link to="/settings?tab=plugins">
-          <Button variant="default">Open plugin settings</Button>
+          <Button variant="default">Open extension settings</Button>
         </Link>
       </div>
     );

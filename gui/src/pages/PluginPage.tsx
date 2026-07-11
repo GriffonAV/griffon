@@ -19,7 +19,7 @@ export default function PluginPage() {
 
 
   if (isManifestLoading || !currentManifest?.plugin) {
-    return <div>Loading plugin...</div>;
+    return <div>Loading extension...</div>;
   }
 
   return (
@@ -33,14 +33,17 @@ export default function PluginPage() {
           ) ?? [];
 
         return (
-          <div className="flex flex-col h-full gap-4" key={tab}>
-            {tabSections.map((section) => (
+          <div className="flex flex-col h-full w-full gap-4" key={tab}>
+            {tabSections.map((section, index) => (
               <div key={section.id} className="mx-5">
                 <GriffonSectionRenderer
                   section={section as GriffonSection}
                   store={store}
                   onAction={handleAction}
                 />
+                {index < tabSections.length - 1 && (
+                  <hr className="my-4 border-border" />
+                )}
               </div>
             ))}
           </div>

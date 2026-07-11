@@ -5,28 +5,34 @@ use sha2::{Digest, Sha256};
 use crate::scanner_quarantine::{Quarantine, manifest::QuarantineManifest};
 
 fn check_virtual_path(path: &Path) -> Option<PathBuf> {
-    if path.to_string_lossy().contains('!') {
-        let s = path.to_string_lossy().into_owned();
-        let parts: Vec<String> = s.split('!').map(|p| p.to_string()).collect();
-        let real_path = PathBuf::from(&parts[0]);
+    let s = path.to_string_lossy();
 
-        if real_path.exists() {
-            Some(real_path)
-        } else {
-            log::warn!(
-                "Real path {} does not exist for virtual path {}",
-                real_path.display(),
-                path.display()
-            );
-            None
-        }
+    let archive = s
+        .split_once("/!/")
+        .map(|(left, _)| left)
+        .or_else(|| s.split_once("!/").map(|(left, _)| left))
+        .or_else(|| s.split_once('!').map(|(left, _)| left));
+
+    let real = if let Some(a) = archive {
+        PathBuf::from(a.trim_end_matches(&['/', '\\'][..]))
     } else {
-        Some(path.to_path_buf())
+        path.to_path_buf()
+    };
+
+    if real.exists() {
+        Some(real)
+    } else {
+        log::warn!(
+            "Real path {} does not exist for virtual path {}",
+            real.display(),
+            path.display()
+        );
+        None
     }
 }
 
 impl Quarantine {
-    pub fn quarantine_file(&self, path: &PathBuf) -> Result<PathBuf, String> {
+    pub fn quarantine_file(&self, path: &Path) -> Result<PathBuf, String> {
         let real_path = check_virtual_path(path);
         if real_path.is_none() {
             log::error!(
@@ -76,10 +82,10 @@ impl Quarantine {
         std::fs::write(&manifest_path, manifest_json)
             .map_err(|e| format!("Failed to write manifest: {}", e))?;
 
-        std::fs::rename(path, &dest_path)
+        std::fs::rename(&real_path, &dest_path)
             .or_else(|_| {
-                std::fs::copy(path, &dest_path)
-                    .and_then(|_| std::fs::remove_file(path))
+                std::fs::copy(&real_path, &dest_path)
+                    .and_then(|_| std::fs::remove_file(&real_path))
                     .map(|_| ())
             })
             .map_err(|e| format!("Failed to move file to quarantine: {}", e))?;
@@ -87,5 +93,15 @@ impl Quarantine {
         log::info!("Quarantined: {} → {}", path.display(), dest_path.display());
 
         Ok(dest_path)
+    }
+
+    pub fn quarantine_files(&self, paths: &[PathBuf]) -> Result<(), String> {
+        if paths.is_empty() {
+            return Err("No paths provided for quarantine".into());
+        }
+        for path in paths {
+            self.quarantine_file(path)?;
+        }
+        Ok(())
     }
 }

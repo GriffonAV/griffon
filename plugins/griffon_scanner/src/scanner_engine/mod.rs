@@ -2,7 +2,6 @@
 #[allow(unused_variables)]
 use crate::scanner_engine::data_type::ScanReport;
 use crate::scanner_engine::scanargs::{PrepArgs, ScanArgs};
-use std::path::Path;
 
 mod archive;
 pub mod data_type;
@@ -34,10 +33,10 @@ impl ScanEngine {
 
         // Self::init_thread_pool(&args.threads)?;
 
-        if !args.yara_only {
-            self.load_hash_db(args)
-                .expect("Failed to load signature DB");
-        }
+        // if !args.yara_only {
+        //     self.load_hash_db(args)
+        //         .expect("Failed to load signature DB");
+        // }
         self.load_yara_rules(args)
             .expect("Failed to load YARA rules");
 
@@ -49,21 +48,22 @@ impl ScanEngine {
         ))
     }
 
-    pub fn scan(&mut self, path: &Path, args: &ScanArgs) -> ScanReport {
+    pub fn scan(&mut self, args: &ScanArgs) -> ScanReport {
+        let timer = std::time::Instant::now();
         self.scan_args = args.clone();
         let mut report = ScanReport::default();
 
         let _ = Self::init_thread_pool(&args.threads);
 
-        log::info!("Rayon active threads: {}", rayon::current_num_threads());
-        if path.is_file() {
-            let results = self.scan_file(path);
-            report.add(results);
-        } else if path.is_dir() {
-            let results = self.scan_dir(path);
-            report.add(results);
+        for path in &args.paths {
+            if path.is_file() {
+                report.add(self.scan_file(path));
+            } else if path.is_dir() {
+                report.add(self.scan_dir(path));
+            }
         }
 
+        report.time_taken = timer.elapsed().as_secs_f64();
         report
     }
 

@@ -7,6 +7,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import DaemonConnection from "@/bindings/component/layout/DaemonConnection";
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from "../ui/separator";
+import { NotificationIndicator } from "./NotificationIndicator";
 
 function TitleBar() {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -78,16 +79,7 @@ function TitleBar() {
         </div>
       </div>
       <div className="flex-1"></div>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button className="cursor-pointer text-muted-foreground" variant={"ghost"}>
-            <Bell />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Notifications</p>
-        </TooltipContent>
-      </Tooltip>
+      <NotificationIndicator />
       <DaemonConnection />
       <Tooltip>
         <TooltipTrigger asChild>

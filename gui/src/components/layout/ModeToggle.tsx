@@ -111,13 +111,13 @@ export function ChangeThemeButtonTest() {
     }
 
     return (
-        <div className="flex flex-col m-5">
+        <div className="flex flex-col gap-3">
             <span>Color theme:</span>
             <div className="flex flex-wrap gap-2">
                 {(Object.keys(ThemesList) as Array<keyof typeof ThemesList>).map((theme) => (
                     <div
                         key={theme}
-                        className={`flex flex-row gap-1 items-center cursor-pointer px-7 py-1 hover:bg-muted rounded ${selectedTheme === theme ? "border-2 border-primary" : ""
+                        className={`flex flex-row gap-1 items-center cursor-pointer px-7 py-1 hover:bg-muted rounded w-44 ${selectedTheme === theme ? "border-2 border-primary" : ""
                             }`}
                         style={themePreviewStyle(ThemesList[theme])}
                         onClick={() => switchTheme(theme)}

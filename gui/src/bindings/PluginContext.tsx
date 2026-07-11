@@ -5,13 +5,13 @@ import { error } from "@tauri-apps/plugin-log";
 import { createPendingRequest } from "@/services/requestManager";
 
 export type Plugin = {
-  file_name: string;
-  uuid: string;
-  display_name: string;
-  version: string;
-  author: string;
-  description: string;
-  notifications_enabled: boolean;
+    file_name: string;
+    uuid: string;
+    display_name: string;
+    version: string;
+    author: string;
+    description: string;
+    notifications_enabled: boolean;
 };
 
 export interface InteractionStep {
@@ -58,12 +58,13 @@ interface PluginContextType {
     plugins: Plugin[];
     currentManifest: PluginManifest | null;
     isManifestLoading: boolean;
+    pluginStatus: Record<string, boolean>; // ADDED
+    setPluginStatus: React.Dispatch<React.SetStateAction<Record<string, boolean>>>; // ADDED
     refreshPlugins: () => Promise<void>;
     loadPluginManifest: (pluginName: string) => Promise<void>;
     deletePlugin: (pluginName: string) => Promise<void>;
     callPluginFunction: (fnName: string, args: string[]) => Promise<any>;
 }
-
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
 export function PluginProvider({ children }: { children: ReactNode }) {
@@ -71,6 +72,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     const [manifests, setManifests] = useState<Record<string, PluginManifest>>({});
     const [isManifestLoading, setIsManifestLoading] = useState(false);
     const [currentManifest, setCurrentManifest] = useState<PluginManifest | null>(null);
+    const [pluginStatus, setPluginStatus] = useState<Record<string, boolean>>({});
 
     async function callPluginFunction(fnName: string, args: string[]): Promise<string> {
         if (!currentManifest?.plugin?.uuid) {
@@ -78,6 +80,10 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         }
 
         const { requestId, promise } = createPendingRequest();
+
+        if (args.length === 0) {
+            args = ["{}"];
+        }
 
         await invoke("call_plugin", {
             pluginUuid: currentManifest.plugin.uuid,
@@ -166,6 +172,8 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                 plugins,
                 currentManifest,
                 isManifestLoading,
+                pluginStatus,
+                setPluginStatus,
                 refreshPlugins,
                 loadPluginManifest,
                 deletePlugin,

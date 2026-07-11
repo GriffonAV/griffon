@@ -168,6 +168,19 @@ export type ProgressElement = BaseElement & {
 export type TableColumn = {
   key: string;
   label: string;
+  hide?: boolean;
+  transmit?: boolean;
+};
+
+export type ScannerTableColumn = {
+  key: keyof Threat;
+  label: string;
+};
+
+export type Threat = {
+  path: string;
+  name: string;
+  severity: string;
 };
 
 export type TableRowData = {
@@ -179,6 +192,8 @@ export type TableElement = BaseElement & {
   type: "table";
   columns?: TableColumn[];
   rows?: TableRowData[];
+  from?: string;
+  action?: string;
 };
 
 export type GriffonInteractionStep =
@@ -281,6 +296,28 @@ export type CleanerDryRunToggleElement = {
   };
 };
 
+export type ScannerTableElement = {
+  type: "scanner_table";
+  id: string;
+  action?: string;
+  columns?: ScannerTableColumn[];
+  scan_result?: string;
+};
+
+export type ScannerTargetTableElement = {
+  type: "scanner_target_table";
+  id: string;
+  action?: string;
+  targets?: string;
+};
+
+export type ScannerQuarantineElement = {
+  type: "scanner_quarantine_table";
+  id: string;
+  action?: string;
+  targets?: string;
+}
+
 export type GriffonElement =
   | TextElement
   | ButtonElement
@@ -300,4 +337,5 @@ export type GriffonElement =
   | ColumnElement
   | CleanerCandidateListElement
   | CleanerFileTypeSelectorElement
-  | CleanerDryRunToggleElement;
+  | CleanerDryRunToggleElement
+  | ScannerTableElement;

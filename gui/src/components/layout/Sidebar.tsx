@@ -13,7 +13,7 @@ import { useSidebar } from "@/providers/SidebarProvider.tsx";
 
 export function Sidebar() {
   const { isCollapsed } = useSidebar();
-  const { plugins, refreshPlugins } = usePlugins();
+  const { plugins, pluginStatus, refreshPlugins } = usePlugins();
   const location = useLocation();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -35,9 +35,8 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`transition-all duration-200 ease-in-out flex flex-col gap-2 ${
-        isCollapsed ? "w-min" : "w-48"
-      } m-2 pl-2 pt-6 pb-2`}
+      className={`transition-all duration-200 ease-in-out flex flex-col gap-2 ${isCollapsed ? "w-min" : "w-48"
+        } m-2 pl-2 pt-6 pb-2`}
     >
       <Link to="/dashboard">
         <SidebarButton
@@ -67,16 +66,18 @@ export function Sidebar() {
         )}
       </div>
 
-      {plugins.map((plugin) => (
-        <Link key={plugin.uuid} to={`/plugin/${plugin.file_name}`} className="block">
-          <SidebarButton
-            icon={<ToyBrick />}
-            label={plugin.display_name}
-            isActive={location.pathname === `/plugin/${plugin.file_name}`}
-            isCollapsed={isCollapsed}
-          />
-        </Link>
-      ))}
+      {plugins
+        .filter((plugin) => pluginStatus[plugin.uuid] ?? true) // Only pass enabled plugins
+        .map((plugin) => (
+          <Link key={plugin.uuid} to={`/plugin/${plugin.file_name}`} className="block">
+            <SidebarButton
+              icon={<ToyBrick />}
+              label={plugin.display_name}
+              isActive={location.pathname === `/plugin/${plugin.file_name}`}
+              isCollapsed={isCollapsed}
+            />
+          </Link>
+        ))}
 
       <div className="flex-1" />
 
@@ -85,7 +86,7 @@ export function Sidebar() {
           isCollapsed ? "flex flex-col gap-2 justify-center" : "flex flex-row gap-2 justify-center"
         }
       >
-        <Button
+        {/* <Button
           title="Refresh Background Service"
           variant="outline"
           size="icon"
@@ -94,7 +95,7 @@ export function Sidebar() {
           onClick={handleRefresh}
         >
           <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
-        </Button>
+        </Button> */}
 
         <Link to="/settings">
           <Button variant="outline" size="icon" className="cursor-pointer" title="Settings">

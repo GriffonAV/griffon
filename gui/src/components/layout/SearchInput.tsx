@@ -7,18 +7,21 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "../ui/button";
 import { Search } from "lucide-react";
 import clsx from "clsx";
 import { Kbd, KbdGroup } from "../ui/kbd";
 
+import { usePlugins } from "@/bindings/PluginContext";
+
 function SearchInput({ isCollapsed }: { isCollapsed: boolean }) {
   const navigate = useNavigate();
   const [open, setOpen] = React.useState(false);
 
-  // open with ctrl+f
+  const { plugins } = usePlugins();
+
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === "f") {
@@ -31,14 +34,15 @@ function SearchInput({ isCollapsed }: { isCollapsed: boolean }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // if enter is pressed, close the dialog and navigate to the first command if it exists
   const handleCommandSelect = (command: string) => {
     setOpen(false);
-    // navigate to the command with react-router-dom
     navigate(`/${command.toLowerCase()}`);
-
   }
 
+  const handlePluginSelect = (fileName: string) => {
+    setOpen(false);
+    navigate(`/plugin/${fileName}`);
+  }
 
   return (
     <div>
@@ -75,8 +79,18 @@ function SearchInput({ isCollapsed }: { isCollapsed: boolean }) {
               Activity Log
             </CommandItem>
           </CommandGroup>
+
           <CommandGroup heading="Extensions">
+            {plugins.map((plugin) => (
+              <CommandItem
+                key={plugin.uuid}
+                onSelect={() => handlePluginSelect(plugin.file_name)}
+              >
+                {plugin.display_name}
+              </CommandItem>
+            ))}
           </CommandGroup>
+
           <CommandGroup heading="Settings">
             <CommandItem onSelect={() => handleCommandSelect("settings")}>
               Settings

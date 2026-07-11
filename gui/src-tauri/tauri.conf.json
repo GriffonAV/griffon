@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "griffon",
+        "title": "Griffon",
         "width": 1280,
         "height": 720,
+        "minWidth": 1024,
+        "minHeight": 576,
         "resizable": true,
         "fullscreen": false,
         "decorations": false,

@@ -3,6 +3,7 @@ use clap::ValueEnum;
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, ValueEnum)]
 pub enum ThreatCategory {
+    All,
     Ransomware,
     Trojan,
     Backdoor,
@@ -18,6 +19,7 @@ impl ThreatCategory {
     #[allow(dead_code)]
     pub fn all() -> &'static [ThreatCategory] {
         &[
+            ThreatCategory::All,
             ThreatCategory::Ransomware,
             ThreatCategory::Trojan,
             ThreatCategory::Backdoor,
@@ -33,6 +35,7 @@ impl ThreatCategory {
     #[allow(dead_code)]
     pub fn as_str(&self) -> &'static str {
         match self {
+            Self::All => "all",
             Self::Ransomware => "ransomware",
             Self::Trojan => "trojans",
             Self::Backdoor => "backdoors",
@@ -44,6 +47,22 @@ impl ThreatCategory {
             Self::Other => "other",
         }
     }
+
+    #[allow(dead_code)]
+    pub fn try_from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "all" => Some(Self::All),
+            "ransomware" => Some(Self::Ransomware),
+            "trojans" => Some(Self::Trojan),
+            "backdoors" => Some(Self::Backdoor),
+            "cryptominers" => Some(Self::Cryptominer),
+            "webshells" => Some(Self::Webshell),
+            "rootkits" => Some(Self::Rootkit),
+            "spyware" => Some(Self::Spyware),
+            "apt" => Some(Self::Apt),
+            _ => None,
+        }
+    }
 }
 
 impl std::str::FromStr for ThreatCategory {
@@ -51,6 +70,7 @@ impl std::str::FromStr for ThreatCategory {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            "all" => Ok(Self::All),
             "ransomware" => Ok(Self::Ransomware),
             "trojans" => Ok(Self::Trojan),
             "backdoors" => Ok(Self::Backdoor),

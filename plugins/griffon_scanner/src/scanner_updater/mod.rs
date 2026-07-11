@@ -33,6 +33,9 @@ pub struct ScannerUpdater {
     pub rules_dir: PathBuf,
 }
 
+const RULES_MANIFEST_URL: &str =
+    "https://raw.githubusercontent.com/GriffonAV/griffon-yara-rules/main";
+
 impl ScannerUpdater {
     #[allow(dead_code)]
     pub fn new(dir: &PathBuf) -> std::io::Result<Self> {
@@ -45,7 +48,7 @@ impl ScannerUpdater {
 
     #[allow(dead_code)]
     pub fn update(&self) -> Result<(), String> {
-        let base_url = "https://raw.githubusercontent.com/GriffonAV/griffon-yara-rules/main";
+        let base_url = RULES_MANIFEST_URL;
 
         let manifest_url = format!("{}/manifest.toml", base_url);
         let manifest_content = reqwest::blocking::get(manifest_url)
@@ -98,7 +101,46 @@ impl ScannerUpdater {
                 .map_err(|e| format!("Failed to save {}: {}", rule.filename, e))?;
         }
 
+        std::fs::write(&local_manifest_path, manifest_content.as_bytes())
+            .map_err(|e| format!("Failed to save local manifest: {}", e))?;
         Ok(())
+    }
+
+    pub fn check_for_updates(&self) -> Result<String, String> {
+        let base_url = RULES_MANIFEST_URL;
+        let manifest_url = format!("{}/manifest.toml", base_url);
+
+        let manifest_content = reqwest::blocking::get(manifest_url)
+            .map_err(|e| format!("Failed to download manifest: {}", e))?
+            .text()
+            .map_err(|e| format!("Failed to read manifest content: {}", e))?;
+
+        let manifest: Manifest = toml::from_str(&manifest_content)
+            .map_err(|e| format!("Failed to parse manifest: {}", e))?;
+
+        let local_manifest_path = self.rules_dir.join("manifest.toml");
+        if local_manifest_path.exists() {
+            let local_manifest_content = std::fs::read_to_string(&local_manifest_path)
+                .map_err(|e| format!("Failed to read local manifest: {}", e))?;
+            let local_manifest: Manifest = toml::from_str(&local_manifest_content)
+                .map_err(|e| format!("Failed to parse local manifest: {}", e))?;
+
+            if local_manifest.version == manifest.version {
+                let msg = format!(
+                    "Rules are up to date (version {} released on {})",
+                    manifest.version, manifest.release_date
+                );
+                log::info!("{}", msg);
+                return Ok(msg);
+            }
+        }
+
+        let msg = format!(
+            "New rules available (version {} released on {})",
+            manifest.version, manifest.release_date
+        );
+        log::info!("{}", msg);
+        Ok(msg)
     }
 }
 

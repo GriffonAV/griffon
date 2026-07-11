@@ -13,23 +13,23 @@ pub struct ScanArgs {
     #[arg(short, long, default_value_t = false)]
     pub recursive: bool,
 
-    // path to scan: string, no flag just the path
-    pub path: PathBuf,
+    #[arg(value_name = "PATH", required = true)]
+    pub paths: Vec<PathBuf>,
 
     // yara only
     #[arg(long, default_value_t = true)]
     pub yara_only: bool,
 
-    // parallel scan: bool, default true
-    #[arg(short, long, default_value_t = true)]
-    pub parallel: bool,
-
     // thread settings
     //--threads 4 — explicit count
     //--threads auto — let rayon decide (default, uses all cores)
     //--threads conservative — use max(1, cores / 2) to leave room for the rest of the system
+    //--threads off — disables parallelism, runs sequentially
     #[arg(long, default_value = "auto")]
     pub threads: String,
+
+    #[arg(long, default_value_t = 1)]
+    pub nb_threads: u32,
 
     #[arg(short, long, value_delimiter = ',')]
     pub include: Vec<ThreatCategory>,
@@ -42,12 +42,12 @@ pub struct ScanArgs {
 impl Default for ScanArgs {
     fn default() -> Self {
         ScanArgs {
-            archives: false,
+            archives: true,
             recursive: true,
-            path: PathBuf::new(),
+            paths: vec![],
             yara_only: false,
-            parallel: true,
             threads: "auto".to_string(),
+            nb_threads: 0,
             include: vec![],
             exclude: vec![],
         }
@@ -57,6 +57,10 @@ impl Default for ScanArgs {
 impl ScanArgs {
     pub fn get_active_categories(&self) -> Vec<ThreatCategory> {
         let all = ThreatCategory::all();
+
+        if self.include.contains(&ThreatCategory::All) {
+            return all.to_vec();
+        }
 
         if !self.include.is_empty() {
             return self.include.clone();

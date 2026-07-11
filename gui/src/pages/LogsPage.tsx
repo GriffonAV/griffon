@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { History, RefreshCw, ToyBrick } from "lucide-react";
+import { History, RefreshCw, Filter, ChevronRight, ChevronDown } from "lucide-react";
 
 import { NoPluginLayout } from "@/bindings/component/layout/NoPluginLayout";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -19,10 +19,7 @@ type PluginHistoryEntry = {
 };
 
 function formatTimestamp(timestamp: number) {
-    if (!timestamp) {
-        return "-";
-    }
-
+    if (!timestamp) return "-";
     return new Intl.DateTimeFormat("fr-FR", {
         dateStyle: "short",
         timeStyle: "medium",
@@ -30,25 +27,64 @@ function formatTimestamp(timestamp: number) {
 }
 
 function formatEvent(event?: string | null) {
-    if (!event) {
-        return "-";
-    }
-
+    if (!event) return "-";
     return event.replaceAll("_", " ");
 }
 
 function getLevelClass(level: string) {
     switch (level.toUpperCase()) {
-        case "INFO":
-            return "text-green-500";
+        case "INFO": return "text-green-500";
         case "WARN":
-        case "WARNING":
-            return "text-yellow-500";
-        case "ERROR":
-            return "text-red-500";
-        default:
-            return "text-muted-foreground";
+        case "WARNING": return "text-yellow-500";
+        case "ERROR": return "text-red-500";
+        default: return "text-muted-foreground";
     }
+}
+
+function LogEntryRow({ entry, isAllTab }: { entry: PluginHistoryEntry; isAllTab: boolean }) {
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <div
+            className="flex flex-col border-b border-border/50 hover:bg-muted/30 px-2 py-1.5 transition-colors cursor-pointer"
+            onClick={() => setExpanded(!expanded)}
+        >
+            <div className="flex items-center gap-3 min-w-0">
+                <div className="shrink-0 text-muted-foreground">
+                    {expanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" />}
+                </div>
+
+                <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0 w-32">
+                    {formatTimestamp(entry.timestamp)}
+                </span>
+
+                <span className={`text-xs font-bold w-16 shrink-0 ${getLevelClass(entry.level)}`}>
+                    {entry.level}
+                </span>
+
+                {isAllTab && (
+                    <span className="text-xs font-semibold w-24 truncate shrink-0 text-foreground">
+                        {entry.pluginName}
+                    </span>
+                )}
+
+                {/* Single-line message preview */}
+                <span className="text-xs truncate flex-1 text-foreground/80 font-mono">
+                    {entry.event && <span className="text-muted-foreground mr-2">[{formatEvent(entry.event)}]</span>}
+                    {entry.message}
+                </span>
+            </div>
+
+            {expanded && (
+                <div className="mt-2 mb-1 ml-7 flex flex-col gap-1 text-xs bg-muted/40 p-3 rounded-md border border-border/50">
+                    <p><strong className="text-foreground">Message:</strong> <span className="font-mono text-muted-foreground">{entry.message}</span></p>
+                    {entry.path && <p><strong className="text-foreground">Path:</strong> <span className="text-muted-foreground break-all">{entry.path}</span></p>}
+                    {entry.pid && <p><strong className="text-foreground">PID:</strong> <span className="text-muted-foreground">{entry.pid}</span></p>}
+                    <p><strong className="text-foreground">UUID:</strong> <span className="text-muted-foreground">{entry.pluginUuid}</span></p>
+                </div>
+            )}
+        </div>
+    );
 }
 
 export default function LogsPage() {
@@ -56,11 +92,12 @@ export default function LogsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const [levelFilter, setLevelFilter] = useState<string>("ALL");
+
     async function loadPluginHistory() {
         try {
             setLoading(true);
             setError(null);
-
             const result = await invoke<PluginHistoryEntry[]>("get_plugin_history");
             setEntries(result);
         } catch (err) {
@@ -75,115 +112,113 @@ export default function LogsPage() {
         loadPluginHistory();
     }, []);
 
+    const uniquePlugins = useMemo(() => {
+        const plugins = new Set(entries.map((e) => e.pluginName));
+        return Array.from(plugins).sort();
+    }, [entries]);
+
+    const tabsList = useMemo(() => ["All", ...uniquePlugins], [uniquePlugins]);
+
     return (
-        <PageLayout title="Activity Log">
-            <NoPluginLayout>
-                <section className="w-full rounded-xl border border-border bg-card p-6 shadow-sm">
-                    <div className="flex flex-col gap-5">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex items-center gap-3">
-                                <History className="size-6" />
+        <PageLayout mode="tabs" title="Activity Log" navigation tabs={tabsList}>
+            {tabsList.map((tabName) => {
+                const isAllTab = tabName === "All";
 
-                                <div>
-                                    <h2 className="text-xl font-bold">Plugin history</h2>
+                const tabEntries = entries.filter(
+                    (entry) => isAllTab || entry.pluginName === tabName
+                );
 
-                                    <p className="mt-1 text-sm text-muted-foreground">
-                                        Display plugin activity from Griffon history files.
-                                    </p>
-                                </div>
-                            </div>
+                const filteredTabEntries = tabEntries.filter((entry) => {
+                    const entryLevel = entry.level.toUpperCase().startsWith("WARN") ? "WARN" : entry.level.toUpperCase();
+                    return levelFilter === "ALL" || entryLevel === levelFilter;
+                });
 
-                            <Button
-                                variant="outline"
-                                className="cursor-pointer gap-2"
-                                disabled={loading}
-                                onClick={loadPluginHistory}
-                            >
-                                <RefreshCw className="size-4" />
-                                {loading ? "Loading..." : "Refresh"}
-                            </Button>
-                        </div>
+                return (
+                    <div key={tabName} title={tabName} className="mt-2 w-full h-full">
+                        <NoPluginLayout>
+                            <section className="flex flex-col h-[calc(100vh-9.5rem)] w-full rounded-md border border-border bg-card shadow-sm overflow-hidden">
 
-                        {error && (
-                            <div className="rounded-md border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-500">
-                                {error}
-                            </div>
-                        )}
+                                <div className="shrink-0 p-4 border-b border-border flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-muted/10">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2">
+                                            <History className="size-5 text-foreground" />
+                                            <h2 className="text-base font-semibold">
+                                                {isAllTab ? "All Plugin Activity" : `${tabName} Activity`}
+                                            </h2>
+                                        </div>
 
-                        {!loading && !error && entries.length === 0 && (
-                            <div className="rounded-md border border-border p-4 text-sm text-muted-foreground">
-                                No plugin history found.
-                            </div>
-                        )}
+                                        <div className="h-4 w-[1px] bg-border hidden sm:block"></div>
 
-                        {!error && entries.length > 0 && (
-                            <div className="flex flex-col gap-3">
-                                {entries.map((entry, index) => (
-                                    <div
-                                        key={`${entry.sourceFile}-${entry.timestamp}-${index}`}
-                                        className="rounded-md border border-border p-4"
-                                    >
-                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                                            <div className="flex min-w-0 gap-3">
-                                                <ToyBrick className="mt-1 shrink-0" />
-
-                                                <div className="min-w-0">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <p className="font-semibold">
-                                                            {entry.pluginName}
-                                                        </p>
-
-                                                        <span
-                                                            className={`text-xs font-medium ${getLevelClass(
-                                                                entry.level,
-                                                            )}`}
-                                                        >
-                                                            ● {entry.level}
-                                                        </span>
-                                                    </div>
-
-                                                    <p className="mt-1 text-xs text-muted-foreground break-all">
-                                                        {entry.pluginUuid}
-                                                    </p>
-
-                                                    <p className="mt-3 text-sm">
-                                                        <span className="font-medium">Event:</span>{" "}
-                                                        {formatEvent(entry.event)}
-                                                    </p>
-
-                                                    {entry.pid && (
-                                                        <p className="mt-1 text-sm">
-                                                            <span className="font-medium">PID:</span>{" "}
-                                                            {entry.pid}
-                                                        </p>
-                                                    )}
-
-                                                    {entry.path && (
-                                                        <p className="mt-1 text-sm text-muted-foreground break-all">
-                                                            <span className="font-medium text-foreground">
-                                                                Path:
-                                                            </span>{" "}
-                                                            {entry.path}
-                                                        </p>
-                                                    )}
-
-                                                    <p className="mt-3 rounded-md bg-muted p-3 text-xs break-all">
-                                                        {entry.message}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="shrink-0 text-left text-xs text-muted-foreground sm:text-right">
-                                                <p>{formatTimestamp(entry.timestamp)}</p>
+                                        <div className="flex items-center gap-2">
+                                            <Filter className="size-3.5 text-muted-foreground" />
+                                            <div className="flex bg-muted p-0.5 rounded-md gap-0.5">
+                                                {["ALL", "INFO", "WARN", "ERROR"].map((lvl) => (
+                                                    <Button
+                                                        key={lvl}
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className={`h-6 px-2.5 text-[10px] cursor-pointer transition-all ${levelFilter === lvl
+                                                            ? "bg-background text-foreground shadow-sm hover:bg-background"
+                                                            : "text-muted-foreground hover:bg-transparent hover:text-foreground"
+                                                            }`}
+                                                        onClick={() => setLevelFilter(lvl)}
+                                                    >
+                                                        {lvl === "WARN" ? "WARNING" : lvl}
+                                                    </Button>
+                                                ))}
                                             </div>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="cursor-pointer gap-2 h-7 text-xs"
+                                        disabled={loading}
+                                        onClick={loadPluginHistory}
+                                    >
+                                        <RefreshCw className={`size-3 ${loading ? "animate-spin" : ""}`} />
+                                        {loading ? "Loading..." : "Refresh"}
+                                    </Button>
+                                </div>
+
+                                {error && (
+                                    <div className="m-4 shrink-0 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-500">
+                                        {error}
+                                    </div>
+                                )}
+
+                                {!loading && !error && tabEntries.length === 0 && (
+                                    <div className="m-4 shrink-0 rounded-md border border-border p-4 text-sm text-muted-foreground text-center">
+                                        No Extension history found for {isAllTab ? "any extensions" : tabName}.
+                                    </div>
+                                )}
+
+                                {!loading && !error && tabEntries.length > 0 && filteredTabEntries.length === 0 && (
+                                    <div className="m-4 shrink-0 rounded-md border border-border p-4 text-sm text-muted-foreground text-center">
+                                        No logs match the selected level filter.
+                                    </div>
+                                )}
+
+                                {/* Compact Log List */}
+                                {!error && filteredTabEntries.length > 0 && (
+                                    <div className="flex-1 overflow-y-auto min-h-0">
+                                        <div className="flex flex-col">
+                                            {filteredTabEntries.map((entry, index) => (
+                                                <LogEntryRow
+                                                    key={`${entry.sourceFile}-${entry.timestamp}-${index}`}
+                                                    entry={entry}
+                                                    isAllTab={isAllTab}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </section>
+                        </NoPluginLayout>
                     </div>
-                </section>
-            </NoPluginLayout>
+                );
+            })}
         </PageLayout>
     );
 }

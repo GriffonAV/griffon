@@ -32,7 +32,7 @@ fn main() {
                 println!("Starting scan with args: {:?}", args);
                 scan(&mut scanner, &args)
             }
-            "update" => update_signatures(&mut scanner),
+            "db_update" => update_signatures(&mut scanner),
             "quarantine" => {
                 let path_str = parts.next();
                 if let Some(path) = path_str {
@@ -45,17 +45,22 @@ fn main() {
                     println!("Usage: quarantine <file_path>");
                 }
             }
-            "list" => {
-                quarantine.list_sorted().iter().for_each(|m| {
-                    println!(
-                        "{} | {}, Quarantined at {}",
-                        m.original_path.display(),
-                        m.original_hash,
-                        m.quarantined_at,
-                    );
-                });
+            "q_list" => {
+                let items = quarantine.list_sorted();
+                if items.is_empty() {
+                    println!("No quarantined items found.");
+                } else {
+                    for item in items {
+                        println!(
+                            "Quarantine Name: {}, Original Path: {}, Quarantined At: {}",
+                            item.quarantine_name,
+                            item.original_path.display(),
+                            item.quarantined_at
+                        );
+                    }
+                }
             }
-            "restore" => {
+            "q_restore" => {
                 let file_name = parts.next();
                 if let Some(name) = file_name {
                     match quarantine.restore_file(name) {
@@ -85,7 +90,7 @@ fn prep(scanner: &mut ScanEngine, args: &PrepArgs) {
 }
 
 fn scan(scanner: &mut ScanEngine, args: &ScanArgs) {
-    let report = scanner.scan(&args.path, args);
+    let report = scanner.scan(args);
 
     if report.is_clean() {
         println!("Clean");

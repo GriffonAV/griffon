@@ -14,6 +14,8 @@ import GriffonGroup from "@/components/griffon/GriffonGroup";
 import GriffonRow from "@/components/griffon/GriffonRow";
 import GriffonColumn from "@/components/griffon/GriffonColumn";
 import GriffonFileSelect from "@/components/griffon/GriffonFileSelect";
+import GriffonFileSelectButton from "@/components/griffon/GriffonFileSelectButton";
+
 import CleanerTable from "@/components/griffon/CleanerTable";
 import CleanerCandidateList from "@/components/griffon/CleanerCandidateList";
 import CleanerDeleteResult from "@/components/griffon/CleanerDeleteResult.tsx";
@@ -21,10 +23,14 @@ import CleanerRunOverview from "@/components/griffon/CleanerRunOverview.tsx";
 import CleanerFileTypeSelector from "@/components/griffon/CleanerFileTypeSelector";
 import CleanerDryRunToggle from "@/components/griffon/CleanerDryRunToggle.tsx";
 
+import ScannerTable from "@/components/griffon/ScannerTable";
+import ScannerTargetTable from "@/components/griffon/ScannerTargetTable"
+
+
 interface GriffonElementRendererProps {
   element: any;
   store?: Record<string, any>;
-  onAction?: (action: string, event?: any) => void;
+  onAction?: (action: string, event?: any) => any;
 }
 
 export default function GriffonElementRenderer({
@@ -83,25 +89,37 @@ export default function GriffonElementRenderer({
 
     case "tabs":
       return <GriffonTabs {...commonProps} />;
-    
+
     case "file_select":
       return <GriffonFileSelect {...commonProps} />;
 
+    case "file_select_button":
+      return <GriffonFileSelectButton {...commonProps} />;
+
     case "cleaner_table":
-        return <CleanerTable {...commonProps} />;
+      return <CleanerTable {...commonProps} />;
 
     case "cleaner_candidate_list":
-        return <CleanerCandidateList {...commonProps} />;
+      return <CleanerCandidateList {...commonProps} />;
 
     case "cleaner_delete_result":
-        return <CleanerDeleteResult {...commonProps} />;
+      return <CleanerDeleteResult {...commonProps} />;
 
     case "cleaner_run_overview":
-        return <CleanerRunOverview {...commonProps} />;
+      return <CleanerRunOverview {...commonProps} />;
+
     case "cleaner_file_type_selector":
-        return <CleanerFileTypeSelector {...commonProps} />;
+      return <CleanerFileTypeSelector {...commonProps} />;
+
     case "cleaner_dry_run_toggle":
-        return <CleanerDryRunToggle {...commonProps} />;
+      return <CleanerDryRunToggle {...commonProps} />;
+
+    case "scanner_table":
+      return <ScannerTable {...commonProps} />;
+
+    case "scanner_target_table":
+      return <ScannerTargetTable {...commonProps} />;
+
     default:
       return null;
   }
