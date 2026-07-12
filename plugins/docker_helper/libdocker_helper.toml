@@ -1,0 +1,67 @@
+# Griffon Plugin Manifest: Docker Viewer
+[plugin]
+name = "Docker Helper"
+id = "b86fcda4-4e8d-4988-b524-8bbd9ce09abc"
+version = "1.0.0"
+author = "Griffon Devs"
+description = "A simple plugin to list local Docker containers."
+tabs = ["containers"]
+uuid = "b86fcda4-4e8d-4988-b524-8bbd9ce09abc"
+
+# =========================
+# Store
+# =========================
+
+[store]
+
+[store.data.container_list]
+containers = []
+
+# =========================
+# UI
+# =========================
+
+[ui]
+
+[[ui.sections]]
+id = "docker_controls"
+tab = "containers"
+
+# Top row: The refresh button
+[[ui.sections.contents]]
+type = "row"
+id = "refresh_row"
+gap = "sm"
+
+[[ui.sections.contents.children]]
+type = "button"
+id = "refresh_bt"
+name = "Refresh Containers"
+action = "docker.refresh"
+
+# Main content: The table mapping to the Rust struct
+[[ui.sections.contents]]
+type = "table"
+id = "container_table"
+columns = [
+    { "key" = "id", "label" = "Container ID" },
+    { "key" = "name", "label" = "Name" },
+    { "key" = "image", "label" = "Image" },
+    { "key" = "state", "label" = "State" },
+    { "key" = "status", "label" = "Status" },
+]
+from = "store.data.container_list.containers"
+
+# =========================
+# Interactions
+# =========================
+
+[[interactions]]
+id = "fetch_docker_containers"
+on = "docker.refresh"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.container_list"
+returnType = "json"
+fn = "get_containers"
