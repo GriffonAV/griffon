@@ -28,9 +28,8 @@ export function ContactButton() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="cursor-pointer">
+        <Button variant="outline" size="icon" className="cursor-pointer" title="Contact & Support">
           <Info></Info>
-          <span className="sr-only">Toggle theme</span>
         </Button>
       </DialogTrigger>
 
@@ -40,7 +39,7 @@ export function ContactButton() {
         <div className="flex flex-col flex-1 align-middle items-center">
 
           <img
-            src="/assets/logo_test/G-white.png"
+            src="/assets/logo.png"
             alt="Griffon Logo"
             style={{
               imageRendering: "pixelated",
@@ -50,22 +49,22 @@ export function ContactButton() {
           <div className="pb-2 font-bold">Griffon</div>
           <Badge asChild>
             <a onClick={handleButtonClick}>
-              0.0.1
+              0.3.0
             </a>
           </Badge>
           <div className="h-28"></div>
-          <Button variant="outline" className="w-56 mb-2 flex align-middle cursor-pointer" onClick={() => openUrl("https://github.com/GriffonAV/GriffonAV")}>
+          <Button variant="outline" className="w-56 mb-2 flex align-middle cursor-pointer" onClick={() => openUrl("https://griffon-av.vercel.app/")}>
             <span>Website</span>
             <div className="flex-1"></div>
             <SquareArrowOutUpRight className="ml-2" />
           </Button>
 
-          <Button variant="outline" className="w-56 mb-2 flex align-middle cursor-pointer" onClick={() => openUrl("https://github.com/GriffonAV/GriffonAV/issues")}>
+          <Button variant="outline" className="w-56 mb-2 flex align-middle cursor-pointer" onClick={() => openUrl("https://github.com/GriffonAV/griffon/issues")}>
             <span>Report an issue</span>
             <div className="flex-1"></div>
             <Bug className="ml-2" />
           </Button>
-          <Button variant="outline" className="w-56">Waranty</Button>
+          <Button variant="outline" className="w-56" onClick={() => openUrl("https://github.com/GriffonAV/griffon?tab=security-ov-file")}>Waranty</Button>
 
 
         </div>

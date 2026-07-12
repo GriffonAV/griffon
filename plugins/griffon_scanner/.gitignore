@@ -1,0 +1,16 @@
+## rust
+
+/target
+
+## scanner
+
+/rules
+/quarantine
+
+## testing
+
+**/tests/fixtures/eicar.com
+**/tests/fixtures/eicar.zip
+**/tests/fixtures/eicar_nested.zip
+**/tests/fixtures/dummy_fs/
+**/tests/fixtures/heavy_fs/

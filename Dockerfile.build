@@ -29,7 +29,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y pkg-config libssl-dev
 
 COPY . .
-RUN cargo build --release --workspace --exclude griffonav-gui
+RUN cargo build --release --workspace --exclude griffon-gui
 
 # packaging avec nfpm
 FROM goreleaser/nfpm:latest AS packager
@@ -40,10 +40,18 @@ COPY --from=gui-builder /app/target/release/ /app/target/release/
 COPY --from=workspace-builder /app/target/release/ /app/target/release/
 
 COPY nfpm.yaml .
+COPY logo.png .
+COPY griffon.desktop .
 COPY scripts/ ./scripts/
+
 # copy plugin config files
-COPY plugins/plugin_test/plugin_test.toml ./plugins/plugin_test/plugin_test.toml
-COPY plugins/plugin_test_2/plugin_test_2.toml ./plugins/plugin_test_2/plugin_test_2.toml
-COPY daemon/griffonav-daemon.service ./daemon/griffonav-daemon.service
+COPY ./plugins/griffon_cleaner/libgriffon_cleaner.toml ./plugins/griffon_cleaner/libgriffon_cleaner.toml
+COPY ./plugins/griffon_scanner/libgriffon_scanner.toml ./plugins/griffon_scanner/libgriffon_scanner.toml
+COPY daemon/griffon-daemon.service ./daemon/griffon-daemon.service
+
+COPY ./daemon/config_griffon_daemon.json ./daemon/config_griffon_daemon.json
+COPY ./bench/configs/light.json ./bench/configs/light.json
+COPY ./bench/configs/medium.json ./bench/configs/medium.json
+COPY ./bench/configs/stress.json ./bench/configs/stress.json
 
 ENTRYPOINT ["sh", "scripts/build-packages.sh"]

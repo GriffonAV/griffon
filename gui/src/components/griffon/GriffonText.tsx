@@ -1,5 +1,6 @@
 import { textAlignClass, textVariantClass, toneTextClass } from "@/components/utils";
 import type { TextAlign, TextVariant, Tone } from "@/components/types";
+import { resolveTemplate } from "@/lib/utils";
 
 interface GriffonTextProps {
   element: {
@@ -13,13 +14,6 @@ interface GriffonTextProps {
   store?: Record<string, any>;
 }
 
-function resolveTemplate(value: string, store: Record<string, any>) {
-  return value.replace(/\{\{(.*?)\}\}/g, (_, rawKey) => {
-    const key = String(rawKey).trim();
-    const resolved = store[key];
-    return resolved !== undefined && resolved !== null ? String(resolved) : "";
-  });
-}
 
 export default function GriffonText({
   element,
@@ -27,18 +21,22 @@ export default function GriffonText({
 }: GriffonTextProps) {
   const content =
     typeof element.name === "string"
-      ? resolveTemplate(element.name, store)
+      ? resolveTemplate(element.name, { store })
       : element.name ?? "";
 
   return (
-    <div
-      className={[
-        textVariantClass(element.variant),
-        toneTextClass(element.tone),
-        textAlignClass(element.align),
-      ].join(" ")}
-    >
-      {content}
+    <div>
+      {content &&
+        <div
+          className={[
+            textVariantClass(element.variant),
+            toneTextClass(element.tone),
+            textAlignClass(element.align),
+          ].join(" ")}
+        >
+          {content}
+        </div>
+      }
     </div>
   );
 }

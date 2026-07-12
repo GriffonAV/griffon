@@ -1,37 +1,29 @@
 import { Button } from "@/components/ui/button";
 import { usePlugins } from "../../PluginContext";
-import { openPath } from "@tauri-apps/plugin-opener";
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 export function NoPluginLayout({ children }: { children: ReactNode }) {
-    const { plugins, isLoading } = usePlugins();
+  const { plugins } = usePlugins();
 
-    if (isLoading) {
-        return <div>Loading plugins...</div>;
-    }
+  if (plugins.length === 0) {
+    return (
+      <div className="flex flex-col items-start gap-4 p-6 text-sm text-muted-foreground">
+        <div>
+          <p className="font-medium text-foreground">No extensions installed</p>
 
-    const openfolder = () => {
-        openPath("~/Downloads").catch((err) => {
-            alert("Failed to open folder:" + err);
-        }).finally(() => {
-            alert("open folder:");
-        });
-    }
+          <p className="mt-2">
+            It looks like you don't have any extensions installed yet. Go to the extension settings page
+            to add one.
+          </p>
+        </div>
 
-    if (plugins.length === 0) {
-        return (
-            <div className="">
-                It looks like you don't have any plugins installed. Please install a plugin to continue.
-                <br />
-                <br />
-                Add your plugin folder in <Button onClick={openfolder} variant={"ghost"}>/usr/lib/griffonav/plugins/</Button> and refresh.
-                < br />
-                <br />
-                <Button>Refresh plugins</Button>
-            </div >
+        <Link to="/settings?tab=plugins">
+          <Button variant="default">Open extension settings</Button>
+        </Link>
+      </div>
+    );
+  }
 
-        );
-    }
-
-    return <>{children}</>;
+  return <>{children}</>;
 }

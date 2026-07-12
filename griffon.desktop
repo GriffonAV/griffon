@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Griffon
+Comment=Security monitoring and antivirus tool
+Exec=griffon-gui
+Icon=griffon
+Terminal=false
+Type=Application
+Categories=Utility;Security;
+StartupNotify=true

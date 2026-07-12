@@ -1,63 +1,93 @@
-name: "griffonav"
+name: "griffon"
 arch: "amd64"
 platform: "linux"
-version: "0.1.0"
+version: "0.3.0"
 section: "utils"
 priority: "optional"
-maintainer: "Alexis <votre@email.com>"
-description: "GriffonAV - Multi-component security tool"
+maintainer: "Griffon contact.griffon@proton.me"
+description: "Griffon is a modular, Rust-based security and toolbox platform for Linux users."
 
 contents:
 
   # Le Daemon Core
-  - src: ./target/release/griffonav-daemon
-    dst: /usr/bin/griffonav-daemon
+  - src: ./target/release/griffon-daemon
+    dst: /usr/bin/griffon-daemon
     file_info:
       mode: 0755
 
 # Le Runner (Indispensable pour le plugin_manager !)
-  - src: ./target/release/griffonav-daemon-runner
-    dst: /usr/bin/griffonav-daemon-runner
+  - src: ./target/release/griffon-daemon-runner
+    dst: /usr/bin/griffon-daemon-runner
     file_info:
       mode: 0755
 
 # Le CLI
-  - src: ./target/release/griffonav-cli
-    dst: /usr/bin/griffonav-cli
+  - src: ./target/release/griffon-cli
+    dst: /usr/bin/griffon-cli
     file_info:
       mode: 0755
 
 # Le GUI (issu de tauri build)
-  - src: ./target/release/griffonav-gui 
-    dst: /usr/bin/griffonav-gui
+  - src: ./target/release/griffon-gui 
+    dst: /usr/bin/griffon-gui
     file_info:
       mode: 0755
 
-# plugins
-  - src: ./target/release/libplugin_test.so
-    dst: /usr/lib/griffonav/plugins/libplugin_test.so
+  - src: griffon.desktop
+    dst: /usr/share/applications/griffon.desktop
     file_info:
       mode: 0644
 
-  - src: ./target/release/libplugin_test_2.so
-    dst: /usr/lib/griffonav/plugins/libplugin_test_2.so
+  - src: logo.png
+    dst: /usr/share/icons/hicolor/256x256/apps/griffon.png
+    file_info:
+      mode: 0644
+
+# plugins
+  - src: ./target/release/libgriffon_cleaner.so
+    dst: /usr/lib/griffon/plugins/libgriffon_cleaner.so
+    file_info:
+      mode: 0644
+
+  - src: ./target/release/libgriffon_scanner.so
+    dst: /usr/lib/griffon/plugins/libgriffon_scanner.so
     file_info:
       mode: 0644
 
    # Plugin configs
-  - src: ./plugins/plugin_test/plugin_test.toml
-    dst: /usr/lib/griffonav/plugins/plugin_test.toml
+  - src: ./plugins/griffon_cleaner/libgriffon_cleaner.toml
+    dst: /usr/lib/griffon/plugins/libgriffon_cleaner.toml
     file_info:
       mode: 0644
 
-  - src: ./plugins/plugin_test_2/plugin_test_2.toml
-    dst: /usr/lib/griffonav/plugins/plugin_test_2.toml
+  - src: ./plugins/griffon_scanner/libgriffon_scanner.toml
+    dst: /usr/lib/griffon/plugins/libgriffon_scanner.toml
     file_info:
       mode: 0644
 
-  # Le service Systemd pour le daemon
-  - src: ./daemon/griffonav-daemon.service
-    dst: /lib/systemd/system/griffonav-daemon.service
+  - src: "./bench/configs/light.json"
+    dst: /etc/griffon/plugins/griffon_cleaner/light.json
+    file_info:
+      mode: 0644
+
+  - src: "./bench/configs/medium.json"
+    dst: /etc/griffon/plugins/griffon_cleaner/medium.json
+    file_info:
+      mode: 0644
+
+  - src: "./bench/configs/stress.json"
+    dst: /etc/griffon/plugins/griffon_cleaner/stress.json
+    file_info:
+      mode: 0644
+
+  # Les config pour le daemon
+  - src: ./daemon/griffon-daemon.service
+    dst: /lib/systemd/system/griffon-daemon.service
+    file_info:
+      mode: 0644
+
+  - src: ./daemon/config_griffon_daemon.json
+    dst: /etc/griffon/config_griffon_daemon.json
     file_info:
       mode: 0644
 

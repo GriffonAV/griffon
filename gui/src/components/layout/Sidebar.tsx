@@ -1,55 +1,89 @@
 import { Link, useLocation } from "react-router-dom";
 import { usePlugins } from "@/bindings/PluginContext.tsx";
 import { ModeToggle } from "./ModeToggle.tsx";
-import { Settings2, LayoutDashboard, Clock10 } from "lucide-react";
+import { Settings2, LayoutDashboard, Clock10, ToyBrick } from "lucide-react";
 import { SearchInput } from "./SearchInput.tsx";
 import { ContactButton } from "./ContactButton.tsx";
 import { SidebarButton } from "./SidebarButton.tsx";
 import { Button } from "../ui/button.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
+import { useSidebar } from "@/providers/SidebarProvider.tsx";
 
 export function Sidebar() {
-  const { plugins } = usePlugins();
+  const { isCollapsed } = useSidebar();
+  const { plugins, pluginStatus } = usePlugins();
   const location = useLocation();
 
   return (
-    <aside className="flex flex-col w-48 m-2">
+    <aside
+      className={`transition-all duration-200 ease-in-out flex flex-col gap-2 ${isCollapsed ? "w-min" : "w-48"
+        } m-2 pl-2 pt-6 pb-2`}
+    >
       <Link to="/dashboard">
         <SidebarButton
           icon={<LayoutDashboard />}
-          label="Dashboard"
+          label="Overview"
           isActive={location.pathname === "/dashboard" || location.pathname === "/"}
+          isCollapsed={isCollapsed}
         />
       </Link>
+
       <Link to="/log">
         <SidebarButton
           icon={<Clock10 />}
-          label="Logs"
+          label="Activity Log"
           isActive={location.pathname === "/log"}
+          isCollapsed={isCollapsed}
         />
       </Link>
-      <SearchInput />
-      <Separator />
-      <span className="text-xs text-muted-foreground px-2 my-2 select-none">Plugins</span>
-      {plugins.map((plugin) => (
-        <Link key={plugin.pid} to={`/plugin/${plugin.name}`}>
-          <SidebarButton
-            icon={null}
-            label={plugin.name}
-            isActive={location.pathname === `/plugin/${plugin.name}`}
-          />
-        </Link>
-      ))}
+
+      <SearchInput isCollapsed={isCollapsed} />
+
+      <div>
+        <Separator className="mt-2" />
+
+        {!isCollapsed && (
+          <span className="text-xs text-muted-foreground px-2 my-2 select-none">Extensions</span>
+        )}
+      </div>
+
+      {plugins
+        .filter((plugin) => pluginStatus[plugin.uuid] ?? true) // Only pass enabled plugins
+        .map((plugin) => (
+          <Link key={plugin.uuid} to={`/plugin/${plugin.file_name}`} className="block">
+            <SidebarButton
+              icon={<ToyBrick />}
+              label={plugin.display_name}
+              isActive={location.pathname === `/plugin/${plugin.file_name}`}
+              isCollapsed={isCollapsed}
+            />
+          </Link>
+        ))}
 
       <div className="flex-1" />
 
-      <div className="flex flex-row gap-2 justify-end">
+      <div
+        className={
+          isCollapsed ? "flex flex-col gap-2 justify-center" : "flex flex-row gap-2 justify-center"
+        }
+      >
+        {/* <Button
+          title="Refresh Background Service"
+          variant="outline"
+          size="icon"
+          className="cursor-pointer"
+          disabled={isRefreshing}
+          onClick={handleRefresh}
+        >
+          <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
+        </Button> */}
+
         <Link to="/settings">
-          <Button variant="outline" size="icon" className="cursor-pointer">
-            <Settings2></Settings2>
-            <span className="sr-only">Settings</span>
+          <Button variant="outline" size="icon" className="cursor-pointer" title="Settings">
+            <Settings2 />
           </Button>
         </Link>
+
         <ModeToggle />
         <ContactButton />
       </div>

@@ -3,12 +3,12 @@
   "dry_run": true,
   "root_paths": ["/"],
   "max_log_retention_days": 30,
-  "max_log_size_gb": 2.0,
+  "max_log_size_gb": 5.0,
   "min_bigfile_size_mb": 100,
-  "enable_system_cache": false,
+  "enable_system_cache": true,
   "enable_user_cache": true,
-  "enable_browser_cache": false,
-  "enable_dev_cache": false,
-  "enable_package_cache": false,
-  "enable_desktop_cache": false
+  "enable_browser_cache": true,
+  "enable_dev_cache": true,
+  "enable_package_cache": true,
+  "enable_desktop_cache": true
 }

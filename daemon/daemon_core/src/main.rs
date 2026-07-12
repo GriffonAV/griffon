@@ -1,14 +1,26 @@
+use logger::Logger;
 use std::io;
 use std::sync::mpsc;
 
 mod dispatcher;
 mod network;
+mod notification;
 mod types;
+
+static LOGGER_NETWORK: Logger = if cfg!(debug_assertions) {
+    Logger::new("DAEMON-INTERFACE-NETWORK", logger::LogLevel::Debug, None)
+} else {
+    Logger::new(
+        "DAEMON-INTERFACE-NETWORK",
+        logger::LogLevel::Debug,
+        Some("/var/log/griffon/griffon-daemon.log"),
+    )
+};
 
 pub const PLUGIN_DIR_PATH: &str = if cfg!(debug_assertions) {
     ".config/griffon"
 } else {
-    "/usr/lib/griffonav/plugins"
+    "/usr/lib/griffon/plugins"
 };
 
 fn main() -> io::Result<()> {
@@ -23,12 +35,12 @@ fn main() -> io::Result<()> {
                 let tx = task_tx.clone();
                 std::thread::spawn(move || {
                     if let Err(e) = network::handle_client(stream, tx) {
-                        eprintln!("[DAEMON](ERROR) client error: {e}");
+                        LOGGER_NETWORK.error(format!("client error: {e}"));
                     }
                 });
             }
             Err(e) => {
-                eprintln!("[DAEMON](ERROR) stream error: {e}");
+                LOGGER_NETWORK.error(format!("stream error: {e}"));
             }
         }
     }

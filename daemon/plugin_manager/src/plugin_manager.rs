@@ -1,3 +1,6 @@
+mod plugin_history;
+mod settings;
+
 use nix::libc;
 use nix::sys::socket::{AddressFamily, SockFlag, SockType, socketpair};
 use std::collections::VecDeque;
@@ -14,17 +17,27 @@ use ipc_protocol::ipc_payload_runner::{
     CallPayload, Message, format_uuid_bytes, recv_message, send_message,
 };
 use logger::Logger;
+use settings::DaemonConfig;
 
-static LOGGER_PM: Logger = Logger::new(
-    "PLUGIN_MANAGER",
-    logger::LogLevel::Debug,
-    Some("/var/log/griffon/griffon-daemon.log"),
-);
-static LOGGER_PM_NETWORK: Logger = Logger::new(
-    "PLUGIN_MANAGER-RUNNER-NETWORK",
-    logger::LogLevel::Debug,
-    Some("/var/log/griffon/griffon-daemon.log"),
-);
+static LOGGER_PM: Logger = if cfg!(debug_assertions) {
+    Logger::new("PLUGIN_MANAGER", logger::LogLevel::Debug, None)
+} else {
+    Logger::new(
+        "PLUGIN_MANAGER",
+        logger::LogLevel::Debug,
+        Some("/var/log/griffon/griffon-daemon.log"),
+    )
+};
+
+static LOGGER_PM_NETWORK: Logger = if cfg!(debug_assertions) {
+    Logger::new("PLUGIN_MANAGER-NETWORK", logger::LogLevel::Debug, None)
+} else {
+    Logger::new(
+        "PLUGIN_MANAGER-NETWORK",
+        logger::LogLevel::Debug,
+        Some("/var/log/griffon/griffon-daemon.log"),
+    )
+};
 
 #[derive(Debug, Clone)]
 pub enum PluginEvent {
@@ -81,9 +94,9 @@ fn resolve_runner_binary() -> Result<PathBuf, String> {
         exe_dir
             .join("../")
             .join("debug")
-            .join("griffonav-daemon-runner")
+            .join("griffon-daemon-runner")
     } else {
-        PathBuf::from("/usr/bin/griffonav-daemon-runner")
+        PathBuf::from("/usr/bin/griffon-daemon-runner")
     };
 
     if candidate.exists() {
@@ -111,16 +124,18 @@ impl PluginManager {
 
     fn alloc_request_id(&mut self) -> u32 {
         self.next_request_id = self.next_request_id.wrapping_add(1);
+
         if self.next_request_id == 0 {
             self.next_request_id = 1;
         }
+
         self.next_request_id
     }
 
     pub fn list_plugins(&self) -> Vec<PluginInfoDto> {
         self.plugins_list
             .iter()
-            .map(|p| p.plugin_info.clone())
+            .map(|plugin| plugin.plugin_info.clone())
             .collect()
     }
 
@@ -173,6 +188,7 @@ impl PluginManager {
         let mut i = 0;
         while i < self.plugins_list.len() {
             let path = PathBuf::from(&self.plugins_list[i].plugin_info.path);
+
             if !current_paths.contains(&path) {
                 self.remove_plugin_at(i);
             } else {
@@ -181,27 +197,41 @@ impl PluginManager {
         }
     }
 
-    pub fn enable_plugin(&mut self, uuid: [u8; 16]) -> io::Result<()> {
+    pub fn switch_status_plugin(&mut self, uuid: [u8; 16]) -> io::Result<bool> {
         let pos = self
             .plugins_list
             .iter()
-            .position(|p| p.plugin_info.plugin_uuid == uuid)
+            .position(|plugin| plugin.plugin_info.plugin_uuid == uuid)
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "plugin not found"))?;
 
         if self.plugins_list[pos].enabled {
-            LOGGER_PM.debug(format!(
-                "Plugin {} already enabled",
+            if let Some(process) = self.plugins_list[pos].process.as_mut() {
+                process.kill()?;
+            }
+
+            self.plugins_list[pos].process = None;
+            self.plugins_list[pos].fd = None;
+            self.plugins_list[pos].enabled = false;
+            self.plugins_list[pos].plugin_info.status = false;
+
+            LOGGER_PM.info(format!(
+                "Plugin {} {} disabled",
+                self.plugins_list[pos].plugin_info.name,
                 format_uuid_bytes(&uuid)
             ));
-            return Ok(());
+
+            plugin_history::plugin_disabled(&self.plugins_list[pos].plugin_info);
+
+            return Ok(false);
         }
 
-        let plugin_path = PathBuf::from(&self.plugins_list[pos].plugin_info.path);
+        let plugin_path = PathBuf::from(self.plugins_list[pos].plugin_info.path.clone());
 
         let (child, fd, mut info) = self.launch_runner(&plugin_path).map_err(io::Error::other)?;
 
         {
             let plugin = &mut self.plugins_list[pos];
+
             plugin.process = Some(child);
             plugin.fd = Some(fd);
             plugin.enabled = true;
@@ -219,65 +249,45 @@ impl PluginManager {
 
         if let Err(e) = handshake_res {
             LOGGER_PM_NETWORK.error(format!(
-                "Plugin {} {:?} enable handshake failed: {e}",
+                "Plugin {} {} enable handshake failed: {e}",
                 self.plugins_list[pos].plugin_info.name,
                 format_uuid_bytes(&self.plugins_list[pos].plugin_info.plugin_uuid)
             ));
 
+            plugin_history::plugin_enable_failed(
+                &self.plugins_list[pos].plugin_info,
+                &e.to_string(),
+            );
+
             if let Some(process) = self.plugins_list[pos].process.as_mut() {
                 let _ = process.kill();
             }
+
             self.plugins_list[pos].process = None;
             self.plugins_list[pos].fd = None;
             self.plugins_list[pos].enabled = false;
-            self.plugins_list[pos].plugin_info.status = true;
+            self.plugins_list[pos].plugin_info.status = false;
 
             return Err(e);
         }
 
         LOGGER_PM.info(format!(
-            "Plugin {} {:?} enabled",
+            "Plugin {} {} enabled",
             self.plugins_list[pos].plugin_info.name,
             format_uuid_bytes(&self.plugins_list[pos].plugin_info.plugin_uuid)
         ));
 
-        Ok(())
-    }
+        ensure_plugin_exists_in_config(&self.plugins_list[pos]);
+        plugin_history::plugin_enabled(&self.plugins_list[pos].plugin_info);
 
-    pub fn disable_plugin(&mut self, uuid: [u8; 16]) -> io::Result<()> {
-        let pos = self
-            .plugins_list
-            .iter()
-            .position(|p| p.plugin_info.plugin_uuid == uuid)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "plugin not found"))?;
-
-        if !self.plugins_list[pos].enabled {
-            LOGGER_PM.debug(format!(
-                "Plugin {} already disabled",
-                format_uuid_bytes(&uuid)
-            ));
-            return Ok(());
-        }
-
-        if let Some(process) = self.plugins_list[pos].process.as_mut() {
-            process.kill()?;
-        }
-
-        self.plugins_list[pos].process = None;
-        self.plugins_list[pos].fd = None;
-        self.plugins_list[pos].enabled = false;
-        self.plugins_list[pos].plugin_info.status = false;
-
-        LOGGER_PM.info(format!("Plugin {} disabled", format_uuid_bytes(&uuid)));
-
-        Ok(())
+        Ok(true)
     }
 
     pub fn is_plugin_enabled(&self, uuid: [u8; 16]) -> bool {
         self.plugins_list
             .iter()
-            .find(|p| p.plugin_info.plugin_uuid == uuid)
-            .map(|p| p.enabled)
+            .find(|plugin| plugin.plugin_info.plugin_uuid == uuid)
+            .map(|plugin| plugin.enabled)
             .unwrap_or(false)
     }
 
@@ -286,18 +296,32 @@ impl PluginManager {
 
         let msg = Message::Call {
             request_id,
-            data: call,
+            data: call.clone(),
         };
 
         let plugin = self
             .plugins_list
             .iter_mut()
-            .find(|p| p.plugin_info.plugin_uuid == uuid)
+            .find(|plugin| plugin.plugin_info.plugin_uuid == uuid)
             .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "plugin not found"))?;
 
         if !plugin.enabled {
+            plugin_history::plugin_call_rejected(
+                &plugin.plugin_info,
+                request_id,
+                &call.fn_name,
+                "plugin_disabled",
+            );
+
             return Err(io::Error::other("plugin is disabled"));
         }
+
+        plugin_history::plugin_call_requested(
+            &plugin.plugin_info,
+            request_id,
+            &call.fn_name,
+            call.args.len(),
+        );
 
         let fd = plugin
             .fd
@@ -309,20 +333,20 @@ impl PluginManager {
     }
 
     pub fn try_recv_event(&mut self) -> Option<PluginEvent> {
-        if let Some(ev) = self.pending_events.pop_front() {
-            return Some(ev);
+        if let Some(event) = self.pending_events.pop_front() {
+            return Some(event);
         }
 
         match self.events_rx.try_recv() {
-            Ok(ev) => Some(ev),
+            Ok(event) => Some(event),
             Err(TryRecvError::Empty) | Err(TryRecvError::Disconnected) => None,
         }
     }
 
     pub fn wait_for_response(&mut self, request_id: u32) -> io::Result<PluginEvent> {
-        if let Some(pos) = self.pending_events.iter().position(|ev| {
+        if let Some(pos) = self.pending_events.iter().position(|event| {
             matches!(
-                ev,
+                event,
                 PluginEvent::Result { request_id: rid, .. }
                     | PluginEvent::Error { request_id: rid, .. }
                     if *rid == request_id
@@ -332,23 +356,30 @@ impl PluginManager {
         }
 
         loop {
-            let ev = self.events_rx.recv().map_err(|_| {
+            let event = self.events_rx.recv().map_err(|_| {
                 io::Error::new(io::ErrorKind::BrokenPipe, "event channel disconnected")
             })?;
 
             let is_match = matches!(
-                ev,
+                event,
                 PluginEvent::Result { request_id: rid, .. }
                     | PluginEvent::Error { request_id: rid, .. }
                     if rid == request_id
             );
 
             if is_match {
-                return Ok(ev);
+                return Ok(event);
             }
 
-            self.pending_events.push_back(ev);
+            self.pending_events.push_back(event);
         }
+    }
+
+    pub fn get_plugin_name(&self, uuid: [u8; 16]) -> Option<String> {
+        self.plugins_list
+            .iter()
+            .find(|plugin| plugin.plugin_info.plugin_uuid == uuid)
+            .map(|plugin| plugin.plugin_info.name.clone())
     }
 
     fn check_plugin(&mut self, path: &Path) {
@@ -357,7 +388,7 @@ impl PluginManager {
         let already_known = self
             .plugins_list
             .iter()
-            .any(|p| p.plugin_info.path == path_str);
+            .any(|plugin| plugin.plugin_info.path == path_str);
 
         if already_known {
             LOGGER_PM.debug(format!("Plugin already known {}", path.display()));
@@ -366,7 +397,7 @@ impl PluginManager {
 
         let file_name = path
             .file_name()
-            .and_then(|n| n.to_str())
+            .and_then(|name| name.to_str())
             .unwrap_or("unknown_plugin")
             .to_string();
 
@@ -376,19 +407,26 @@ impl PluginManager {
             enabled: false,
             plugin_info: PluginInfoDto {
                 pid: 0,
-                name: file_name,
+                name: file_name.clone(),
                 plugin_uuid: [0; 16],
-                status: true,
+                status: false,
                 path: path.display().to_string(),
                 functions: Vec::new(),
             },
         };
 
         self.plugins_list.push(managed);
+
         LOGGER_PM.info(format!("New plugin discovered {}", path.display()));
+        LOGGER_PM.info(format!(
+            "event=plugin_discovered name=\"{}\" path=\"{}\"",
+            file_name,
+            path.display()
+        ));
 
         if let Some(last) = self.plugins_list.last() {
             let uuid = last.plugin_info.plugin_uuid;
+
             if uuid == [0; 16] {
                 let index = self.plugins_list.len() - 1;
                 let plugin_path = PathBuf::from(&self.plugins_list[index].plugin_info.path);
@@ -396,12 +434,18 @@ impl PluginManager {
                 let enable_res = {
                     let (child, fd, info) =
                         match self.launch_runner(&plugin_path).map_err(io::Error::other) {
-                            Ok(v) => v,
+                            Ok(value) => value,
                             Err(e) => {
                                 LOGGER_PM.error(format!(
                                     "Failed to launch runner: {}: {e}",
                                     plugin_path.display()
                                 ));
+
+                                plugin_history::plugin_enable_failed(
+                                    &self.plugins_list[index].plugin_info,
+                                    &e.to_string(),
+                                );
+
                                 return;
                             }
                         };
@@ -411,6 +455,7 @@ impl PluginManager {
                     self.plugins_list[index].enabled = true;
                     self.plugins_list[index].plugin_info.pid = info.pid;
                     self.plugins_list[index].plugin_info.name = info.name;
+                    self.plugins_list[index].plugin_info.status = true;
 
                     read_plugin_messages(&mut self.plugins_list[index], self.events_tx.clone())
                 };
@@ -421,6 +466,11 @@ impl PluginManager {
                         self.plugins_list[index].plugin_info.name
                     ));
 
+                    plugin_history::plugin_enable_failed(
+                        &self.plugins_list[index].plugin_info,
+                        &e.to_string(),
+                    );
+
                     if let Some(process) = self.plugins_list[index].process.as_mut() {
                         let _ = process.kill();
                     }
@@ -428,6 +478,10 @@ impl PluginManager {
                     self.plugins_list[index].process = None;
                     self.plugins_list[index].fd = None;
                     self.plugins_list[index].enabled = false;
+                    self.plugins_list[index].plugin_info.status = false;
+                } else {
+                    ensure_plugin_exists_in_config(&self.plugins_list[index]);
+                    plugin_history::plugin_enabled(&self.plugins_list[index].plugin_info);
                 }
             }
         }
@@ -438,6 +492,8 @@ impl PluginManager {
 
         LOGGER_PM.info(format!("Plugin {} removed", plugin.plugin_info.name));
 
+        plugin_history::plugin_removed(&plugin.plugin_info, plugin.enabled);
+
         if plugin.enabled
             && let Some(process) = plugin.process.as_mut()
             && let Err(e) = process.kill()
@@ -446,6 +502,8 @@ impl PluginManager {
                 "Failed to kill plugin {}: {}",
                 plugin.plugin_info.name, e
             ));
+
+            plugin_history::plugin_remove_kill_failed(&plugin.plugin_info, &e.to_string());
         }
     }
 
@@ -477,6 +535,7 @@ impl PluginManager {
                 if libc::dup2(runner_fd.as_raw_fd(), 3) == -1 {
                     return Err(io::Error::last_os_error());
                 }
+
                 Ok(())
             });
         }
@@ -505,6 +564,17 @@ impl PluginManager {
     }
 }
 
+fn ensure_plugin_exists_in_config(plugin: &ManagedPlugin) {
+    if let Err(e) = DaemonConfig::ensure_plugin_exists(plugin.plugin_info.plugin_uuid) {
+        LOGGER_PM.error(format!(
+            "Failed to sync plugin config for {} {}: {}",
+            plugin.plugin_info.name,
+            format_uuid_bytes(&plugin.plugin_info.plugin_uuid),
+            e
+        ));
+    }
+}
+
 fn read_plugin_messages(
     plugin: &mut ManagedPlugin,
     events_tx: Sender<PluginEvent>,
@@ -518,7 +588,11 @@ fn read_plugin_messages(
         .try_clone()
         .map_err(|e| io::Error::other(format!("Failed to clone fd: {e}")))?;
 
-    let pid = plugin.process.as_ref().map(|p| p.id()).unwrap_or(0);
+    let pid = plugin
+        .process
+        .as_ref()
+        .map(|process| process.id())
+        .unwrap_or(0);
 
     send_message(&mut fd_clone, Message::Hello)?;
 
@@ -526,20 +600,22 @@ fn read_plugin_messages(
 
     let hello_ok = match recv_message(&mut fd_clone) {
         Ok(message) => match message {
-            Message::HelloOk(p) => {
+            Message::HelloOk(payload) => {
                 LOGGER_PM_NETWORK.debug(format!(
                     "HelloOk received from {:?} ({}) function = {:?}",
-                    format_uuid_bytes(&p.uuid),
-                    p.name,
-                    p.functions
+                    format_uuid_bytes(&payload.uuid),
+                    payload.name,
+                    payload.functions
                 ));
-                p
+
+                payload
             }
             other => {
                 LOGGER_PM_NETWORK.error(format!(
                     "received unexpected message for hello: {:?}",
                     other
                 ));
+
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
                     "expected HelloOk",
@@ -556,12 +632,13 @@ fn read_plugin_messages(
     plugin.plugin_info.functions = hello_ok.functions;
     plugin.plugin_info.plugin_uuid = hello_ok.uuid;
     plugin.plugin_info.pid = pid;
+    plugin.plugin_info.status = true;
 
     let name = plugin.plugin_info.name.clone();
     let plugin_uuid = plugin.plugin_info.plugin_uuid;
 
     LOGGER_PM_NETWORK.info(format!(
-        "Plugin {name} {:?} ({pid}) handshake OK, functions={:?}",
+        "Plugin {name} {} ({pid}) handshake OK, functions={:?}",
         format_uuid_bytes(&plugin_uuid),
         plugin.plugin_info.functions
     ));
@@ -569,13 +646,17 @@ fn read_plugin_messages(
     std::thread::spawn(move || {
         loop {
             let msg = match recv_message(&mut fd_clone) {
-                Ok(m) => m,
+                Ok(message) => message,
                 Err(e) => {
                     LOGGER_PM_NETWORK.info(format!("{name} ({pid}) closed / recv error: {e}"));
+
+                    plugin_history::plugin_closed(&name, plugin_uuid, pid, &e.to_string());
+
                     let _ = events_tx.send(PluginEvent::Closed {
                         pid,
                         reason: e.to_string(),
                     });
+
                     break;
                 }
             };
@@ -586,6 +667,16 @@ fn read_plugin_messages(
                         "Plugin {name} ({pid}) RESULT id={request_id} ok={} output={}",
                         data.ok, data.output
                     ));
+
+                    plugin_history::plugin_result(
+                        &name,
+                        plugin_uuid,
+                        pid,
+                        request_id,
+                        data.ok,
+                        &data.output,
+                    );
+
                     let _ = events_tx.send(PluginEvent::Result {
                         pid,
                         request_id,
@@ -593,26 +684,42 @@ fn read_plugin_messages(
                         output: data.output,
                     });
                 }
+
                 Message::Error { request_id, data } => {
                     LOGGER_PM_NETWORK.error(format!(
                         "Plugin {name} ({pid}) ERROR id={request_id} code={} message={}",
                         data.code, data.message
                     ));
+
+                    let message = data.message.clone();
+
+                    plugin_history::plugin_error(&name, plugin_uuid, pid, request_id, &message);
+
                     let _ = events_tx.send(PluginEvent::Error {
                         pid,
                         request_id,
                         message: data.message,
                     });
                 }
+
                 Message::Heartbeat => {
                     LOGGER_PM_NETWORK.debug(format!("Plugin {name} ({pid}) HEARTBEAT OK"));
+
                     let _ = events_tx.send(PluginEvent::Heartbeat { pid });
                 }
+
                 other => {
                     LOGGER_PM_NETWORK.info(format!(
                         "Plugin {name} ({pid}) UNKNOWN message received : {:?}",
                         other
                     ));
+
+                    plugin_history::plugin_unknown_message(
+                        &name,
+                        plugin_uuid,
+                        pid,
+                        &format!("{:?}", other),
+                    );
                 }
             }
         }

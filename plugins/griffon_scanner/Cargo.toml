@@ -1,0 +1,45 @@
+[package]
+name = "griffon_scanner"
+version = "0.3.0"
+edition = "2024"
+default-run = "griffon_scanner"
+
+[[bin]]
+name = "griffon_scanner"
+path = "src/bin/debug.rs"
+
+[[bin]]
+name = "bench_runner"
+path = "src/bin/bench_runner.rs"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+logger = { workspace = true }
+plugin_interface = { workspace = true }
+abi_stable = "0.11.3"
+
+anyhow = "1.0.100"
+log = "0.4.28"
+rand = "0.10.1"
+regex = "1.12.2"
+reqwest = { version = "0.13.2", features = ["blocking"] }
+zip = "8.5.1"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.148"
+chrono = { version = "0.4.42", features = ["serde"] }
+
+yara-x = "1.15.0"
+walkdir = "2"
+sha2 = "0.11.0"
+hex = "0.4.3"
+clap = { version = "4.5.49", features = ["derive"] }
+rayon = "1.12.0"
+infer = "0.19.0"
+dirs = "6.0.0"
+toml = "1.1.2"
+lazy_static = "1.5.0"
+
+[dev-dependencies]
+criterion = "0.8.2"

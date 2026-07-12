@@ -1,0 +1,243 @@
+[plugin]
+name = "Griffon Cleaner"
+id = "123e4567-e23b-12d3-a456-426614174000"
+version = "1.0.0"
+author = "Ewen"
+description = "Cleaner plugin for listing, analyzing and deleting selected cache candidates."
+tabs = ["dashboard", "main"]
+uuid = "123e4567-e23b-12d3-a456-426614174000"
+
+[store]
+
+[store.data.run_result]
+summary = {}
+modules = []
+selected_scope = {}
+metadata = {}
+
+[store.data.candidates]
+ok = false
+items = []
+
+[store.data.files_selected]
+paths = []
+dry_run = true
+file_types = []
+
+[store.data.cleaner_options]
+dry_run = true
+file_types = []
+
+[store.data.file_type_options]
+items = [
+    { id = "body", label = "Body files" },
+    { id = "no_ext", label = "Files without extension" },
+    { id = "pack", label = "Pack files" },
+    { id = "zip", label = "ZIP archives" },
+    { id = "so", label = "Shared libraries" },
+    { id = "values", label = "Values files" },
+    { id = "dat", label = "Data files" },
+    { id = "model", label = "Model files" },
+    { id = "storage_1", label = "Storage files" },
+    { id = "crate", label = "Rust crate cache files" },
+    { id = "tmp", label = "Temporary files" },
+    { id = "log", label = "Log files" },
+    { id = "json", label = "JSON files" },
+    { id = "apt_index", label = "APT index files" },
+]
+
+[store.data.delete_result]
+ok = false
+dry_run = true
+deleted_count = 0
+deleted_bytes = 0
+failed = []
+
+[ui]
+
+# =========================
+# Dashboard tab
+# =========================
+
+[[ui.sections]]
+id = "cleaner_dashboard"
+tab = "dashboard"
+
+[[ui.sections.contents]]
+type = "button"
+id = "run_cleaner_bt"
+name = "Run analysis"
+variant = "secondary"
+icon = "refresh"
+action = "cleaner.run_analysis"
+
+[[ui.sections.contents]]
+type = "cleaner_dry_run_toggle"
+id = "cleaner_dashboard_dry_run_toggle"
+title = "Dry-run mode"
+description = "Keep this enabled to preview what would be deleted. Disable it to actually remove files."
+from = "store.data.cleaner_options"
+action = "cleaner.set_cleaner_options"
+
+[[ui.sections.contents]]
+type = "cleaner_file_type_selector"
+id = "cleaner_dashboard_file_type_selector"
+title = "Targeted file types"
+description = "Select the file types to include in the analysis. If none are selected, all file types are included."
+from = "store.data.file_type_options"
+selectedFrom = "store.data.cleaner_options"
+action = "cleaner.set_cleaner_options"
+
+[[ui.sections.contents]]
+type = "cleaner_run_overview"
+id = "cleaner_run_overview"
+from = "store.data.run_result"
+
+# =========================
+# Main tab
+# =========================
+
+[[ui.sections]]
+id = "cleaner_main"
+tab = "main"
+
+[[ui.sections.contents]]
+type = "button"
+id = "load_candidates_bt"
+name = "Refresh candidates"
+variant = "secondary"
+icon = "refresh"
+action = "cleaner.load_candidates"
+
+[[ui.sections.contents]]
+type = "cleaner_dry_run_toggle"
+id = "cleaner_main_dry_run_toggle"
+title = "Dry-run mode"
+description = "Keep this enabled to preview what would be deleted. Disable it to actually remove files."
+from = "store.data.cleaner_options"
+action = "cleaner.set_cleaner_options"
+
+[[ui.sections.contents]]
+type = "cleaner_file_type_selector"
+id = "cleaner_main_file_type_selector"
+title = "Targeted file types"
+description = "Filter candidates by file type before loading or deleting them."
+from = "store.data.file_type_options"
+selectedFrom = "store.data.cleaner_options"
+action = "cleaner.set_cleaner_options"
+
+[[ui.sections.contents]]
+type = "button"
+id = "delete_selected_bt"
+name = "Delete selected"
+variant = "danger"
+action = "cleaner.delete_selected"
+
+[[ui.sections.contents]]
+type = "cleaner_candidate_list"
+id = "cleaner_candidates"
+from = "store.data.candidates"
+selectedFrom = "store.data.files_selected"
+optionsFrom = "store.data.cleaner_options"
+action = "cleaner.set_files_selected"
+deleteAction = "cleaner.delete_candidate"
+
+[[ui.sections.contents]]
+type = "cleaner_delete_result"
+id = "cleaner_delete_result"
+from = "store.data.delete_result"
+
+# =========================
+# Interactions
+# =========================
+
+[[interactions]]
+id = "run_cleaner"
+on = "cleaner.run_analysis"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.run_result"
+from = "store.data.cleaner_options"
+fn = "run_front"
+returnType = "json"
+
+[[interactions]]
+id = "load_candidates"
+on = "cleaner.load_candidates"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.candidates"
+from = "store.data.cleaner_options"
+fn = "list_candidates"
+returnType = "json"
+
+[[interactions]]
+id = "set_cleaner_options"
+on = "cleaner.set_cleaner_options"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.cleaner_options"
+from = "event.value"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.files_selected"
+value = { paths = [] }
+
+[[interactions]]
+id = "set_files_selected"
+on = "cleaner.set_files_selected"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.files_selected"
+from = "event.value"
+
+[[interactions]]
+id = "delete_selected"
+on = "cleaner.delete_selected"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.delete_result"
+from = "store.data.files_selected"
+fn = "delete_selected"
+returnType = "json"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.candidates"
+from = "store.data.cleaner_options"
+fn = "list_candidates"
+returnType = "json"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.files_selected"
+value = { paths = [] }
+
+[[interactions]]
+id = "delete_candidate"
+on = "cleaner.delete_candidate"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.delete_result"
+from = "event.value"
+fn = "delete_selected"
+returnType = "json"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.candidates"
+from = "store.data.cleaner_options"
+fn = "list_candidates"
+returnType = "json"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.files_selected"
+value = { paths = [] }

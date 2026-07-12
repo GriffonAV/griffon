@@ -1,28 +1,55 @@
 use std::io;
 use std::os::unix::net::UnixStream;
 use std::thread;
-use uuid::Uuid;
 
 use ipc_protocol::ipc_payload_interface::{
-    InterfaceRequest, InterfaceResponse, format_uuid_bytes, recv_interface_response,
-    send_interface_request,
+    InterfaceRequest, InterfaceResponse, alloc_request_id, format_uuid_bytes, parse_uuid_16,
+    recv_interface_response, send_interface_request,
 };
 use logger::{LogLevel, Logger};
 
 static LOGGER: Logger = Logger::new("CLI", LogLevel::Debug, None);
 static LOGGER_NETWORK: Logger = Logger::new("CLI-NETWORK", LogLevel::Debug, None);
 const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
-    "/tmp/griffon-dev.sock"
+    // "/tmp/griffon-dev.sock"
+    // Use a fixed path in the Griffon directory to avoid issues with some IDEs that create random temp directories
+    "./griffon.sock"
 } else {
     "/run/griffon/griffon.sock"
 };
 
-fn alloc_request_id(mut id_request: u32) -> u32 {
-    id_request = id_request.wrapping_add(1);
-    if id_request == 0 {
-        id_request = 1;
-    }
-    id_request
+fn print_help() {
+    println!();
+    println!("Griffon CLI");
+    println!();
+    println!("Usage:");
+    println!("  griffon-cli");
+    println!();
+    println!("Commands:");
+    println!("  help");
+    println!("      Show this help message");
+    println!();
+    println!("  refresh");
+    println!("      Refresh and display the plugin list from the daemon");
+    println!();
+    println!("  switch_status <plugin_uuid>");
+    println!("      Enable or disable a plugin depending on its current status");
+    println!();
+    println!("  call <plugin_uuid> <fn_name> <arg1|arg2|...>");
+    println!("      Call a plugin function with optional arguments");
+    println!();
+    println!("      Example:");
+    println!("        call 550e8400-e29b-41d4-a716-446655440000 scan /tmp");
+    println!("        call 550e8400-e29b-41d4-a716-446655440000 clean cache|true");
+    println!();
+    println!("  switch_notification <plugin_uuid>");
+    println!(
+        "      Enable or disable notifications for a plugin depending on its current notification status"
+    );
+    println!();
+    println!("  exit | quit");
+    println!("      Exit the CLI");
+    println!();
 }
 
 fn start_reader_thread(mut read_sock: UnixStream) {
@@ -32,7 +59,7 @@ fn start_reader_thread(mut read_sock: UnixStream) {
         loop {
             match recv_interface_response(&mut read_sock) {
                 Ok(resp) => match resp {
-                    InterfaceResponse::Ok => {
+                    InterfaceResponse::Ok { request_id: _ } => {
                         LOGGER_NETWORK.info("Ok received");
                     }
                     InterfaceResponse::CallAccepted { request_id } => {
@@ -73,6 +100,11 @@ fn start_reader_thread(mut read_sock: UnixStream) {
                         LOGGER_NETWORK
                             .info(format!("Call {request_id} result={ok} output={output}"));
                     }
+                    InterfaceResponse::SwitchDone { request_id, enable } => {
+                        LOGGER_NETWORK.info(format!(
+                            "Switch done with request_id = {request_id} enabled:{enable}"
+                        ));
+                    }
                 },
                 Err(e) => {
                     LOGGER_NETWORK.error(format!(
@@ -83,16 +115,6 @@ fn start_reader_thread(mut read_sock: UnixStream) {
             }
         }
     });
-}
-
-fn parse_uuid_16(plugin_uuid_str: Option<&str>) -> Option<[u8; 16]> {
-    match plugin_uuid_str {
-        Some(uuid_str) => match Uuid::parse_str(uuid_str) {
-            Ok(uuid) => Some(*uuid.as_bytes()),
-            Err(_) => None,
-        },
-        None => None,
-    }
 }
 
 fn main() -> io::Result<()> {
@@ -124,6 +146,9 @@ fn main() -> io::Result<()> {
         let cmd = parts.next().unwrap();
 
         match cmd {
+            "help" | "--help" | "-h" => {
+                print_help();
+            }
             "refresh" => {
                 LOGGER.debug("REFRESH");
                 let id_request_to_use = alloc_request_id(id_request);
@@ -163,7 +188,7 @@ fn main() -> io::Result<()> {
 
                 // TODO
             }
-            "start" => {
+            "switch_status" => {
                 LOGGER.debug("START");
                 let plugin_uuid_str = parts.next();
 
@@ -184,22 +209,22 @@ fn main() -> io::Result<()> {
 
                 send_interface_request(
                     &mut sock,
-                    &InterfaceRequest::StartPlugin { plugin_uuid },
+                    &InterfaceRequest::SwitchStatusPlugin { plugin_uuid },
                     id_request_to_use,
                 )?;
 
                 LOGGER_NETWORK.debug(format!(
-                    "Start plugin sent with request_id={id_request_to_use}"
+                    "Switch status plugin sent with request_id={id_request_to_use}"
                 ));
 
                 id_request = id_request_to_use;
             }
-            "stop" => {
-                LOGGER.debug("STOP");
+            "switch_notification" => {
+                LOGGER.debug("SWITCH NOTIFICATION");
                 let plugin_uuid_str = parts.next();
 
                 if plugin_uuid_str.is_none() {
-                    LOGGER.error("Usage: stop <plugin_uuid>");
+                    LOGGER.error("Usage: switch_notification <plugin_uuid>");
                     continue;
                 }
 
@@ -215,12 +240,12 @@ fn main() -> io::Result<()> {
 
                 send_interface_request(
                     &mut sock,
-                    &InterfaceRequest::StopPlugin { plugin_uuid },
+                    &InterfaceRequest::SwitchStatusNotification { plugin_uuid },
                     id_request_to_use,
                 )?;
 
                 LOGGER_NETWORK.debug(format!(
-                    "Stop plugin sent with request_id={id_request_to_use}"
+                    "Switch notification status sent with request_id={id_request_to_use}"
                 ));
 
                 id_request = id_request_to_use;

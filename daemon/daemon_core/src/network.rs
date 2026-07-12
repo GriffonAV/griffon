@@ -1,5 +1,7 @@
+use nix::unistd::{Gid, Group, Uid, chown};
 use std::fs;
 use std::io;
+use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
 use std::sync::mpsc;
@@ -13,22 +15,60 @@ use logger::Logger;
 
 use crate::types::DaemonTask;
 
-static LOGGER_NETWORK: Logger = Logger::new(
-    "DAEMON-INTERFACE-NETWORK",
-    logger::LogLevel::Debug,
-    Some("/var/log/griffon/griffon-daemon.log"),
-);
-static LOGGER_CORE: Logger = Logger::new(
-    "DAEMON-CORE",
-    logger::LogLevel::Debug,
-    Some("/var/log/griffon/griffon-daemon.log"),
-);
+static LOGGER_NETWORK: Logger = if cfg!(debug_assertions) {
+    Logger::new("DAEMON-INTERFACE-NETWORK", logger::LogLevel::Debug, None)
+} else {
+    Logger::new(
+        "DAEMON-INTERFACE-NETWORK",
+        logger::LogLevel::Debug,
+        Some("/var/log/griffon/griffon-daemon.log"),
+    )
+};
+
+static LOGGER_CORE: Logger = if cfg!(debug_assertions) {
+    Logger::new("DAEMON-CORE", logger::LogLevel::Debug, None)
+} else {
+    Logger::new(
+        "DAEMON-CORE",
+        logger::LogLevel::Debug,
+        Some("/var/log/griffon/griffon-daemon.log"),
+    )
+};
 
 pub const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
-    "/tmp/griffon-dev.sock"
+    // "/tmp/griffon-dev.sock"
+    // Use a fixed path in the Griffon directory to avoid issues with some IDEs that create random temp directories
+    "./griffon.sock"
 } else {
     "/run/griffon/griffon.sock"
 };
+
+fn configure_socket_permissions(path: &Path) -> io::Result<()> {
+    let group = Group::from_name("griffon")
+        .map_err(|e| io::Error::other(format!("failed to lookup group 'griffon': {e}")))?
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "group 'griffon' does not exist"))?;
+
+    chown(
+        path,
+        Some(Uid::from_raw(0)),
+        Some(Gid::from_raw(group.gid.as_raw())),
+    )
+    .map_err(|e| {
+        io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!("failed to chown socket to root:griffon: {e}"),
+        )
+    })?;
+
+    fs::set_permissions(path, fs::Permissions::from_mode(0o660))?;
+
+    LOGGER_NETWORK.debug(format!(
+        "Socket permissions set to root:griffon 660 for {}",
+        path.display()
+    ));
+
+    Ok(())
+}
 
 pub fn setup_listener() -> io::Result<UnixListener> {
     let path = Path::new(DAEMON_SOCK_PATH);
@@ -52,6 +92,17 @@ pub fn setup_listener() -> io::Result<UnixListener> {
     let listener = UnixListener::bind(path)?;
     LOGGER_NETWORK.debug(format!("Socket bound on {}", path.display()));
 
+    #[cfg(not(debug_assertions))]
+    configure_socket_permissions(path)?;
+
+    #[cfg(debug_assertions)]
+    if let Err(e) = configure_socket_permissions(path) {
+        LOGGER_NETWORK.warn(format!(
+            "Could not configure socket permissions in debug mode: {}",
+            e
+        ));
+    }
+
     Ok(listener)
 }
 
@@ -73,13 +124,16 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
         ));
 
         let resp = match req {
-            InterfaceRequest::StartPlugin { plugin_uuid } => {
+            InterfaceRequest::SwitchStatusNotification { plugin_uuid } => {
                 let plugin_uuid_str = Uuid::from_bytes(plugin_uuid).to_string();
-                LOGGER_CORE.debug(format!("Start plugin {}", plugin_uuid_str));
+                LOGGER_CORE.debug(format!(
+                    "Switch notification status for plugin {}",
+                    plugin_uuid_str
+                ));
 
                 let (reply_tx, reply_rx) = mpsc::channel();
 
-                let task = DaemonTask::StartPlugin {
+                let task = DaemonTask::SwitchStatusNotification {
                     request_id: frame.request_id,
                     plugin_uuid,
                     reply_tx,
@@ -100,13 +154,13 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
                         })
                 }
             }
-            InterfaceRequest::StopPlugin { plugin_uuid } => {
+            InterfaceRequest::SwitchStatusPlugin { plugin_uuid } => {
                 let plugin_uuid_str = Uuid::from_bytes(plugin_uuid).to_string();
-                LOGGER_CORE.debug(format!("Stop plugin {}", plugin_uuid_str));
+                LOGGER_CORE.debug(format!("Switch status plugin {}", plugin_uuid_str));
 
                 let (reply_tx, reply_rx) = mpsc::channel();
 
-                let task = DaemonTask::StopPlugin {
+                let task = DaemonTask::SwitchStatusPlugin {
                     request_id: frame.request_id,
                     plugin_uuid,
                     reply_tx,

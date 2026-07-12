@@ -168,6 +168,19 @@ export type ProgressElement = BaseElement & {
 export type TableColumn = {
   key: string;
   label: string;
+  hide?: boolean;
+  transmit?: boolean;
+};
+
+export type ScannerTableColumn = {
+  key: keyof Threat;
+  label: string;
+};
+
+export type Threat = {
+  path: string;
+  name: string;
+  severity: string;
 };
 
 export type TableRowData = {
@@ -179,6 +192,8 @@ export type TableElement = BaseElement & {
   type: "table";
   columns?: TableColumn[];
   rows?: TableRowData[];
+  from?: string;
+  action?: string;
 };
 
 export type GriffonInteractionStep =
@@ -233,10 +248,75 @@ export type GriffonManifest = {
   interactions?: GriffonInteraction[];
 };
 
+export type CleanerCandidateListValue = {
+  paths: string[];
+  dry_run?: boolean;
+  file_types?: string[];
+};
+
+export type CleanerCandidateListElement = {
+  type: "cleaner_candidate_list";
+  id: string;
+  title?: string;
+  from?: string;
+  selectedFrom?: string;
+  action?: string;
+  value?: CleanerCandidateListValue;
+  optionsFrom?: string;
+  deleteAction?: string;
+};
+
 export type GriffonActionHandler = (
   action: string,
   element: GriffonElement
 ) => void;
+
+export type CleanerFileTypeSelectorElement = {
+  type: "cleaner_file_type_selector";
+  id: string;
+  title?: string;
+  description?: string;
+  from?: string;
+  selectedFrom?: string;
+  action?: string;
+  value?: {
+    file_types: string[];
+  };
+};
+
+export type CleanerDryRunToggleElement = {
+  type: "cleaner_dry_run_toggle";
+  id: string;
+  title?: string;
+  description?: string;
+  from?: string;
+  action?: string;
+  value?: {
+    dry_run: boolean;
+  };
+};
+
+export type ScannerTableElement = {
+  type: "scanner_table";
+  id: string;
+  action?: string;
+  columns?: ScannerTableColumn[];
+  scan_result?: string;
+};
+
+export type ScannerTargetTableElement = {
+  type: "scanner_target_table";
+  id: string;
+  action?: string;
+  targets?: string;
+};
+
+export type ScannerQuarantineElement = {
+  type: "scanner_quarantine_table";
+  id: string;
+  action?: string;
+  targets?: string;
+}
 
 export type GriffonElement =
   | TextElement
@@ -254,4 +334,8 @@ export type GriffonElement =
   | TableElement
   | GroupElement
   | RowElement
-  | ColumnElement;
+  | ColumnElement
+  | CleanerCandidateListElement
+  | CleanerFileTypeSelectorElement
+  | CleanerDryRunToggleElement
+  | ScannerTableElement;
