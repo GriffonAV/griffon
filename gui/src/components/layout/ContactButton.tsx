@@ -49,7 +49,7 @@ export function ContactButton() {
           <div className="pb-2 font-bold">Griffon</div>
           <Badge asChild>
             <a onClick={handleButtonClick}>
-              0.3.0-alpha
+              0.3.0
             </a>
           </Badge>
           <div className="h-28"></div>

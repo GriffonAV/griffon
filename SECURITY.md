@@ -12,8 +12,8 @@ Currently, we only apply patches and updates to the latest development branch (`
 
 | Version | Supported          |
 | ------- | ------------------ |
-| >= 0.2  | :white_check_mark: |
-| < 0.2   | :x:                |
+| >= 0.3  | :white_check_mark: |
+| < 0.3   | :x:                |
 
 ## Reporting a Vulnerability
 

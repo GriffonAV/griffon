@@ -1,37 +1,18 @@
-import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { usePlugins } from "@/bindings/PluginContext.tsx";
 import { ModeToggle } from "./ModeToggle.tsx";
-import { Settings2, LayoutDashboard, Clock10, RefreshCw, ToyBrick } from "lucide-react";
+import { Settings2, LayoutDashboard, Clock10, ToyBrick } from "lucide-react";
 import { SearchInput } from "./SearchInput.tsx";
 import { ContactButton } from "./ContactButton.tsx";
 import { SidebarButton } from "./SidebarButton.tsx";
 import { Button } from "../ui/button.tsx";
 import { Separator } from "@/components/ui/separator.tsx";
-import { invoke } from "@tauri-apps/api/core";
 import { useSidebar } from "@/providers/SidebarProvider.tsx";
 
 export function Sidebar() {
   const { isCollapsed } = useSidebar();
-  const { plugins, pluginStatus, refreshPlugins } = usePlugins();
+  const { plugins, pluginStatus } = usePlugins();
   const location = useLocation();
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const handleRefresh = async () => {
-    try {
-      setIsRefreshing(true);
-
-      await invoke("refresh_plugin");
-
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      await refreshPlugins();
-    } catch (error) {
-      console.error("Failed to refresh Background Service:", error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
 
   return (
     <aside

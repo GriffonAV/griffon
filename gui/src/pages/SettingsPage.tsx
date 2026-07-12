@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ChangeThemeButtonTest, ModeToggleGroup } from "@/components/layout/ModeToggle";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -172,7 +171,7 @@ export default function SettingsPage() {
           <h2 className="text-lg font-semibold mb-2">About Griffon</h2>
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             You are using Griffon in version
-            <Badge>0.3.0-alpha</Badge>.
+            <Badge>0.3.0</Badge>.
           </p>
         </section>
       </div>

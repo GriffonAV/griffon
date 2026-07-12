@@ -1,12 +1,6 @@
 import { Moon, Sun } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/providers/ThemeProvider";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import ThemesList from "./ThemesList";
@@ -73,11 +67,10 @@ export function ThemeInitializer() {
             existingTheme.remove();
         }
 
-        // Create a new link element for the selected theme
         const link = document.createElement("link");
         link.id = "dynamic-theme";
         link.rel = "stylesheet";
-        link.href = `/src/assets/themes/${themeName}.css`; // Adjust path as needed
+        link.href = `/themes/${themeName}.css`;
         document.head.appendChild(link);
     }
 
@@ -103,7 +96,7 @@ export function ChangeThemeButtonTest() {
         const link = document.createElement("link");
         link.id = "dynamic-theme";
         link.rel = "stylesheet";
-        link.href = `/src/assets/themes/${themeName}.css`; // Adjust path as needed
+        link.href = `/themes/${themeName}.css`;
         document.head.appendChild(link);
 
         localStorage.setItem("theme", themeName);
