@@ -48,21 +48,14 @@ lazy_static::lazy_static! {
     static ref ENGINE: Mutex<Option<ScanEngine>> = Mutex::new(None);
 }
 
-/// Returned whenever a function requires the engine and it isn't ready.
+/// Returned whenever a function requires the engine and it isn't ready.azer
 /// `Some(RString)` short-circuits the caller with that error JSON;
 /// `None` means the engine is ready to use.
 fn engine_not_ready() -> Option<EngineStatus> {
     match ENGINE_STATE.load(Ordering::SeqCst) {
         STATE_READY => None,
         other => Some(EngineStatus {
-            state: engine_state_label(other).to_string(),
-            message: match other {
-                STATE_LOADING => "Engine is still loading signatures, try again shortly".into(),
-                STATE_STOPPED => "Engine is not running, call start first".into(),
-                STATE_ERROR => "Engine failed to initialize".into(),
-                _ => "Engine is in an unknown state".into(),
-            },
-        }),
+         
     }
 }
 
