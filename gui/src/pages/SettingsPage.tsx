@@ -50,14 +50,19 @@ export default function SettingsPage() {
   };
 
   // Removed window.confirm, logic is now triggered securely by the AlertDialog
-  const handleDeletePlugin = async (pluginFileName: string) => {
+  const handleDeletePlugin = async (pluginUuid: string, pluginDisplayName: string) => {
     try {
-      setPluginBeingDeleted(pluginFileName);
-      await invoke("delete_plugin", { name: pluginFileName });
+      setPluginBeingDeleted(pluginUuid);
+
+      await invoke("delete_plugin", {
+        pluginUuid,
+      });
+
       await refreshPluginUi();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete plugin.");
+    } catch (error) {
+      console.error("Failed to delete plugin:", error);
+
+      alert(`Failed to delete "${pluginDisplayName}": ${String(error)}`);
     } finally {
       setPluginBeingDeleted(null);
     }

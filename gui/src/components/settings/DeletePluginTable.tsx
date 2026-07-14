@@ -23,7 +23,7 @@ type Plugin = {
 type DeletePluginTableProps = {
   plugins: Plugin[];
   pluginBeingDeleted: string | null;
-  onDelete: (fileName: string) => void;
+  onDelete: (pluginUuid: string, pluginDisplayName: string) => void | Promise<void>;
 };
 
 export function DeletePluginTable({
@@ -47,56 +47,88 @@ export function DeletePluginTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {plugins.map((plugin) => (
-              <tr key={plugin.uuid} className="bg-card hover:bg-muted/20 transition-colors">
-                <td className="px-4 py-3 font-semibold">{plugin.display_name}</td>
-                <td className="px-4 py-3 text-muted-foreground text-xs">{plugin.file_name}</td>
-                <td className="px-4 py-3 text-right">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        disabled={pluginBeingDeleted === plugin.file_name}
-                        className="cursor-pointer min-w-24"
-                      >
-                        {pluginBeingDeleted === plugin.file_name ? "Deleting..." : "Delete"}
-                      </Button>
-                    </AlertDialogTrigger>
+            {plugins.map((plugin) => {
+              const isDeleting = pluginBeingDeleted === plugin.uuid;
 
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete {plugin.display_name}?</AlertDialogTitle>
-                        <AlertDialogDescription asChild>
-                          <div className="flex flex-col gap-3 mt-2 text-sm text-muted-foreground">
-                            <p>
-                              Are you sure you want to delete this plugin? This action cannot be undone and will permanently remove the plugin files.
-                            </p>
+              return (
+                <tr key={plugin.uuid} className="bg-card hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3 font-semibold">{plugin.display_name}</td>
 
-                            <div className="bg-muted p-3 rounded-md flex flex-col gap-1 text-left text-xs">
-                              <p><strong className="text-foreground font-medium">Description:</strong> {plugin.description || "None"}</p>
-                              <p><strong className="text-foreground font-medium">File:</strong> {plugin.file_name}</p>
-                              <p><strong className="text-foreground font-medium">Version:</strong> {plugin.version}</p>
-                              <p><strong className="text-foreground font-medium">Author:</strong> {plugin.author}</p>
-                            </div>
-                          </div>
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">{plugin.file_name}</td>
 
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => onDelete(plugin.file_name)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  <td className="px-4 py-3 text-right">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={isDeleting}
+                          className="cursor-pointer min-w-24"
                         >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </td>
-              </tr>
-            ))}
+                          {isDeleting ? "Deleting..." : "Delete"}
+                        </Button>
+                      </AlertDialogTrigger>
+
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete {plugin.display_name}?</AlertDialogTitle>
+
+                          <AlertDialogDescription asChild>
+                            <div className="flex flex-col gap-3 mt-2 text-sm text-muted-foreground">
+                              <p>
+                                Are you sure you want to delete this plugin? This action cannot be
+                                undone and will permanently remove the plugin files.
+                              </p>
+
+                              <div className="bg-muted p-3 rounded-md flex flex-col gap-1 text-left text-xs">
+                                <p>
+                                  <strong className="text-foreground font-medium">UUID:</strong>{" "}
+                                  {plugin.uuid}
+                                </p>
+
+                                <p>
+                                  <strong className="text-foreground font-medium">
+                                    Description:
+                                  </strong>{" "}
+                                  {plugin.description || "None"}
+                                </p>
+
+                                <p>
+                                  <strong className="text-foreground font-medium">File:</strong>{" "}
+                                  {plugin.file_name}
+                                </p>
+
+                                <p>
+                                  <strong className="text-foreground font-medium">Version:</strong>{" "}
+                                  {plugin.version}
+                                </p>
+
+                                <p>
+                                  <strong className="text-foreground font-medium">Author:</strong>{" "}
+                                  {plugin.author}
+                                </p>
+                              </div>
+                            </div>
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+
+                          <AlertDialogAction
+                            disabled={isDeleting}
+                            onClick={() => void onDelete(plugin.uuid, plugin.display_name)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {isDeleting ? "Deleting..." : "Delete"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
