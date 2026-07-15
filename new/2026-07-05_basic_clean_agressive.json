@@ -1,0 +1,15 @@
+{
+  "scenario": "basic_clean",
+  "version": "v0.1.0",
+  "mode": "aggressive",
+  "plugin": "griffon_cleaner",
+  "timestamp": "2026-07-05T12:50:05.414211791+00:00",
+  "bytes_freed_total": 17632746236,
+  "files_scanned_total": 108793,
+  "files_cleaned_total": 7093,
+  "run_duration_seconds": 1.489,
+  "bytes_freed_per_second": 11842005531.2,
+  "errors_by_type": {
+    "permission_denied": 20
+  }
+}
