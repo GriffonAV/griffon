@@ -18,7 +18,8 @@ members = [
 
     # GUI and CLI
     "gui/src-tauri",
-    "cli",
+    "cli", "plugin-installer",
+    "plugin-installer"
 ]
 resolver = "2"
 
