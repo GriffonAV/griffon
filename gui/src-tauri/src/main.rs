@@ -155,6 +155,7 @@ fn format_name(name: &str) -> String {
     name.replace(' ', "_").to_lowercase()
 }
 
+#[allow(dead_code)]
 fn sanitize_plugin_name(name: &str) -> Result<String, String> {
     let trimmed = name.trim();
 

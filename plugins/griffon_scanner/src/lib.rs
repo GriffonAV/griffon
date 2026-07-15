@@ -222,8 +222,17 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                 let mut lock = ENGINE.lock().unwrap();
                 let engine = lock.as_mut().ok_or("Engine state is invalid")?;
 
+                // if path is ##/download then use the default download path, otherwise use the provided paths
+
+                let default_download_path = dirs::download_dir()
+                    .ok_or("Failed to get default download directory")?
+                    .to_string_lossy()
+                    .to_string();
+
                 let paths = if opts.paths.is_empty() {
                     Vec::new()
+                } else if opts.paths.len() == 1 && opts.paths[0] == "##/download" {
+                    vec![default_download_path]
                 } else {
                     opts.paths.clone()
                 };
