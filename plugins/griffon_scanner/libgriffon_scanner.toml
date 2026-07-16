@@ -793,6 +793,12 @@ from = "store.q_selected"
 returnType = "json"
 fn = "q_restore"
 
+[[interactions.steps]]
+type = "execute_function"
+key = "store.q_list"
+returnType = "json"
+fn = "q_list"
+
 [[interactions]]
 id = "q_delete"
 on = "scanner.q_delete"
