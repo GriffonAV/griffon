@@ -46,7 +46,7 @@ dist/
 
 /rules
 /grafana
-quanrantine/
+/quanrantine
 
 
 *.sock

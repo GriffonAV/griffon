@@ -43,3 +43,6 @@ lazy_static = "1.5.0"
 
 [dev-dependencies]
 criterion = "0.8.2"
+
+[package.metadata.release]
+release = false

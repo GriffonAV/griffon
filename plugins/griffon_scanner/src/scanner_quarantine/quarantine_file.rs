@@ -72,7 +72,9 @@ impl Quarantine {
         let manifest_path = self.dir.join(dest_name.replace(".quarantined", ".json"));
 
         let manifest = QuarantineManifest {
-            original_path: path.canonicalize().unwrap_or_else(|_| path.to_path_buf()),
+            original_path: real_path
+                .canonicalize()
+                .unwrap_or_else(|_| real_path.clone()),
             quarantined_at: chrono::Utc::now().to_rfc3339(),
             original_hash: hash,
         };
@@ -95,13 +97,32 @@ impl Quarantine {
         Ok(dest_path)
     }
 
-    pub fn quarantine_files(&self, paths: &[PathBuf]) -> Result<(), String> {
+    pub fn quarantine_files(&self, paths: &[PathBuf]) -> Result<Vec<PathBuf>, String> {
         if paths.is_empty() {
             return Err("No paths provided for quarantine".into());
         }
+
+        let mut quarantined = Vec::new();
+        let mut errors = Vec::new();
+
         for path in paths {
-            self.quarantine_file(path)?;
+            match self.quarantine_file(path) {
+                Ok(dest_path) => quarantined.push(dest_path),
+                Err(e) => {
+                    log::warn!("Skipping {}: {}", path.display(), e);
+                    errors.push(format!("{}: {}", path.display(), e));
+                }
+            }
         }
-        Ok(())
+
+        if quarantined.is_empty() {
+            return Err(format!(
+                "Failed to quarantine all {} file(s): {}",
+                paths.len(),
+                errors.join("; ")
+            ));
+        }
+
+        Ok(quarantined)
     }
 }

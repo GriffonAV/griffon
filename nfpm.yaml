@@ -1,7 +1,7 @@
 name: "griffon"
 arch: "amd64"
 platform: "linux"
-version: "0.3.0"
+version: "0.3.1"
 section: "utils"
 priority: "optional"
 maintainer: "Griffon contact.griffon@proton.me"
@@ -42,6 +42,12 @@ contents:
     dst: /usr/share/icons/hicolor/256x256/apps/griffon.png
     file_info:
       mode: 0644
+
+# installateur de plugin
+  - src: ./target/release/griffon-plugin-installer
+    dst: /usr/libexec/griffon-plugin-installer
+    file_info:
+      mode: 0755
 
 # plugins
   - src: ./target/release/libgriffon_cleaner.so
@@ -96,11 +102,13 @@ overrides:
     depends:
       - libwebkit2gtk-4.1-dev
       - libssl-dev
+      - pkexec
   rpm:
     depends:
       - webkit2gtk4.1-devel
       - openssl-devel
-
+      - polkit
+      
 scripts:
   postinstall: ./scripts/postinstall.sh
   preremove: ./scripts/preremove.sh

@@ -1,7 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "griffon-gui",
-  "version": "0.1.0",
   "identifier": "eu.griffon.gui",
   "build": {
     "frontendDist": "../dist",

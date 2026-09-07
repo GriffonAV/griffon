@@ -5,3 +5,6 @@ edition = "2024"
 
 [dependencies]
 abi_stable = "0.11.3"
+
+[package.metadata.release]
+release = false

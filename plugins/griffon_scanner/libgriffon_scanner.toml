@@ -30,7 +30,7 @@ archive = true
 threats = []
 threads = "1"
 threading = "auto"
-paths = ["/home"]
+paths = ["##/download"]
 
 [store.settings]
 folder = false
@@ -259,7 +259,7 @@ action = "scanner.run_scan"
 [[ui.sections.contents.children]]
 type = "button"
 id = "run_default_scan_bt"
-name = "Default scan (/home)"
+name = "Default scan (/download)"
 action = "scanner.run_default_scan"
 
 [[ui.sections]]
@@ -792,6 +792,12 @@ key = "store.q_restore_result"
 from = "store.q_selected"
 returnType = "json"
 fn = "q_restore"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.q_list"
+returnType = "json"
+fn = "q_list"
 
 [[interactions]]
 id = "q_delete"

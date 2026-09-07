@@ -69,6 +69,15 @@ impl ScanEngine {
         if matches!(kind, ArchiveKind::Unknown) {
             return results;
         }
+
+        if !self.scan_args.archives {
+            log::info!(
+                "Detected archive type {:?} but --archives is disabled, skipping",
+                kind
+            );
+            return results;
+        }
+
         // only zip is supported for now
         if kind != ArchiveKind::Zip {
             log::warn!(

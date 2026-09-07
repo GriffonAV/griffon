@@ -48,7 +48,7 @@ lazy_static::lazy_static! {
     static ref ENGINE: Mutex<Option<ScanEngine>> = Mutex::new(None);
 }
 
-/// Returned whenever a function requires the engine and it isn't ready.
+/// Returned whenever a function requires the engine and it isn't ready.azer
 /// `Some(RString)` short-circuits the caller with that error JSON;
 /// `None` means the engine is ready to use.
 fn engine_not_ready() -> Option<EngineStatus> {
@@ -222,8 +222,17 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                 let mut lock = ENGINE.lock().unwrap();
                 let engine = lock.as_mut().ok_or("Engine state is invalid")?;
 
+                // if path is ##/download then use the default download path, otherwise use the provided paths
+
+                let default_download_path = dirs::download_dir()
+                    .ok_or("Failed to get default download directory")?
+                    .to_string_lossy()
+                    .to_string();
+
                 let paths = if opts.paths.is_empty() {
                     Vec::new()
+                } else if opts.paths.len() == 1 && opts.paths[0] == "##/download" {
+                    vec![default_download_path]
                 } else {
                     opts.paths.clone()
                 };

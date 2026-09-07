@@ -21,3 +21,8 @@ build
 .cache
 tmp
 temp
+
+target/
+**/node_modules/
+dist/
+**/.git/

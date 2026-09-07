@@ -67,7 +67,7 @@ export async function initializeRequestManager() {
 
 export function createPendingRequest<T = any>() {
 
-    const requestId : number = generateRequestId();
+    const requestId: number = generateRequestId();
 
     let timeout: ReturnType<typeof setTimeout>;
 
@@ -99,7 +99,7 @@ export function createPendingRequest<T = any>() {
                 )
             );
 
-        }, 10000);
+        }, 6000000);
     });
 
     return {

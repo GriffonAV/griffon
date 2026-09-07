@@ -18,10 +18,16 @@ members = [
 
     # GUI and CLI
     "gui/src-tauri",
-    "cli",
+    "cli", "plugin-installer",
+    "plugin-installer"
 ]
 resolver = "2"
 
+[workspace.package]
+version = "0.3.1"
+authors = ["Griffon"]
+license = "Apache-2.0"
+edition = "2024"
 
 [workspace.dependencies]
 plugin_manager = { path = "daemon/plugin_manager" }
