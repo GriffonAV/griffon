@@ -13,6 +13,7 @@ import { NoPluginLayout } from "@/bindings/component/layout/NoPluginLayout";
 import { usePlugins } from "@/bindings/PluginContext";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { Button } from "@/components/ui/button";
+import { getVersion } from '@tauri-apps/api/app';
 
 type PluginHistoryEntry = {
     timestamp: number;
@@ -40,12 +41,19 @@ function formatEvent(event?: string | null) {
 }
 
 export default function HomePage() {
-    const { plugins } = usePlugins();
+  const { plugins } = usePlugins();
+
 
     const [historyEntries, setHistoryEntries] = useState<PluginHistoryEntry[]>([]);
     const [isRefreshingService, setIsRefreshingService] = useState(false);
 
     const latestEvent = historyEntries[0];
+
+    const [version, setVersion] = useState("");
+
+      useEffect(() => {
+        getVersion().then(setVersion);
+      }, []);
 
     async function loadPluginHistory() {
         try {
@@ -82,7 +90,7 @@ export default function HomePage() {
                     <div className="flex items-center gap-3 rounded-md border border-primary/20 bg-primary/10 p-3 text-sm text-primary shadow-sm">
                         <Sparkles className="size-4 shrink-0" />
                         <p>
-                            <strong className="font-semibold">Griffon 0.3.0 is out!</strong> Enjoy the new minimalist dashboard, global notification controls, and improved plugin history.
+                            <strong className="font-semibold">Griffon {version} is out!</strong> Enjoy the new minimalist dashboard, global notification controls, and improved plugin history.
                         </p>
                     </div>
                     <div className="flex items-center justify-between border-b border-border pb-4">

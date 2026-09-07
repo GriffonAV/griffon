@@ -1,7 +1,6 @@
 [package]
 name = "griffon-gui"
-
-version = "0.3.0"
+version.workspace = true
 description = "The official GUI for Griffon"
 authors = ["Griffon"]
 license = ""

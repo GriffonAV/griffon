@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ChangeThemeButtonTest, ModeToggleGroup } from "@/components/layout/ModeToggle";
 import { PageLayout } from "@/components/layout/PageLayout";
@@ -11,6 +11,7 @@ import { SquareArrowOutUpRight } from "lucide-react";
 import { NotificationSettingsTable } from "@/components/settings/NotificationSettingsTable";
 import { DeletePluginTable } from "@/components/settings/DeletePluginTable";
 import { GlobalNotificationToggle } from "@/components/settings/GlobalNotificationToggle";
+import { getVersion } from '@tauri-apps/api/app';
 
 const PLUGIN_DOC_URL = "https://griffon-av.vercel.app/";
 
@@ -48,6 +49,12 @@ export default function SettingsPage() {
       setPluginNotificationBeingSwitched(null);
     }
   };
+
+  const [version, setVersion] = useState("");
+
+    useEffect(() => {
+      getVersion().then(setVersion);
+    }, []);
 
   // Removed window.confirm, logic is now triggered securely by the AlertDialog
   const handleDeletePlugin = async (pluginUuid: string, pluginDisplayName: string) => {
@@ -176,7 +183,7 @@ export default function SettingsPage() {
           <h2 className="text-lg font-semibold mb-2">About Griffon</h2>
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             You are using Griffon in version
-            <Badge>0.3.0</Badge>.
+            <Badge>{version}</Badge>.
           </p>
         </section>
       </div>

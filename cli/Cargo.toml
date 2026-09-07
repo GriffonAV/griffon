@@ -1,6 +1,6 @@
 [package]
 name = "griffon-cli"
-version = "0.3.0"
+version.workspace = true
 authors = ["Griffon"]
 license = "Apache-2.0"
 edition = "2024"

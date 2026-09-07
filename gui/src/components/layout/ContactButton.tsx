@@ -11,10 +11,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getVersion } from '@tauri-apps/api/app';
 
 export function ContactButton() {
   const [clickCounter, setClickCounter] = useState(0);
+  const [version, setVersion] = useState("");
 
   const handleButtonClick = () => {
     setClickCounter((prevCount) => prevCount + 1);
@@ -24,6 +26,9 @@ export function ContactButton() {
     }
   };
 
+  useEffect(() => {
+    getVersion().then(setVersion);
+  }, []);
 
   return (
     <Dialog>
@@ -49,7 +54,7 @@ export function ContactButton() {
           <div className="pb-2 font-bold">Griffon</div>
           <Badge asChild>
             <a onClick={handleButtonClick}>
-              0.3.0
+              {version}
             </a>
           </Badge>
           <div className="h-28"></div>
