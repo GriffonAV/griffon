@@ -1,7 +1,7 @@
 name: "griffon"
 arch: "amd64"
 platform: "linux"
-version: "0.3.0"
+version: "0.3.1"
 section: "utils"
 priority: "optional"
 maintainer: "Griffon contact.griffon@proton.me"
