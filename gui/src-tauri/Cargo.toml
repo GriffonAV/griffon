@@ -7,6 +7,7 @@ license = ""
 repository = ""
 edition = "2021"
 rust-version = "1.77.2"
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [build-dependencies]
@@ -25,3 +26,10 @@ toml = "1.0.6"
 tauri-plugin-dialog = "2"
 zip = "4.2.0"
 uuid = { version = "1.23.4", features = ["v4"] }
+
+[package.metadata.release]
+pre-release-replacements = [
+  { file = "../../nfpm.yaml", search = 'version: "[0-9a-z\.-]+"', replace = 'version: "{{version}}"' },
+  { file = "../../scripts/build-packages.sh", search = 'griffon-[0-9a-z\.-]+\.deb', replace = 'griffon-{{version}}.deb' },
+  { file = "../../scripts/build-packages.sh", search = 'griffon-[0-9a-z\.-]+\.rpm', replace = 'griffon-{{version}}.rpm' },
+]
