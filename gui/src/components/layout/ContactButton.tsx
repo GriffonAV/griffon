@@ -44,13 +44,23 @@ export function ContactButton() {
         <div className="flex flex-col flex-1 align-middle items-center">
 
           <img
-            src="/assets/logo.png"
+            src="/assets/logo-dark.svg"
             alt="Griffon Logo"
             style={{
               imageRendering: "pixelated",
             }}
-            className="w-9 h-auto pb-2"
+            className="w-9 h-auto pb-2 dark:hidden"
           />
+
+          <img
+            src="/assets/logo.svg"
+            alt="Griffon Logo"
+            style={{
+              imageRendering: "pixelated",
+            }}
+            className="w-9 h-auto pb-2 hidden dark:block"
+          />
+
           <div className="pb-2 font-bold">Griffon</div>
           <Badge asChild>
             <a onClick={handleButtonClick}>

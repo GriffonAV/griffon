@@ -5,7 +5,7 @@
 
 
 <p align="center">
-  <img width="125" height="125" src="https://griffon-av.vercel.app/img/logo.png" alt='Griffon logo'>
+  <img width="125" height="125" src="logo.png" alt='Griffon logo'>
 </p>
 
 ![Open Source Love](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red?style=flat-square)
