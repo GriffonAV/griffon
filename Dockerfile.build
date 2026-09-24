@@ -1,5 +1,5 @@
 # --- STAGE 1: Build du GUI (Vite + Tauri Binary) ---
-FROM node:20-slim AS gui-builder
+FROM node:25-slim AS gui-builder
 WORKDIR /app
 # dep for tauri
 RUN apt-get update && apt-get install -y \
