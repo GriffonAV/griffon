@@ -57,31 +57,6 @@ The install enables and starts the `griffon-daemon` systemd service, and adds yo
 
 To uninstall: `sudo apt remove griffon` or `sudo dnf remove griffon`.
 
-## Using the CLI
-
-`griffon-cli` opens an interactive prompt connected to the daemon:
-
-```
-$ griffon-cli
-help
-Commands:
-  help                                        Show this help message
-  refresh                                     Refresh and display the plugin list from the daemon
-  switch_status <plugin_uuid>                 Enable or disable a plugin
-  call <plugin_uuid> <fn_name> <arg1|arg2|...> Call a plugin function with optional arguments
-  switch_notification <plugin_uuid>           Enable or disable notifications for a plugin
-  exit | quit                                 Exit the CLI
-```
-
-Examples (use `refresh` to get the plugin UUIDs):
-
-```
-call 550e8400-e29b-41d4-a716-446655440000 scan /tmp
-call 550e8400-e29b-41d4-a716-446655440000 clean cache|true
-```
-
----
-
 ## Development
 
 > Installed Griffon and Griffon run from source use **different** config, plugin, and socket locations (`/usr/lib/griffon`, `/etc/griffon`, `/run/griffon` vs. the repository folder). You can have both, but the dev CLI/GUI only talk to the dev daemon.
