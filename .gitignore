@@ -68,3 +68,6 @@ eicar*
 **/tests/fixtures/eicar_nested.zip
 **/tests/fixtures/dummy_fs/
 **/tests/fixtures/heavy_fs/
+
+!flake.lock
+.direnv
