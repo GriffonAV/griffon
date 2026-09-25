@@ -1,0 +1,40 @@
+name: Feature Request
+description: File a feature request.
+title: "[<Scope>]: "
+labels: ["feature"]
+type: feature
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The title of this issue should include the scope of the feature request and a brief description. The description should provide more details about the feature, including any relevant context or background information. Please also include any relevant links or references.
+        scope example: "GUI", "CLI", "Daemon", "Documentation", "Testing", "CI/CD", "Security", "Performance", "Refactoring", "Build System", "Release Management", "Other";
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: Ex. I'm always frustrated when [...]
+    validations:
+      required: true
+  - type : textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe the solution you'd like to see implemented.
+      placeholder: What needs to be done?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Describe any alternative solutions or features you've considered.
+      placeholder: What are the other ways this could be implemented?
+  - type: upload
+    id: screenshots
+    attributes:
+      label: Upload screenshots
+      description: If applicable, add screenshots to help explain your idea.
+    validations:
+      required: false
