@@ -39,6 +39,7 @@ build-deb:
 ## dev utils
 
 update-plugins:
+    mkdir -p .config/griffon
     cp target/debug/libgriffon_cleaner.so .config/griffon/
     cp target/debug/libgriffon_scanner.so .config/griffon/
     cp plugins/griffon_cleaner/libgriffon_cleaner.toml .config/griffon/
