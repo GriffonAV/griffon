@@ -1,221 +1,183 @@
-# Griffon — Modular Security Platform for Linux (Rust)
-> Griffon is a modular, Rust-based security and toolbox platform for Linux users! Just write your security tool in a Rust plugin, define a TOML config, and we automatically integrate and generate the UI into our application.
-
----> [Installation and documentation](https://griffon-av.vercel.app/) <---
-
-
 <p align="center">
-  <img width="125" height="125" src="logo.png" alt='Griffon logo'>
+  <img width="125" height="125" src="logo.png" alt="Griffon logo">
 </p>
 
-![Open Source Love](https://img.shields.io/badge/Open%20Source-%E2%9D%A4-red?style=flat-square)
-![GitHub Stars](https://img.shields.io/github/stars/GriffonAV/GriffonAV?style=flat-square)
-![GitHub Downloads](https://img.shields.io/github/downloads/GriffonAV/GriffonAV/total?style=flat-square)
-![GitHub Release](https://img.shields.io/github/v/release/GriffonAV/GriffonAV?style=flat-square)
-![Rust](https://img.shields.io/badge/rust-stable-orange?style=flat-square&logo=rust)
-![Tauri](https://img.shields.io/badge/tauri-v2-blue?style=flat-square&logo=tauri)
+<h1 align="center">Griffon</h1>
 
-## Project purpose
+<p align="center">
+  A modular, Rust-based security toolbox and antivirus for Linux.
+</p>
 
-Griffon is a modular antivirus project for Linux.
+<p align="center">
+  <a href="https://griffon-av.vercel.app/">Website &amp; docs</a> ·
+  <a href="https://github.com/GriffonAV/griffon/releases/latest">Download</a> ·
+  <a href="https://discord.gg/2mP5bBC7HZ">Discord</a>
+</p>
 
-The goal of the project is to provide a fast, secure, and easy-to-use antivirus solution for Linux users.
-
-Griffon provides:
-
-- a desktop application,
-- a background daemon,
-- a command-line interface,
-- a plugin-based antivirus engine.
-
-This README is intended for basic users who only want to install and use Griffon, as well as contributors who want to build the project and understand its layout.
-
-Advanced users and developers can find the full technical documentation here:
-
-[Developer documentation](https://griffon-av.vercel.app/docs/introduction)
-
-## Key features
-
-- **Modular Architecture** - plug-and-play analysis modules and highly customizable engine.
-- **Rust Performance** - memory-safe, fast, concurrent scanning.
-- **YARA Integration** - pattern-based detection support.
-- **Modern Application** - desktop application powered by [Tauri](https://v2.tauri.app/fr/).
-- **CLI Support** - terminal usage through `griffon-cli`.
-- **Automatic startup** - Griffon starts automatically after installation.
-
-## Installation
-
-Basic users do not need Rust, Cargo, Node.js, npm, or any development environment.
-
-They only need to install the package matching their Linux distribution.
-
-### Debian / Ubuntu
-
-Install Griffon using the `.deb` package:
-
-```bash
-sudo apt install ./griffon.deb
-```
-
-### Fedora
-
-Install Griffon using the `.rpm` package:
-
-```bash
-sudo dnf install ./griffon.rpm
-```
-
-Both packages run `scripts/postinstall.sh` on install (registers the systemd service and, on removal, `scripts/preremove.sh` cleans it up). Once installed, Griffon starts automatically and you can launch the desktop application from your system application menu, or use `griffon-cli` from a terminal.
-
-**Note:** installed (packaged) Griffon and Griffon run from source use different config/plugin locations — don't mix the two. If you're just installing the app, the section above is all you need. The rest of this README (from "Running from source" onward) is for contributors building the project locally.
+<p align="center">
+  <img src="https://img.shields.io/github/v/release/GriffonAV/griffon?style=flat-square" alt="GitHub Release">
+  <img src="https://img.shields.io/github/downloads/GriffonAV/griffon/total?style=flat-square" alt="GitHub Downloads">
+  <img src="https://img.shields.io/github/stars/GriffonAV/griffon?style=flat-square" alt="GitHub Stars">
+  <a href="https://discord.gg/2mP5bBC7HZ"><img src="https://img.shields.io/badge/discord-join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
+  <img src="https://img.shields.io/badge/rust-stable-orange?style=flat-square&logo=rust" alt="Rust">
+  <img src="https://img.shields.io/badge/tauri-v2-blue?style=flat-square&logo=tauri" alt="Tauri v2">
+</p>
 
 ---
 
-## Running from source (development)
+## What is Griffon?
 
-You only need **Node.js**, **Rust/Cargo**, and [`just`](https://github.com/casey/just) installed. On Fedora, Tauri also needs a couple of system packages:
+Griffon is a fast, secure, and easy-to-use antivirus and security toolbox for Linux. It ships as:
 
-```bash
-sudo dnf install @development-tools pkgconf-pkg-config
-sudo dnf install pkgconf-pkg-config javascriptcoregtk4.1-devel webkit2gtk4.1-devel
-```
+- a **desktop application** (built with [Tauri](https://v2.tauri.app/)),
+- a **background daemon** that starts automatically,
+- a **command-line interface** (`griffon-cli`),
+- a **plugin-based engine**: write your tool as a Rust plugin, describe its UI in a TOML file, and Griffon generates the interface for you.
 
-Then, from the repo root:
+Built-in plugins include a **YARA-based scanner** (with quarantine and rule updates) and a **system cleaner** (caches, logs, packages, big files, Docker).
 
-```bash
-# 1. Install the GUI's JS dependencies
-cd gui && npm i && cd ..
+> [!WARNING]
+> Griffon is an academic project in pre-release. It has not been professionally audited — see [SECURITY.md](SECURITY.md).
 
-# 2. Build the Rust workspace (daemon, cli, shared crates, plugins)
-cargo build
+## Installation
 
-# 3. Move each plugin's .toml + .so into the local config folder the daemon reads from
-just update-plugins
-```
-
-You can now run each component in its own terminal:
+Download the latest `.deb` or `.rpm` from the [releases page](https://github.com/GriffonAV/griffon/releases/latest), then install it (replace `<version>` with the version you downloaded):
 
 ```bash
-just run-daemon   # starts the daemon
-just run-gui      # starts the desktop app
-just run-cli      # starts the CLI, connects to the running daemon
+# Debian / Ubuntu
+sudo apt install ./griffon-<version>.deb
+
+# Fedora
+sudo dnf install ./griffon-<version>.rpm
 ```
 
-### CLI example
+The install enables and starts the `griffon-daemon` systemd service, and adds your user to the `griffon` group so the GUI and CLI can talk to the daemon without `sudo`.
+
+**Log out and back in** (or run `newgrp griffon`) for the group change to take effect. Then launch **Griffon** from your application menu, or run `griffon-cli` in a terminal.
+
+To uninstall: `sudo apt remove griffon` or `sudo dnf remove griffon`.
+
+## Using the CLI
+
+`griffon-cli` opens an interactive prompt connected to the daemon:
 
 ```
-$ just run-cli
-target/debug/griffon-cli
-[CLI-NETWORK](DEBUG) Client try connected
-[CLI-NETWORK](INFO) Client connected
-[CLI-NETWORK](DEBUG) Reader thread started
+$ griffon-cli
 help
-Griffon CLI
-Usage:
-  griffon-cli
 Commands:
-  help
-      Show this help message
-  refresh
-      Refresh and display the plugin list from the daemon
-  switch_status <plugin_uuid>
-      Enable or disable a plugin depending on its current status
-  call <plugin_uuid> <fn_name> <arg1|arg2|...>
-      Call a plugin function with optional arguments
-      Example:
-        call 550e8400-e29b-41d4-a716-446655440000 scan /tmp
-        call 550e8400-e29b-41d4-a716-446655440000 clean cache|true
-  switch_notification <plugin_uuid>
-      Enable or disable notifications for a plugin depending on its current notification status
-  exit | quit
-      Exit the CLI
+  help                                        Show this help message
+  refresh                                     Refresh and display the plugin list from the daemon
+  switch_status <plugin_uuid>                 Enable or disable a plugin
+  call <plugin_uuid> <fn_name> <arg1|arg2|...> Call a plugin function with optional arguments
+  switch_notification <plugin_uuid>           Enable or disable notifications for a plugin
+  exit | quit                                 Exit the CLI
 ```
 
-## Folder / module structure
+Examples (use `refresh` to get the plugin UUIDs):
+
+```
+call 550e8400-e29b-41d4-a716-446655440000 scan /tmp
+call 550e8400-e29b-41d4-a716-446655440000 clean cache|true
+```
+
+---
+
+## Development
+
+> Installed Griffon and Griffon run from source use **different** config, plugin, and socket locations (`/usr/lib/griffon`, `/etc/griffon`, `/run/griffon` vs. the repository folder). You can have both, but the dev CLI/GUI only talk to the dev daemon.
+
+### Prerequisites
+
+- [Rust](https://rustup.rs/) (stable) and Cargo
+- [Node.js](https://nodejs.org/) and npm
+- [`just`](https://github.com/casey/just)
+- Tauri's system dependencies:
+
+  ```bash
+  # Fedora
+  sudo dnf install @development-tools pkgconf-pkg-config openssl-devel webkit2gtk4.1-devel javascriptcoregtk4.1-devel
+
+  # Debian / Ubuntu
+  sudo apt install build-essential pkg-config libssl-dev libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+  ```
+
+  For other distributions, see the [Tauri prerequisites guide](https://v2.tauri.app/start/prerequisites/).
+
+- Docker (only for building the `.deb` / `.rpm` packages)
+
+### Build and run from source
+
+From the repository root:
+
+```bash
+just setup-gui        # install the GUI's npm dependencies
+cargo build           # build the whole workspace (daemon, CLI, GUI, plugins)
+just update-plugins   # copy the scanner and cleaner plugins into .config/griffon/
+```
+
+Then run each component in its own terminal, **starting with the daemon**:
+
+```bash
+just run-daemon   # start the daemon (creates ./griffon.sock)
+just run-gui      # start the desktop app in dev mode
+just run-cli      # start the CLI
+```
+
+Re-run `cargo build && just update-plugins` whenever you change a plugin.
+
+### Common commands
+
+| Command | Description |
+| --- | --- |
+| `just --list` | List all available shortcuts |
+| `just setup-dev-env` | Enable the git pre-commit hook (fmt + clippy) |
+| `just lint` / `just lint-fix` | Check / fix formatting and Clippy lints |
+| `cargo test` | Run the tests |
+| `cargo build --release` | Build the workspace in release mode |
+| `just build-gui` | Build the GUI binary (release, no installer bundle) |
+| `just build-deb` | Build the `.deb` **and** `.rpm` packages in Docker, output to `dist/` |
+
+CI runs `cargo fmt --all --check` and `cargo clippy --workspace --all-targets -- -D warnings`; run them before opening a pull request.
+
+### Project layout
 
 ```
 griffon/
-├── cli/          # griffon-cli: command-line interface (Rust)
-├── daemon/       # Background daemon
-│   ├── daemon_core/     # Core daemon logic
-│   ├── daemon_runner/   # Daemon process entry point / runner
-│   ├── plugin_manager/  # Loads, enables/disables, and talks to plugins
-│   └── griffon-daemon.service   # systemd unit file (used by the packaged install)
-├── gui/          # Desktop application (Tauri v2 + Vite frontend)
-├── plugins/      # Built-in extensions
-│   ├── griffon_scanner/   # Scanner extension (YARA-based)
-│   ├── griffon_cleaner/   # Cleaner extension
-│   ├── docker_helper/     # Docker-related helper extension
-│   ├── plugin_template/   # Starter template for new extensions
-│   └── plugin-guide.md    # Extension development guide
-├── shared/       # Crates shared between the daemon and plugins
-│   ├── ipc_protocol/     # IPC message types between daemon, GUI, and CLI
-│   ├── logger/           # Shared logging utilities
-│   └── plugin_interface/ # Stable ABI contract used by all extensions
-├── docs/         # Manifest/TOML developer documentation
-├── scripts/      # Packaging scripts (used to build the .deb / .rpm)
-├── justfile      # Dev command shortcuts (run-daemon, run-gui, run-cli, update-plugins, ...)
-└── Cargo.toml    # Workspace root
+├── cli/                 # griffon-cli: interactive command-line client
+├── daemon/
+│   ├── daemon_core/     # griffon-daemon: socket server, dispatcher, notifications
+│   ├── daemon_runner/   # griffon-daemon-runner: isolated process that hosts a plugin
+│   ├── plugin_manager/  # loads, enables/disables and talks to plugins
+│   └── griffon-daemon.service   # systemd unit (packaged install)
+├── gui/                 # desktop app (React + Vite frontend, Tauri v2 in src-tauri/)
+├── plugin-installer/    # privileged helper used by the GUI to install plugins
+├── plugins/
+│   ├── griffon_scanner/ # YARA + hash based scanner, quarantine, rule updater
+│   ├── griffon_cleaner/ # system cleaner
+│   ├── docker_helper/   # Docker helper plugin
+│   ├── plugin_template/ # starter template for new plugins
+│   └── plugin-guide.md  # plugin development guide
+├── shared/
+│   ├── ipc_protocol/    # IPC messages between daemon, runner, GUI and CLI
+│   ├── logger/          # shared logging
+│   └── plugin_interface/ # stable ABI contract implemented by every plugin
+├── docs/                # TOML manifest / GUI generation docs
+├── bench/               # benchmark VM (Vagrant) and datasets
+├── scripts/             # packaging scripts (post-install, pre-remove)
+├── nfpm.yaml            # .deb / .rpm package definition
+└── justfile             # dev shortcuts
 ```
 
-## Key commands
+### Writing a plugin
 
-```bash
-just update-plugins   # copy plugin .toml + .so files into the dev config folder
-just run-daemon       # run the daemon
-just run-gui          # run the desktop app
-just run-cli          # run the CLI
+Start from [`plugins/plugin_template`](plugins/plugin_template), then read the [plugin guide](plugins/plugin-guide.md) and the [TOML / GUI guide](docs/guiTomlHowTo.md). The full developer documentation is at [griffon-av.vercel.app/docs](https://griffon-av.vercel.app/docs/introduction).
 
-cargo build            # build the workspace (debug)
-cargo build --release  # build the workspace (release)
-cargo test              # run tests
-```
+## Community & contributing
 
-Run `just --list` to see all available shortcuts.
-
-## Environment variables
-
-Griffon doesn't currently require any environment variables to run. Configuration is handled through config files instead, and those files live in different locations depending on how you're running Griffon:
-
-- **From source:** written to the local dev config folder by `just update-plugins`.
-- **Installed via `.deb`/`.rpm`:** managed by the packaged daemon via `daemon/config_griffon_daemon.json` and the systemd service.
-
-## Technical prerequisites
-
-### For basic usage (installed package)
-
-- A supported Linux distribution,
-- Administrator privileges,
-- The correct package format for your system (`.deb` for Debian/Ubuntu, `.rpm` for Fedora).
-
-No development tools are required for basic usage.
-
-### For running from source
-
-- **Rust** and **Cargo**
-- **Node.js** and **npm** (for the `gui/` frontend)
-- [`just`](https://github.com/casey/just)
-- On Fedora, Tauri's system dependencies:
-    
-    ```bash
-    sudo dnf install @development-tools pkgconf-pkg-config javascriptcoregtk4.1-devel webkit2gtk4.1-devel
-    ```
-    
-    (see the [Tauri prerequisites guide](https://v2.tauri.app/start/prerequisites/) for other distributions)
-
-## Advanced usage and development
-
-This README covers the essentials for installing and running Griffon from source. For plugin/extension development, internal architecture, and IPC protocol details, see:
-
-- [Developer documentation](https://griffon-av.vercel.app/docs/introduction)
-- CONTRIBUTING.md
-- 
-## Documentation
-
-- **User docs:** [griffon-av.vercel.app](https://griffon-av.vercel.app/)
-- **Developer docs:** [griffon-av.vercel.app/docs/intro](https://griffon-av.vercel.app/docs/introduction)
-- **Internal wiki:** docs/
-
+- 💬 Join us on [Discord](https://discord.gg/2mP5bBC7HZ) for questions, ideas and help.
+- 🐛 Report bugs and request features via [GitHub issues](https://github.com/GriffonAV/griffon/issues).
+- 🔒 Report security vulnerabilities privately — see [SECURITY.md](SECURITY.md).
+- 🤝 Read [CONTRIBUTING.md](CONTRIBUTING.md) and our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
 
 ## Authors
 
@@ -223,13 +185,13 @@ This README covers the essentials for installing and running Griffon from source
     <tbody>
         <tr>
             <td align="center">
-                <a href="https://github.com/Raphael-Mabille">
+                <a href="https://github.com/Sebabacou">
                     <img src="https://avatars.githubusercontent.com/u/114607576?s=96&v=4" width="100px;" alt="Sebabacou"/><br />
                     <sub><b>Sebabacou</b></sub>
                 </a>
             </td>
             <td align="center">
-                <a href="https://github.com/orgs/GriffonAV/people/Sebabacou">
+                <a href="https://github.com/Raphael-Mabille">
                     <img src="https://avatars.githubusercontent.com/u/114739950?s=96&v=4" width="100px;" alt="Raphael_m"/><br />
                     <sub><b>Raphael_m</b></sub>
                 </a>
@@ -253,5 +215,3 @@ This README covers the essentials for installing and running Griffon from source
 ## License
 
 Licensed under the [Apache License 2.0](LICENSE).
-
-You may freely use, modify, and distribute this project under the terms of this license.
