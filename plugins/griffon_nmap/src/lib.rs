@@ -1,4 +1,6 @@
+use std::fs;
 use std::net::IpAddr;
+use std::path::PathBuf;
 use std::process::Command;
 use std::time::Instant;
 
@@ -74,7 +76,30 @@ struct ExegolContainerList {
     containers: Vec<ExegolContainer>,
 }
 
+#[derive(Deserialize)]
+struct HttpProbeRequest {
+    target: String,
+    port: String,
+    protocol: String,
+    probe: String,
+    #[serde(default = "default_executor")]
+    executor: String,
+    #[serde(default)]
+    exegol_container: String,
+}
+
 #[derive(Serialize)]
+struct HttpProbeResponse {
+    ok: bool,
+    target: String,
+    port: String,
+    probe: String,
+    command: String,
+    output: String,
+    message: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
 struct Host {
     address: String,
     hostname: String,
@@ -82,7 +107,7 @@ struct Host {
     ports: Vec<Port>,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 struct Port {
     port: String,
     protocol: String,
@@ -93,10 +118,101 @@ struct Port {
     extra_info: String,
 }
 
+#[derive(Serialize, Deserialize, Default)]
+struct ScanHistory {
+    version: u8,
+    scans: Vec<HistoryEntry>,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+struct HistoryEntry {
+    id: String,
+    created_at_ms: u128,
+    target: String,
+    profile: String,
+    executor: String,
+    command: String,
+    duration_ms: u128,
+    hosts: Vec<Host>,
+}
+
+#[derive(Serialize)]
+struct HistoryResponse {
+    ok: bool,
+    message: String,
+    scans: Vec<HistoryEntry>,
+}
+
 fn json_error(message: impl Into<String>) -> RString {
     RString::from(
         serde_json::json!({ "ok": false, "message": message.into(), "hosts": [] }).to_string(),
     )
+}
+
+fn history_path() -> PathBuf {
+    if cfg!(debug_assertions) {
+        return PathBuf::from(".data/griffon/nmap/history.json");
+    }
+    PathBuf::from("/var/lib/griffon/nmap/history.json")
+}
+
+fn load_history() -> Result<ScanHistory, String> {
+    let path = history_path();
+    match fs::read_to_string(&path) {
+        Ok(contents) => serde_json::from_str(&contents)
+            .map_err(|error| format!("Historique Nmap invalide dans {} : {error}", path.display())),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(ScanHistory {
+            version: 1,
+            scans: Vec::new(),
+        }),
+        Err(error) => Err(format!("Impossible de lire l’historique Nmap : {error}")),
+    }
+}
+
+fn save_history(history: &ScanHistory) -> Result<(), String> {
+    let path = history_path();
+    let parent = path.parent().ok_or("Chemin d’historique invalide")?;
+    fs::create_dir_all(parent)
+        .map_err(|error| format!("Impossible de créer le dossier d’historique : {error}"))?;
+    let temporary = path.with_extension("json.tmp");
+    let contents = serde_json::to_vec_pretty(history)
+        .map_err(|error| format!("Impossible de sérialiser l’historique : {error}"))?;
+    fs::write(&temporary, contents)
+        .map_err(|error| format!("Impossible d’écrire l’historique : {error}"))?;
+    fs::rename(&temporary, &path)
+        .map_err(|error| format!("Impossible de finaliser l’historique : {error}"))
+}
+
+fn store_scan(response: &ScanResponse, executor: &str) -> Result<(), String> {
+    let mut history = load_history()?;
+    let created_at_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    history.scans.insert(
+        0,
+        HistoryEntry {
+            id: format!("scan-{created_at_ms}"),
+            created_at_ms,
+            target: response.target.clone(),
+            profile: response.profile.clone(),
+            executor: executor.to_string(),
+            command: response.command.clone(),
+            duration_ms: response.duration_ms,
+            hosts: response.hosts.clone(),
+        },
+    );
+    history.scans.truncate(100);
+    save_history(&history)
+}
+
+fn history_response() -> Result<HistoryResponse, String> {
+    let history = load_history()?;
+    Ok(HistoryResponse {
+        ok: true,
+        message: format!("{} analyse(s) enregistrée(s).", history.scans.len()),
+        scans: history.scans,
+    })
 }
 
 fn is_valid_target(target: &str) -> bool {
@@ -300,6 +416,96 @@ fn displayed_command(request: &ScanRequest, args: &[String], target: &str) -> St
     format!("{prefix} {} {target}", args.join(" "))
 }
 
+fn http_url(target: &str, port: &str, protocol: &str, path: &str) -> String {
+    let host = match target.parse::<IpAddr>() {
+        Ok(IpAddr::V6(_)) => format!("[{target}]"),
+        _ => target.to_string(),
+    };
+    format!("{protocol}://{host}:{port}{path}")
+}
+
+fn page_title(body: &str) -> String {
+    let lower = body.to_ascii_lowercase();
+    let Some(start) = lower.find("<title") else {
+        return "No HTML title found.".to_string();
+    };
+    let Some(content_start) = lower[start..].find('>').map(|offset| start + offset + 1) else {
+        return "No HTML title found.".to_string();
+    };
+    let Some(end) = lower[content_start..]
+        .find("</title>")
+        .map(|offset| content_start + offset)
+    else {
+        return "No HTML title found.".to_string();
+    };
+    body[content_start..end].trim().to_string()
+}
+
+fn http_probe(request: HttpProbeRequest) -> Result<HttpProbeResponse, String> {
+    let target = request.target.trim();
+    if !is_valid_target(target) || !valid_port_number(&request.port) {
+        return Err("La cible ou le port HTTP est invalide.".to_string());
+    }
+    if !matches!(request.protocol.as_str(), "http" | "https") {
+        return Err("Seuls les services HTTP et HTTPS peuvent utiliser cette action.".to_string());
+    }
+    let (path, args) = match request.probe.as_str() {
+        "headers" => ("", vec!["-k", "--max-time", "15", "-I", "-sS"]),
+        "title" => ("", vec!["-k", "--max-time", "15", "-sS"]),
+        "robots" => ("/robots.txt", vec!["-k", "--max-time", "15", "-sS"]),
+        _ => return Err("Action HTTP inconnue.".to_string()),
+    };
+    let url = http_url(target, &request.port, &request.protocol, path);
+    let mut command = match request.executor.as_str() {
+        "local" => Command::new("curl"),
+        "exegol" => {
+            if !is_valid_container_name(request.exegol_container.trim()) {
+                return Err(
+                    "Choisis un conteneur Exegol valide avant de lancer cette action.".to_string(),
+                );
+            }
+            let mut command = Command::new("docker");
+            command.args(["exec", request.exegol_container.trim(), "curl"]);
+            command
+        }
+        _ => return Err("Exécuteur inconnu.".to_string()),
+    };
+    command.args(&args).arg(&url);
+    let command_display = if request.executor == "exegol" {
+        format!(
+            "docker exec {} curl {} {url}",
+            request.exegol_container.trim(),
+            args.join(" ")
+        )
+    } else {
+        format!("curl {} {url}", args.join(" "))
+    };
+    let output = command
+        .output()
+        .map_err(|error| format!("Impossible de lancer curl : {error}"))?;
+    if !output.status.success() {
+        return Err(format!(
+            "curl a échoué : {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        ));
+    }
+    let raw_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let output = if request.probe == "title" {
+        page_title(&raw_output)
+    } else {
+        raw_output
+    };
+    Ok(HttpProbeResponse {
+        ok: true,
+        target: target.to_string(),
+        port: request.port,
+        probe: request.probe,
+        command: command_display,
+        output,
+        message: "Action terminée.".to_string(),
+    })
+}
+
 fn attr(node: roxmltree::Node<'_, '_>, name: &str) -> String {
     node.attribute(name).unwrap_or_default().to_string()
 }
@@ -404,15 +610,17 @@ fn scan(request: ScanRequest) -> Result<ScanResponse, String> {
     let xml = String::from_utf8(output.stdout)
         .map_err(|_| "Nmap a renvoyé une sortie qui n’est pas du texte UTF-8.".to_string())?;
     let hosts = parse_nmap_xml(&xml)?;
-    Ok(ScanResponse {
+    let response = ScanResponse {
         ok: true,
         message: "Analyse terminée.".to_string(),
         target: target.to_string(),
-        profile: request.profile,
+        profile: request.profile.clone(),
         command,
         duration_ms,
         hosts,
-    })
+    };
+    store_scan(&response, &request.executor)?;
+    Ok(response)
 }
 
 fn split_message(raw: &str) -> (&str, &str) {
@@ -436,7 +644,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     ));
     info.push(Tuple2(
         RString::from("function"),
-        RString::from("scan/list_exegol_containers"),
+        RString::from("scan/list_exegol_containers/http_probe/list_history"),
     ));
     RResult::ROk(info)
 }
@@ -462,6 +670,17 @@ extern "C" fn handle_message(message: RString) -> RString {
                 serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "containers": [] }).to_string()
             })),
             Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "containers": [] }).to_string()),
+        },
+        "http_probe" => match serde_json::from_str::<HttpProbeRequest>(payload) {
+            Ok(request) => match http_probe(request) {
+                Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "output": "" }).to_string())),
+                Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "output": "" }).to_string()),
+            },
+            Err(error) => RString::from(serde_json::json!({ "ok": false, "message": format!("Paramètres HTTP invalides : {error}"), "output": "" }).to_string()),
+        },
+        "list_history" => match history_response() {
+            Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "scans": [] }).to_string())),
+            Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "scans": [] }).to_string()),
         },
         _ => json_error(format!("Fonction inconnue : {function}")),
     }

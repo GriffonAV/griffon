@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import type { NmapScanResultsElement } from "@/components/types";
 import { resolveFromPath } from "@/lib/utils";
+import { FileText, Globe, ListTree } from "lucide-react";
 
 type NmapPort = {
   port: string;
@@ -41,6 +43,7 @@ type NmapScanResult = {
 type Props = {
   element: NmapScanResultsElement;
   store: Record<string, unknown>;
+  onAction?: (action: string, event?: { value: unknown }) => void;
 };
 
 function serviceDetails(port: NmapPort) {
@@ -49,8 +52,10 @@ function serviceDetails(port: NmapPort) {
     .join(" · ");
 }
 
-export default function NmapScanResults({ element, store = {} }: Props) {
+export default function NmapScanResults({ element, store = {}, onAction }: Props) {
   const result = resolveFromPath(element.from, { store }) as NmapScanResult | undefined;
+  const request = resolveFromPath("store.data.scan_request", { store }) as Record<string, string> | undefined;
+  const probe = resolveFromPath("store.data.http_probe", { store }) as { target?: string; port?: string; message?: string; output?: string; command?: string } | undefined;
   const hosts = Array.isArray(result?.hosts) ? result.hosts : [];
 
   if (hosts.length === 0) {
@@ -88,15 +93,7 @@ export default function NmapScanResults({ element, store = {} }: Props) {
                   </TableHeader>
                   <TableBody>
                     {host.ports.map((port) => (
-                      <TableRow key={`${port.protocol}-${port.port}`}>
-                        <TableCell className="font-mono">
-                          {port.port}/{port.protocol}
-                        </TableCell>
-                        <TableCell>{port.service || "Unknown"}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {serviceDetails(port) || "No version detected"}
-                        </TableCell>
-                      </TableRow>
+                      <TableRow key={`${port.protocol}-${port.port}`}><TableCell className="font-mono">{port.port}/{port.protocol}</TableCell><TableCell>{port.service || "Unknown"}</TableCell><TableCell className="text-muted-foreground">{serviceDetails(port) || "No version detected"}{["http", "https"].includes(port.service) && <div className="mt-3 flex flex-wrap gap-2"><Button size="sm" variant="outline" onClick={() => onAction?.("nmap.http_probe", { value: { target: host.address, port: port.port, protocol: port.service, probe: "headers", executor: request?.executor ?? "local", exegol_container: request?.exegol_container ?? "" } })}><Globe /> Headers</Button><Button size="sm" variant="outline" onClick={() => onAction?.("nmap.http_probe", { value: { target: host.address, port: port.port, protocol: port.service, probe: "title", executor: request?.executor ?? "local", exegol_container: request?.exegol_container ?? "" } })}><FileText /> Title</Button><Button size="sm" variant="outline" onClick={() => onAction?.("nmap.http_probe", { value: { target: host.address, port: port.port, protocol: port.service, probe: "robots", executor: request?.executor ?? "local", exegol_container: request?.exegol_container ?? "" } })}><ListTree /> robots.txt</Button></div>}{probe?.target === host.address && probe.port === port.port && probe.output && <div className="mt-3 rounded-md bg-muted p-3 text-xs text-foreground"><p className="mb-2 font-medium">{probe.message}</p><pre className="max-h-48 overflow-auto whitespace-pre-wrap font-mono">{probe.output}</pre></div>}</TableCell></TableRow>
                     ))}
                   </TableBody>
                 </Table>

@@ -325,6 +325,7 @@ export type NmapScanResultsElement = {
 };
 
 export type NmapScanFormElement = { type: "nmap_scan_form"; id: string; from?: string };
+export type NmapHistoryElement = { type: "nmap_history"; id: string; from?: string };
 
 export type GriffonElement =
   | TextElement
@@ -348,4 +349,5 @@ export type GriffonElement =
   | CleanerDryRunToggleElement
   | ScannerTableElement
   | NmapScanResultsElement
-  | NmapScanFormElement;
+  | NmapScanFormElement
+  | NmapHistoryElement;
