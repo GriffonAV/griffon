@@ -1,0 +1,15 @@
+[package]
+name = "griffon_nmap"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+abi_stable = { workspace = true }
+plugin_interface = { workspace = true }
+libc = "0.2"
+roxmltree = "0.21.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

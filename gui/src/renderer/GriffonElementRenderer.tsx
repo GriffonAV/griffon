@@ -25,6 +25,8 @@ import CleanerDryRunToggle from "@/components/griffon/CleanerDryRunToggle.tsx";
 
 import ScannerTable from "@/components/griffon/ScannerTable";
 import ScannerTargetTable from "@/components/griffon/ScannerTargetTable"
+import NmapScanResults from "@/components/griffon/NmapScanResults";
+import NmapScanForm from "@/components/griffon/NmapScanForm";
 
 
 interface GriffonElementRendererProps {
@@ -119,6 +121,12 @@ export default function GriffonElementRenderer({
 
     case "scanner_target_table":
       return <ScannerTargetTable {...commonProps} />;
+
+    case "nmap_scan_results":
+      return <NmapScanResults {...commonProps} />;
+
+    case "nmap_scan_form":
+      return <NmapScanForm {...commonProps} />;
 
     default:
       return null;

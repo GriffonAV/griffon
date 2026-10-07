@@ -1,0 +1,164 @@
+[plugin]
+name = "Nmap"
+id = "5d059e05-c83f-4c59-9a85-13aa3fc1d721"
+version = "0.1.0"
+author = "Griffon"
+description = "Run authorised Nmap scans and review open services."
+tabs = ["scan"]
+uuid = "5d059e05-c83f-4c59-9a85-13aa3fc1d721"
+
+[store.data.scan_request]
+target = ""
+profile = "quick"
+skip_host_discovery = false
+timing = "t4"
+version_detection = true
+os_detection = false
+default_scripts = false
+ports = ""
+scan_type = "auto"
+executor = "local"
+exegol_container = ""
+
+[store.data.exegol_containers]
+ok = true
+message = ""
+containers = []
+
+[store.data.scan_result]
+ok = false
+message = "Enter a target to start an authorised scan."
+command = ""
+hosts = []
+
+[[ui.sections]]
+id = "nmap_scan"
+tab = "scan"
+
+[[ui.sections.contents]]
+type = "nmap_scan_form"
+id = "nmap_scan_form"
+from = "store.data.scan_request"
+
+[[ui.sections.contents]]
+type = "text"
+id = "nmap_result_message"
+name = "{{store.data.scan_result.message}}"
+
+[[ui.sections.contents]]
+type = "text"
+id = "nmap_command"
+name = "Command: {{store.data.scan_result.command}}"
+variant = "caption"
+
+[[ui.sections.contents]]
+type = "nmap_scan_results"
+id = "nmap_scan_results"
+from = "store.data.scan_result"
+
+[[interactions]]
+id = "nmap_set_target"
+on = "nmap.set_target"
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_request.target"
+from = "event.value"
+
+[[interactions]]
+id = "nmap_set_executor"
+on = "nmap.set_executor"
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_request.executor"
+from = "event.value"
+
+[[interactions]]
+id = "nmap_set_exegol_container"
+on = "nmap.set_exegol_container"
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_request.exegol_container"
+from = "event.value"
+
+[[interactions]]
+id = "nmap_refresh_exegol"
+on = "nmap.refresh_exegol"
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.exegol_containers"
+returnType = "json"
+fn = "list_exegol_containers"
+
+[[interactions]]
+id = "nmap_set_profile"
+on = "nmap.set_profile"
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_request.profile"
+from = "event.value"
+
+[[interactions]]
+id = "nmap_set_timing"
+on = "nmap.set_timing"
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_request.timing"
+from = "event.value"
+
+[[interactions]]
+id = "nmap_set_scan_type"
+on = "nmap.set_scan_type"
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_request.scan_type"
+from = "event.value"
+
+[[interactions]]
+id = "nmap_set_skip_host_discovery"
+on = "nmap.set_skip_host_discovery"
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_request.skip_host_discovery"
+from = "event.checked"
+
+[[interactions]]
+id = "nmap_set_version_detection"
+on = "nmap.set_version_detection"
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_request.version_detection"
+from = "event.checked"
+
+[[interactions]]
+id = "nmap_set_os_detection"
+on = "nmap.set_os_detection"
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_request.os_detection"
+from = "event.checked"
+
+[[interactions]]
+id = "nmap_set_default_scripts"
+on = "nmap.set_default_scripts"
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_request.default_scripts"
+from = "event.checked"
+
+[[interactions]]
+id = "nmap_set_ports"
+on = "nmap.set_ports"
+[[interactions.steps]]
+type = "set"
+key = "store.data.scan_request.ports"
+from = "event.value"
+
+[[interactions]]
+id = "nmap_run"
+on = "nmap.run"
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.scan_result"
+from = "store.data.scan_request"
+returnType = "json"
+fn = "scan"
