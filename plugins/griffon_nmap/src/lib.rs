@@ -143,6 +143,11 @@ struct HistoryResponse {
     scans: Vec<HistoryEntry>,
 }
 
+#[derive(Deserialize)]
+struct DeleteHistoryRequest {
+    id: String,
+}
+
 fn json_error(message: impl Into<String>) -> RString {
     RString::from(
         serde_json::json!({ "ok": false, "message": message.into(), "hosts": [] }).to_string(),
@@ -212,6 +217,32 @@ fn history_response() -> Result<HistoryResponse, String> {
         ok: true,
         message: format!("{} analyse(s) enregistrée(s).", history.scans.len()),
         scans: history.scans,
+    })
+}
+
+fn delete_history_entry(id: &str) -> Result<HistoryResponse, String> {
+    let mut history = load_history()?;
+    let previous_count = history.scans.len();
+    history.scans.retain(|scan| scan.id != id);
+    if history.scans.len() == previous_count {
+        return Err("Cette analyse n’existe plus dans l’historique.".to_string());
+    }
+    save_history(&history)?;
+    Ok(HistoryResponse {
+        ok: true,
+        message: "Analyse supprimée de l’historique.".to_string(),
+        scans: history.scans,
+    })
+}
+
+fn clear_history() -> Result<HistoryResponse, String> {
+    let mut history = load_history()?;
+    history.scans.clear();
+    save_history(&history)?;
+    Ok(HistoryResponse {
+        ok: true,
+        message: "Historique Nmap supprimé.".to_string(),
+        scans: Vec::new(),
     })
 }
 
@@ -644,7 +675,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     ));
     info.push(Tuple2(
         RString::from("function"),
-        RString::from("scan/list_exegol_containers/http_probe/list_history"),
+        RString::from("scan/list_exegol_containers/http_probe/list_history/delete_history_entry/clear_history"),
     ));
     RResult::ROk(info)
 }
@@ -679,6 +710,17 @@ extern "C" fn handle_message(message: RString) -> RString {
             Err(error) => RString::from(serde_json::json!({ "ok": false, "message": format!("Paramètres HTTP invalides : {error}"), "output": "" }).to_string()),
         },
         "list_history" => match history_response() {
+            Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "scans": [] }).to_string())),
+            Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "scans": [] }).to_string()),
+        },
+        "delete_history_entry" => match serde_json::from_str::<DeleteHistoryRequest>(payload) {
+            Ok(request) => match delete_history_entry(&request.id) {
+                Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "scans": [] }).to_string())),
+                Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "scans": [] }).to_string()),
+            },
+            Err(error) => RString::from(serde_json::json!({ "ok": false, "message": format!("Paramètres de suppression invalides : {error}"), "scans": [] }).to_string()),
+        },
+        "clear_history" => match clear_history() {
             Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "scans": [] }).to_string())),
             Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "scans": [] }).to_string()),
         },

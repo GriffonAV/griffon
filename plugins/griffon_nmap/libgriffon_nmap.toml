@@ -204,3 +204,22 @@ type = "execute_function"
 key = "store.data.scan_history"
 returnType = "json"
 fn = "list_history"
+
+[[interactions]]
+id = "nmap_delete_history_entry"
+on = "nmap.delete_history_entry"
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.scan_history"
+from = "event.value"
+returnType = "json"
+fn = "delete_history_entry"
+
+[[interactions]]
+id = "nmap_clear_history"
+on = "nmap.clear_history"
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.scan_history"
+returnType = "json"
+fn = "clear_history"
