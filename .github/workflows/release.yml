@@ -1,0 +1,69 @@
+name: Griffon Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract Version
+        id: get_version
+        shell: bash
+        run: |
+          TAG="${{ github.ref_name }}"
+          # Strip leading 'v' if present
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building for version: $VERSION (tag: $TAG)"
+
+      - name: Update Cargo.toml Workspace Version
+        shell: bash
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          python3 -c '
+          import os, re
+          version = os.environ["VERSION"]
+          with open("Cargo.toml", "r") as f:
+              content = f.read()
+          content = re.sub(r"(?s)(\[workspace\.package\]\s*.*?version\s*=\s*\")[^\"]+(\")", r"\1" + version + r"\2", content)
+          with open("Cargo.toml", "w") as f:
+              f.write(content)
+          '
+          git diff Cargo.toml
+
+      - name: Build Docker packaging image
+        run: |
+          docker build -t griffon-builder -f Dockerfile.build .
+
+      - name: Run packaging container
+        run: |
+          mkdir -p dist
+          docker run --rm \
+            -e VERSION="${{ steps.get_version.outputs.version }}" \
+            -v "$(pwd)/dist:/out" \
+            griffon-builder
+
+      - name: List built artifacts
+        run: ls -la dist/
+
+      - name: Create GitHub Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.deb
+            dist/*.rpm
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
