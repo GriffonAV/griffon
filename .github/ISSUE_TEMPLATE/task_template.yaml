@@ -1,0 +1,42 @@
+name: Task
+description: File a task.
+title: "[<Scope>]: "
+labels: ["task"]
+type: task
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The title of this issue should be a short summary of the task. The description should provide more details about the task, including any relevant context or background information. Please also include any relevant links or references.
+        scope example: "GUI", "CLI", "Daemon", "Documentation", "Testing", "CI/CD", "Security", "Performance", "Refactoring", "Build System", "Release Management", "Other";
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Describe the scope of the task.
+      placeholder: What area of the project does this task affect?
+    validations:
+      required: true
+  - type : textarea
+    id: description
+    attributes:
+      label: Description
+      description: Provide a detailed description of the task.
+      placeholder: What needs to be done?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Define the criteria that must be met for this task to be considered complete.
+      placeholder: What are the conditions for success?
+    validations:
+      required: true
+  - type: upload
+    id: screenshots
+    attributes:
+      label: Upload screenshots
+      description: If applicable, add screenshots to help explain your task.
+    validations:
+      required: false
