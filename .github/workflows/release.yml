@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Extract Version
+      - name: Extract Version & Verify Branch
         id: get_version
         shell: bash
         run: |
@@ -25,6 +25,18 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building for version: $VERSION (tag: $TAG)"
+
+          # Check if the tagged commit is on main
+          # github.ref gives refs/tags/vX.Y.Z, but we can check if main contains the current commit SHA
+          CURRENT_SHA="${{ github.sha }}"
+          echo "Checking if commit $CURRENT_SHA is on main..."
+          
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$CURRENT_SHA" origin/main; then
+            echo "❌ Error: Tags can only be released from the 'main' branch!"
+            exit 1
+          fi
+          echo "✅ Verified: Tag is on the main branch."
 
       - name: Update Cargo.toml Workspace Version
         shell: bash
