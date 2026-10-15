@@ -4,6 +4,7 @@ members = [
     "daemon/daemon_core",
     "daemon/daemon_runner",
     "daemon/plugin_manager",
+    "daemon/plugin_host",
 
     # shared libraries
     "shared/plugin_interface",
@@ -32,6 +33,7 @@ edition = "2024"
 
 [workspace.dependencies]
 plugin_manager = { path = "daemon/plugin_manager" }
+plugin_host = { path = "daemon/plugin_host" }
 plugin_interface = { path = "shared/plugin_interface" }
 ipc_protocol = { path = "shared/ipc_protocol" }
 logger = { path = "shared/logger" }

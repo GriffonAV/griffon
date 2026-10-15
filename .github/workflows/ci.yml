@@ -153,7 +153,8 @@ jobs:
         uses: taiki-e/install-action@nextest
 
       - name: Run tests
-        run: cargo nextest run --workspace --profile ci --locked
+        # Plugin contract tests run in their own job below
+        run: cargo nextest run --workspace --profile ci --locked -E 'not binary_id(plugin_host::plugin_contract)'
 
       - name: Upload test results
         uses: dorny/test-reporter@v1
@@ -163,3 +164,62 @@ jobs:
           path: target/nextest/ci/junit.xml
           reporter: java-junit
           fail-on-error: false
+
+  plugin-contract:
+    name: Plugin Contract
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      # Builds every plugin .so, loads it like griffon-daemon-runner does and
+      # checks it against its manifest (see daemon/plugin_host/tests)
+      - name: Run plugin contract tests
+        run: cargo nextest run -p plugin_host --profile ci --locked -E 'binary_id(plugin_host::plugin_contract)'
+
+      - name: Upload test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Plugin Contract Results
+          path: target/nextest/ci/junit.xml
+          reporter: java-junit
+          fail-on-error: false
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gui
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: gui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # tsc -b && vite build
+      - name: Type-check and build
+        run: npm run build

@@ -19,7 +19,7 @@ type Props = {
 
 
 export default function ScannerTargetTable({ element, store = {}, onAction }: Props) {
-  const rows: String[] = resolveFromPath(element.targets, {store}) ?? [];
+  const rows: string[] = resolveFromPath(element.targets, {store}) ?? [];
 
   return (
     <div id={element.id} className="w-full overflow-x-auto rounded-md border">
