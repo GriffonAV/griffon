@@ -20,6 +20,8 @@ jobs:
   quality:
     name: Formatting & Lints
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
 
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +47,9 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Run Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        uses: clechasseur/rs-clippy-check@v3
+        with:
+          args: --workspace --all-targets -- -D warnings
 
   deny:
     name: Dependency Audit
@@ -81,11 +85,38 @@ jobs:
         uses: swatinem/rust-cache@v2
 
       - name: Build workspace
+        id: build
         run: cargo build --workspace --exclude griffon-gui
+
+      - name: Build summary
+        if: always()
+        shell: bash
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+        run: |
+          if [ "$BUILD_OUTCOME" == "success" ]; then
+            STATUS="✅ Built"
+          else
+            STATUS="❌ Failed"
+          fi
+          echo "## 🔨 Build Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Crate | Kind | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          cargo metadata --no-deps --format-version 1 \
+            | jq -r --arg status "$STATUS" \
+              '.packages[]
+               | select(.name != "griffon-gui")
+               | .targets[]
+               | select(.kind[] | test("lib|bin|cdylib|rlib|dylib"))
+               | "| \(.name) | \(.kind[0]) | \($status) |"' \
+            | sort -u >> "$GITHUB_STEP_SUMMARY"
 
   test:
     name: Tests
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
 
     steps:
       - uses: actions/checkout@v4
@@ -122,5 +153,16 @@ jobs:
           restore-keys: |
             yara-rules-${{ runner.os }}-
 
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
       - name: Run tests
-        run: cargo test --workspace
+        run: cargo nextest run --workspace --profile ci
+
+      - name: Upload test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Test Results
+          path: target/nextest/ci/junit.xml
+          reporter: java-junit
