@@ -36,8 +36,24 @@ Griffon is a fast, secure, and easy-to-use antivirus and security toolbox for Li
 
 Built-in plugins include a **YARA-based scanner** (with quarantine and rule updates) and a **system cleaner** (caches, logs, packages, big files, Docker).
 
+|  | |
+| :---: | :---: |
+| ![alt1](docs/img/img.png) | ![alt2](docs/img/img_1.png) |   
 > [!WARNING]
 > Griffon is an academic project in pre-release. It has not been professionally audited — see [SECURITY.md](SECURITY.md).
+
+## What can you do with Griffon?
+
+Griffon provides a set of security and system maintenance tools, with the flexibility to extend its capabilities through your own plugins.
+
+- **Scan your files for malware:** Use the built-in YARA-based scanner to scan files on your computer, detect potentially malicious files, and manage threats through quarantine.
+- **Free up disk space:** Use the system cleaner to identify and remove unnecessary files, including caches, logs, unused packages, large files, and Docker-related data.
+- **Build your own tools:** Extend Griffon with custom Rust plugins to add virtually any functionality you need, from security analysis to system administration and automation.
+- **Generate custom interfaces:** Describe your plugin's user interface in a TOML configuration file, and Griffon automatically generates the corresponding interface.
+
+Whether you want to scan your system for threats, clean up your disk, or build your own security and system utilities, Griffon provides a modular foundation that you can adapt to your needs.
+
+---
 
 ## Installation
 
