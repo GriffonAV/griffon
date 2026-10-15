@@ -38,6 +38,7 @@ target
 *.so
 
 .config/**
+!.config/nextest.toml
 *.config/debugging/
 *.config/griffon/
 *.d

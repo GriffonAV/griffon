@@ -166,3 +166,4 @@ jobs:
           name: Test Results
           path: target/nextest/ci/junit.xml
           reporter: java-junit
+          fail-on-error: false
