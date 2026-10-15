@@ -40,6 +40,15 @@ target = ""
 port = ""
 probe = ""
 
+[store.data.service_probe]
+ok = false
+message = ""
+output = ""
+command = ""
+target = ""
+port = ""
+action = ""
+
 [store.data.scan_history]
 ok = true
 message = ""
@@ -195,6 +204,16 @@ key = "store.data.http_probe"
 from = "event.value"
 returnType = "json"
 fn = "http_probe"
+
+[[interactions]]
+id = "nmap_service_probe"
+on = "nmap.service_probe"
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.service_probe"
+from = "event.value"
+returnType = "json"
+fn = "service_probe"
 
 [[interactions]]
 id = "nmap_refresh_history"

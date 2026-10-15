@@ -99,6 +99,29 @@ struct HttpProbeResponse {
     message: String,
 }
 
+#[derive(Deserialize)]
+struct ServiceProbeRequest {
+    target: String,
+    port: String,
+    service: String,
+    action: String,
+    #[serde(default = "default_executor")]
+    executor: String,
+    #[serde(default)]
+    exegol_container: String,
+}
+
+#[derive(Serialize)]
+struct ServiceProbeResponse {
+    ok: bool,
+    target: String,
+    port: String,
+    action: String,
+    command: String,
+    output: String,
+    message: String,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 struct Host {
     address: String,
@@ -537,6 +560,133 @@ fn http_probe(request: HttpProbeRequest) -> Result<HttpProbeResponse, String> {
     })
 }
 
+fn probe_command(executor: &str, container: &str, program: &str) -> Result<Command, String> {
+    match executor {
+        "local" => Ok(Command::new(program)),
+        "exegol" => {
+            if !is_valid_container_name(container.trim()) {
+                return Err(
+                    "Choisis un conteneur Exegol valide avant de lancer cette action.".to_string(),
+                );
+            }
+            let mut command = Command::new("docker");
+            command.args(["exec", container.trim(), program]);
+            Ok(command)
+        }
+        _ => Err("Exécuteur inconnu.".to_string()),
+    }
+}
+
+fn service_probe(request: ServiceProbeRequest) -> Result<ServiceProbeResponse, String> {
+    let target = request.target.trim();
+    if !is_valid_target(target) || !valid_port_number(&request.port) {
+        return Err("La cible ou le port du service est invalide.".to_string());
+    }
+
+    let (program, args, description) = match (request.service.as_str(), request.action.as_str()) {
+        ("ssh", "ssh_keys") => (
+            "ssh-keyscan",
+            vec![
+                "-T".to_string(),
+                "10".to_string(),
+                "-p".to_string(),
+                request.port.clone(),
+                target.to_string(),
+            ],
+            "Clés publiques SSH récupérées.",
+        ),
+        ("ftp", "ftp_anonymous") => (
+            "curl",
+            vec![
+                "-sS".to_string(),
+                "--max-time".to_string(),
+                "15".to_string(),
+                "--user".to_string(),
+                "anonymous:anonymous".to_string(),
+                http_url(target, &request.port, "ftp", "/"),
+            ],
+            "Test de connexion FTP anonyme terminé.",
+        ),
+        ("smtp" | "submission" | "smtps", "smtp_capabilities") => (
+            "nmap",
+            vec![
+                "-Pn".to_string(),
+                "-p".to_string(),
+                request.port.clone(),
+                "--script".to_string(),
+                "smtp-commands".to_string(),
+                "-oN".to_string(),
+                "-".to_string(),
+                "--".to_string(),
+                target.to_string(),
+            ],
+            "Capacités SMTP récupérées.",
+        ),
+        ("domain" | "dns", "dns_identification") => (
+            "nmap",
+            vec![
+                "-Pn".to_string(),
+                "-sU".to_string(),
+                "-p".to_string(),
+                request.port.clone(),
+                "--script".to_string(),
+                "dns-nsid".to_string(),
+                "-oN".to_string(),
+                "-".to_string(),
+                "--".to_string(),
+                target.to_string(),
+            ],
+            "Identification DNS terminée.",
+        ),
+        ("microsoft-ds" | "netbios-ssn" | "smb", "smb_shares") => (
+            "smbclient",
+            vec![
+                "-L".to_string(),
+                format!("//{target}"),
+                "-p".to_string(),
+                request.port.clone(),
+                "-N".to_string(),
+            ],
+            "Liste des partages SMB anonymes terminée.",
+        ),
+        _ => return Err("Cette action n’est pas disponible pour ce service.".to_string()),
+    };
+
+    let mut command = probe_command(&request.executor, &request.exegol_container, program)?;
+    command.args(&args);
+    let command_display = if request.executor == "exegol" {
+        format!(
+            "docker exec {} {program} {}",
+            request.exegol_container.trim(),
+            args.join(" ")
+        )
+    } else {
+        format!("{program} {}", args.join(" "))
+    };
+    let output = command
+        .output()
+        .map_err(|error| format!("Impossible de lancer {program} : {error}"))?;
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    if !output.status.success() {
+        return Err(if stderr.is_empty() {
+            format!("{program} a échoué.")
+        } else {
+            format!("{program} a échoué : {stderr}")
+        });
+    }
+    let output = if stdout.is_empty() { stderr } else { stdout };
+    Ok(ServiceProbeResponse {
+        ok: true,
+        target: target.to_string(),
+        port: request.port,
+        action: request.action,
+        command: command_display,
+        output,
+        message: description.to_string(),
+    })
+}
+
 fn attr(node: roxmltree::Node<'_, '_>, name: &str) -> String {
     node.attribute(name).unwrap_or_default().to_string()
 }
@@ -675,7 +825,7 @@ pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
     ));
     info.push(Tuple2(
         RString::from("function"),
-        RString::from("scan/list_exegol_containers/http_probe/list_history/delete_history_entry/clear_history"),
+        RString::from("scan/list_exegol_containers/http_probe/service_probe/list_history/delete_history_entry/clear_history"),
     ));
     RResult::ROk(info)
 }
@@ -708,6 +858,13 @@ extern "C" fn handle_message(message: RString) -> RString {
                 Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "output": "" }).to_string()),
             },
             Err(error) => RString::from(serde_json::json!({ "ok": false, "message": format!("Paramètres HTTP invalides : {error}"), "output": "" }).to_string()),
+        },
+        "service_probe" => match serde_json::from_str::<ServiceProbeRequest>(payload) {
+            Ok(request) => match service_probe(request) {
+                Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "output": "" }).to_string())),
+                Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "output": "" }).to_string()),
+            },
+            Err(error) => RString::from(serde_json::json!({ "ok": false, "message": format!("Paramètres de service invalides : {error}"), "output": "" }).to_string()),
         },
         "list_history" => match history_response() {
             Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "scans": [] }).to_string())),
@@ -833,5 +990,18 @@ mod tests {
     fn rejects_an_unsafe_container_name() {
         assert!(is_valid_container_name("htb"));
         assert!(!is_valid_container_name("htb; command"));
+    }
+
+    #[test]
+    fn only_accepts_actions_for_the_matching_service() {
+        let request = ServiceProbeRequest {
+            target: "192.0.2.10".to_string(),
+            port: "22".to_string(),
+            service: "ssh".to_string(),
+            action: "smtp_capabilities".to_string(),
+            executor: "local".to_string(),
+            exegol_container: String::new(),
+        };
+        assert!(service_probe(request).is_err());
     }
 }
