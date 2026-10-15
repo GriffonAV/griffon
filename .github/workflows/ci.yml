@@ -115,6 +115,7 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
+    needs: [build]
     permissions:
       checks: write
 
