@@ -36,9 +36,11 @@ Griffon is a fast, secure, and easy-to-use antivirus and security toolbox for Li
 
 Built-in plugins include a **YARA-based scanner** (with quarantine and rule updates) and a **system cleaner** (caches, logs, packages, big files, Docker).
 
-|  | |
-| :---: | :---: |
-| ![alt1](docs/img/img.png) | ![alt2](docs/img/img_1.png) |   
+<p align="center">
+  <img src="docs/img/img.png" alt="Griffon dashboard" width="49%" />
+  <img src="docs/img/img_1.png" alt="Griffon scanner" width="49%" />
+</p>
+
 > [!WARNING]
 > Griffon is an academic project in pre-release. It has not been professionally audited — see [SECURITY.md](SECURITY.md).
 
