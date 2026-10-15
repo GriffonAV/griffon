@@ -1,4 +1,4 @@
-name: Griffon CI
+name: Griffon Pipeline & Quality Checks (CI)
 
 on:
   push:
