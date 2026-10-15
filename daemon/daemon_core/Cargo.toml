@@ -2,7 +2,7 @@
 name = "griffon-daemon"
 version.workspace = true
 edition = "2024"
-license.workspace = true
+license = "Apache-2.0"
 default-run = "griffon-daemon"
 
 [dependencies]

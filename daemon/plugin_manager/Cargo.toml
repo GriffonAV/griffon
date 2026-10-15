@@ -2,7 +2,7 @@
 name = "plugin_manager"
 version.workspace = true
 edition = "2024"
-license.workspace = true
+license = "Apache-2.0"
 
 [lib]
 path = "src/plugin_manager.rs"

@@ -2,7 +2,7 @@
 name = "griffon_scanner"
 version = "0.3.0"
 edition = "2024"
-license.workspace = true
+license = "Apache-2.0"
 default-run = "griffon_scanner"
 
 [[bin]]

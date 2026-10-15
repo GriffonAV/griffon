@@ -2,7 +2,7 @@
 name = "ipc_protocol"
 version = "0.1.0"
 edition = "2024"
-license.workspace = true
+license = "Apache-2.0"
 
 [dependencies]
 serde = { version = "1.0.228", features = ["derive"] }

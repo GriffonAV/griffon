@@ -2,7 +2,7 @@
 name = "docker_helper"
 version = "0.1.0"
 edition = "2024"
-license.workspace = true
+license = "Apache-2.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
