@@ -2,6 +2,7 @@
 name = "plugin_manager"
 version.workspace = true
 edition = "2024"
+license.workspace = true
 
 [lib]
 path = "src/plugin_manager.rs"

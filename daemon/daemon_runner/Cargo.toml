@@ -2,6 +2,7 @@
 name = "griffon-daemon-runner"
 version.workspace = true
 edition = "2024"
+license.workspace = true
 
 [dependencies]
 plugin_interface = { workspace = true }

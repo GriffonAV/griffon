@@ -2,6 +2,7 @@
 name = "griffon_cleaner"
 version = "0.3.0"
 edition = "2021"
+license.workspace = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]

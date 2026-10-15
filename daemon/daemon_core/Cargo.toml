@@ -2,6 +2,7 @@
 name = "griffon-daemon"
 version.workspace = true
 edition = "2024"
+license.workspace = true
 default-run = "griffon-daemon"
 
 [dependencies]
