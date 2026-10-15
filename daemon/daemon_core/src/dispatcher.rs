@@ -277,56 +277,6 @@ fn handle_refresh_plugins(
     }
 }
 
-fn handle_call_plugin(
-    pm: &mut plugin_manager::PluginManager,
-    request_id: u32,
-    plugin_uuid: [u8; 16],
-    function_name: String,
-    call: CallPayload,
-) -> InterfaceResponse {
-    LOGGER_DISPATCHER.debug(format!(
-        "Executing plugin {} function {} arg {:?}",
-        format_uuid_bytes(&plugin_uuid),
-        function_name,
-        call.args
-    ));
-
-    let plugin_name = pm
-        .get_plugin_name(plugin_uuid)
-        .unwrap_or_else(|| format_uuid_bytes(&plugin_uuid));
-
-    let plugin_request_id = match pm.send_call(plugin_uuid, call) {
-        Ok(plugin_request_id) => plugin_request_id,
-        Err(e) => {
-            LOGGER_DISPATCHER.error(format!("Send call failed: {e}"));
-
-            return InterfaceResponse::Error {
-                request_id,
-                message: format!("send_call failed: {e}"),
-            };
-        }
-    };
-
-    let plugin_event = match pm.wait_for_response(plugin_request_id) {
-        Ok(plugin_event) => plugin_event,
-        Err(e) => {
-            return InterfaceResponse::CallResult {
-                request_id,
-                ok: false,
-                output: format!("wait_for_response failed: {e}"),
-            };
-        }
-    };
-
-    handle_plugin_event_response(
-        request_id,
-        plugin_uuid,
-        &plugin_name,
-        &function_name,
-        plugin_event,
-    )
-}
-
 fn handle_plugin_event_response(
     request_id: u32,
     plugin_uuid: [u8; 16],
