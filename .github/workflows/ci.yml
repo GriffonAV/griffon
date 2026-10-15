@@ -49,7 +49,7 @@ jobs:
       - name: Run Clippy
         uses: clechasseur/rs-clippy-check@v3
         with:
-          args: --workspace --all-targets -- -D warnings
+          args: --workspace --all-targets --locked -- -D warnings
 
   deny:
     name: Dependency Audit
@@ -86,7 +86,7 @@ jobs:
 
       - name: Build workspace
         id: build
-        run: cargo build --workspace --exclude griffon-gui
+        run: cargo build --workspace --exclude griffon-gui --locked
 
       - name: Build summary
         if: always()
@@ -158,7 +158,7 @@ jobs:
         uses: taiki-e/install-action@nextest
 
       - name: Run tests
-        run: cargo nextest run --workspace --profile ci
+        run: cargo nextest run --workspace --profile ci --locked
 
       - name: Upload test results
         uses: dorny/test-reporter@v1
