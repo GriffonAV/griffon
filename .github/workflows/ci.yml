@@ -13,6 +13,9 @@ on:
       - "develop"
       - "main"
 
+  # Lets release.yml run the full pipeline before publishing
+  workflow_call:
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -145,14 +148,6 @@ jobs:
         run: |
           python3 tests/fixtures/fetch_eicar.py
           python3 tests/fixtures/generate_fixtures.py
-
-      - name: Cache YARA rules
-        uses: actions/cache@v4
-        with:
-          path: plugins/griffon_scanner/rules
-          key: yara-rules-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            yara-rules-${{ runner.os }}-
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@nextest
