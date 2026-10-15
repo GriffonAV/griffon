@@ -15,6 +15,7 @@ members = [
     "plugins/griffon_cleaner",
     "plugins/griffon_scanner",
     "plugins/docker_helper",
+    "plugins/griffon_nmap",
 
     # GUI and CLI
     "gui/src-tauri",

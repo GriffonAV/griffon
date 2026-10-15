@@ -318,6 +318,15 @@ export type ScannerQuarantineElement = {
   targets?: string;
 }
 
+export type NmapScanResultsElement = {
+  type: "nmap_scan_results";
+  id: string;
+  from?: string;
+};
+
+export type NmapScanFormElement = { type: "nmap_scan_form"; id: string; from?: string };
+export type NmapHistoryElement = { type: "nmap_history"; id: string; from?: string };
+
 export type GriffonElement =
   | TextElement
   | ButtonElement
@@ -338,4 +347,7 @@ export type GriffonElement =
   | CleanerCandidateListElement
   | CleanerFileTypeSelectorElement
   | CleanerDryRunToggleElement
-  | ScannerTableElement;
+  | ScannerTableElement
+  | NmapScanResultsElement
+  | NmapScanFormElement
+  | NmapHistoryElement;
