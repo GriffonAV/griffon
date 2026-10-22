@@ -1,20 +1,34 @@
 name: Griffon Pipeline & Quality Checks (CI)
 
+# Runs once per PR commit, and again after merging into develop/main. Feature
+# branches get CI by opening a (draft) PR, or with "Run workflow".
 on:
   push:
     branches:
-      - "feat/**"
-      - "fix/**"
-      - "chore/**"
       - "develop"
+      - "main"
 
   pull_request:
     branches:
       - "develop"
       - "main"
 
+  workflow_dispatch:
+
+  # Lets release.yml run the full pipeline before publishing
+  workflow_call:
+
+# A new push to a PR cancels the outdated run for that PR. Pushes to
+# develop/main always run to completion.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   CARGO_TERM_COLOR: always
+  # GTK/WebKit headers needed by the Tauri GUI crate (Build, Tests and
+  # Formatting & Lints)
+  APT_PACKAGES: libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev
 
 jobs:
   quality:
@@ -28,12 +42,12 @@ jobs:
 
       - name: Install system dependencies
         run: |
+          # The man-db trigger rebuilds the man page index after every install,
+          # which is slow on GitHub runners and useless in CI
+          echo "set man-db/auto-update false" | sudo debconf-communicate
+          sudo dpkg-reconfigure man-db
           sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libgtk-3-dev \
-            libsoup-3.0-dev \
-            libjavascriptcoregtk-4.1-dev
+          sudo apt-get install -y --no-install-recommends $APT_PACKAGES
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -42,6 +56,9 @@ jobs:
 
       - name: Rust Cache
         uses: swatinem/rust-cache@v2
+        with:
+          # PRs reuse develop's cache without saving their own copy
+          save-if: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' }}
 
       - name: Check Formatting
         run: cargo fmt --all --check
@@ -49,7 +66,7 @@ jobs:
       - name: Run Clippy
         uses: clechasseur/rs-clippy-check@v3
         with:
-          args: --workspace --all-targets -- -D warnings
+          args: --workspace --all-targets --locked -- -D warnings
 
   deny:
     name: Dependency Audit
@@ -57,10 +74,31 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: EmbarkStudios/cargo-deny-action@v2
         with:
-          command: check advisories licenses bans sources
+          # PR checkouts are a merge commit: HEAD^1 is the base branch
+          fetch-depth: 2
+
+      # Only depend on what the PR changes, so they never break on their own
+      - name: Check licenses, bans and sources
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check licenses bans sources
+
+      # New RUSTSEC advisories appear without any change on our side, so they
+      # only block PRs that touch dependencies. release.yml runs the full check.
+      - name: Detect dependency changes
+        id: deps
+        if: github.event_name == 'pull_request'
+        run: |
+          if git diff --name-only HEAD^1 HEAD | grep -qE '(^|/)Cargo\.(toml|lock)$|^deny\.toml$'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check advisories
+        if: steps.deps.outputs.changed == 'true'
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories
 
   build:
     name: Build
@@ -71,22 +109,25 @@ jobs:
 
       - name: Install system dependencies
         run: |
+          # The man-db trigger rebuilds the man page index after every install,
+          # which is slow on GitHub runners and useless in CI
+          echo "set man-db/auto-update false" | sudo debconf-communicate
+          sudo dpkg-reconfigure man-db
           sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libgtk-3-dev \
-            libsoup-3.0-dev \
-            libjavascriptcoregtk-4.1-dev
+          sudo apt-get install -y --no-install-recommends $APT_PACKAGES
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Rust Cache
         uses: swatinem/rust-cache@v2
+        with:
+          # PRs reuse develop's cache without saving their own copy
+          save-if: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' }}
 
       - name: Build workspace
         id: build
-        run: cargo build --workspace --exclude griffon-gui
+        run: cargo build --workspace --exclude griffon-gui --locked
 
       - name: Build summary
         if: always()
@@ -124,18 +165,21 @@ jobs:
 
       - name: Install system dependencies
         run: |
+          # The man-db trigger rebuilds the man page index after every install,
+          # which is slow on GitHub runners and useless in CI
+          echo "set man-db/auto-update false" | sudo debconf-communicate
+          sudo dpkg-reconfigure man-db
           sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libgtk-3-dev \
-            libsoup-3.0-dev \
-            libjavascriptcoregtk-4.1-dev
+          sudo apt-get install -y --no-install-recommends $APT_PACKAGES
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
       - name: Rust Cache
         uses: swatinem/rust-cache@v2
+        with:
+          # PRs reuse develop's cache without saving their own copy
+          save-if: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' }}
 
       - name: Install Python dependencies
         run: pip install Pillow
@@ -146,19 +190,12 @@ jobs:
           python3 tests/fixtures/fetch_eicar.py
           python3 tests/fixtures/generate_fixtures.py
 
-      - name: Cache YARA rules
-        uses: actions/cache@v4
-        with:
-          path: plugins/griffon_scanner/rules
-          key: yara-rules-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            yara-rules-${{ runner.os }}-
-
       - name: Install cargo-nextest
         uses: taiki-e/install-action@nextest
 
       - name: Run tests
-        run: cargo nextest run --workspace --profile ci
+        # Plugin contract tests run in their own job below
+        run: cargo nextest run --workspace --profile ci --locked -E 'not binary_id(plugin_host::plugin_contract)'
 
       - name: Upload test results
         uses: dorny/test-reporter@v1
@@ -168,3 +205,65 @@ jobs:
           path: target/nextest/ci/junit.xml
           reporter: java-junit
           fail-on-error: false
+
+  plugin-contract:
+    name: Plugin Contract
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          # PRs reuse develop's cache without saving their own copy
+          save-if: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' }}
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@nextest
+
+      # Builds every plugin .so, loads it like griffon-daemon-runner does and
+      # checks it against its manifest (see daemon/plugin_host/tests)
+      - name: Run plugin contract tests
+        run: cargo nextest run -p plugin_host --profile ci --locked -E 'binary_id(plugin_host::plugin_contract)'
+
+      - name: Upload test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Plugin Contract Results
+          path: target/nextest/ci/junit.xml
+          reporter: java-junit
+          fail-on-error: false
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gui
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: gui/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # tsc -b && vite build
+      - name: Type-check and build
+        run: npm run build

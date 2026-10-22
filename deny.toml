@@ -67,34 +67,21 @@ feature-depth = 1
 #db-path = "$CARGO_HOME/advisory-dbs"
 # The url(s) of the advisory databases to use
 #db-urls = ["https://github.com/rustsec/advisory-db"]
+# Only fail on unmaintained crates we depend on directly. Transitive ones
+# (via tauri, yara-x, zbus, ...) are out of our hands.
+unmaintained = "workspace"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
     "RUSTSEC-2023-0071",
-    # bincode unmaintained - transitive via yara-x, no safe upgrade available
-    "RUSTSEC-2025-0141",
-    # generational-arena unmaintained - transitive via abi_stable, no safe upgrade available
-    "RUSTSEC-2024-0014",
-    # paste unmaintained - transitive via abi_stable, no safe upgrade available
-    "RUSTSEC-2024-0436",
-    # proc-macro-error unmaintained - transitive via glib-macros/tauri, no safe upgrade available
-    "RUSTSEC-2024-0370",
     # serde_cbor unmaintained - direct dep in ipc_protocol, TODO replace with postcard or serde_json
     "RUSTSEC-2021-0127",
-    # unic-* crates unmaintained - transitive via yara-x, no safe upgrade available
-    "RUSTSEC-2025-0081",
-    "RUSTSEC-2025-0075",
-    "RUSTSEC-2025-0080",
-    "RUSTSEC-2025-0100",
-    "RUSTSEC-2025-0098",
-    # wasmtime vulnerabilities - transitive via yara-x which pins the version, no upgrade path
-    "RUSTSEC-2026-0222",
-    "RUSTSEC-2026-0269",
-    "RUSTSEC-2026-0316",
-    "RUSTSEC-2026-0327",
-    "RUSTSEC-2026-0359",
-    "RUSTSEC-2026-0362",
-    "RUSTSEC-2026-0363",
+    # zip extract() symlink/SUID issues - we never call extract(): the scanner reads
+    # entries in memory and the installers use enclosed_name(). Fixed in zip 9,
+    # but yara-x still requires zip 8
+    "RUSTSEC-2026-0367",
+    "RUSTSEC-2026-0368",
+    "RUSTSEC-2026-0369",
     #"RUSTSEC-0000-0000",
     #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
     #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish

@@ -6,31 +6,32 @@ on:
       - "v*"
 
 jobs:
-  release:
-    name: Build and Release
+  verify:
+    name: Verify Tag
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history so merge-base can check ancestry against main
+          fetch-depth: 0
 
       - name: Extract Version & Verify Branch
         id: get_version
         shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+          CURRENT_SHA: ${{ github.sha }}
         run: |
-          TAG="${{ github.ref_name }}"
           # Strip leading 'v' if present
           VERSION="${TAG#v}"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Building for version: $VERSION (tag: $TAG)"
 
           # Check if the tagged commit is on main
-          # github.ref gives refs/tags/vX.Y.Z, but we can check if main contains the current commit SHA
-          CURRENT_SHA="${{ github.sha }}"
           echo "Checking if commit $CURRENT_SHA is on main..."
-          
           git fetch origin main
           if ! git merge-base --is-ancestor "$CURRENT_SHA" origin/main; then
             echo "❌ Error: Tags can only be released from the 'main' branch!"
@@ -38,10 +39,43 @@ jobs:
           fi
           echo "✅ Verified: Tag is on the main branch."
 
+  ci:
+    name: CI
+    needs: [verify]
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      checks: write
+
+  # CI only checks advisories on PRs that touch dependencies, so a release
+  # always runs the full check
+  audit:
+    name: Dependency Audit (full)
+    needs: [verify]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories licenses bans sources
+
+  release:
+    name: Build and Release
+    needs: [verify, ci, audit]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Update Cargo.toml Workspace Version
         shell: bash
         run: |
-          VERSION="${{ steps.get_version.outputs.version }}"
           python3 -c '
           import os, re
           version = os.environ["VERSION"]
@@ -61,7 +95,7 @@ jobs:
         run: |
           mkdir -p dist
           docker run --rm \
-            -e VERSION="${{ steps.get_version.outputs.version }}" \
+            -e VERSION="$VERSION" \
             -v "$(pwd)/dist:/out" \
             griffon-builder
 

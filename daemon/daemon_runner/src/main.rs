@@ -1,13 +1,11 @@
-use abi_stable::library::lib_header_from_path;
-use abi_stable::std_types::{RResult, RString, Tuple2};
 use ipc_protocol::ipc_payload_runner::{
     CallPayload, ErrorPayload, HelloOkPayload, Message, ResultPayload, recv_message, send_message,
 };
 use logger::{LogLevel, Logger};
-use plugin_interface::{PluginRef, PluginRoot_Ref};
+use plugin_host::{LoadedPlugin, PluginInfo, is_shared_library};
 use std::io;
 use std::os::fd::FromRawFd;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::process::exit;
 use uuid::Uuid;
 
@@ -31,90 +29,41 @@ static LOGGER_RUNNER_NETWORK: Logger = if cfg!(debug_assertions) {
     )
 };
 
-struct LoadedPlugin {
-    root: PluginRoot_Ref,
-    path: PathBuf,
-    uuid: RString,
-    functions: RString,
-    name: RString,
-}
+/// Calls the plugin's `init()`. On failure the runner keeps going with empty
+/// metadata (name falls back to the file name, UUID to nil).
+fn init_plugin(plugin: &LoadedPlugin) -> PluginInfo {
+    let file_name = plugin.path().display().to_string();
 
-fn spawn_start_if_exists(plugin: &mut LoadedPlugin) {
-    let file_name = plugin.path.display().to_string();
-
-    let plugin_ref: &PluginRef = &plugin.root.plugin();
-    let init_fn = match plugin_ref.init() {
-        Some(f) => f,
-        None => {
-            eprintln!("[RUNNER {file_name}] ERROR: init() is None");
-            return;
-        }
-    };
-
-    let init_result = init_fn();
-
-    match init_result {
-        RResult::ROk(vec) => {
-            LOGGER_RUNNER.info(format!("init() returned ok with {} entries", vec.len()));
-
-            for Tuple2(key, value) in vec {
-                if key == "function" {
-                    plugin.functions = value.clone();
-                }
-                if key == "name" {
-                    plugin.name = value.clone();
-                }
-                if key == "UUID" {
-                    plugin.uuid = value.clone();
-                }
-                if LOGGER_RUNNER.level() == LogLevel::Debug {
-                    println!("    {} => {}", key.as_str(), value.as_str());
+    match plugin.init() {
+        Ok(info) => {
+            LOGGER_RUNNER.info(format!(
+                "init() returned ok with {} entries",
+                info.entries.len()
+            ));
+            if LOGGER_RUNNER.level() == LogLevel::Debug {
+                for (key, value) in &info.entries {
+                    println!("    {key} => {value}");
                 }
             }
+            info
         }
-        RResult::RErr(err_msg) => {
-            eprintln!("[RUNNER {file_name}] init() ERROR: {}", err_msg.as_str());
+        Err(err_msg) => {
+            eprintln!("[RUNNER {file_name}] init() ERROR: {err_msg}");
+            PluginInfo::default()
         }
     }
 }
 
-fn load_plugin(path: &Path) -> Result<LoadedPlugin, String> {
-    let header = lib_header_from_path(path).map_err(|e| format!("header load failed: {e}"))?;
-
-    let root: PluginRoot_Ref = header
-        .init_root_module::<PluginRoot_Ref>()
-        .map_err(|e| format!("init root failed: {e}"))?;
-
-    Ok(LoadedPlugin {
-        root,
-        path: path.to_path_buf(),
-        uuid: "".into(),
-        functions: "".into(),
-        name: "".into(),
-    })
-}
-
-fn is_shared_library(path: &Path) -> bool {
-    path.is_file() && path.extension().is_some_and(|ext| ext == "so")
-}
-
-fn parse_functions(s: &str) -> Vec<String> {
-    s.split(['/', ','])
-        .map(|x| x.trim().to_string())
-        .filter(|x| !x.is_empty())
-        .collect()
-}
-
-fn build_hello_ok(plugin: &LoadedPlugin, fallback_name: &str) -> HelloOkPayload {
-    let name = if plugin.name.as_str().trim().is_empty() {
+fn build_hello_ok(info: &PluginInfo, fallback_name: &str) -> HelloOkPayload {
+    let name = if info.name.trim().is_empty() {
         fallback_name.to_string()
     } else {
-        plugin.name.as_str().to_string()
+        info.name.clone()
     };
 
-    let uuid_string = plugin.uuid.as_str().to_string();
+    let uuid_string = info.uuid.clone();
 
-    let functions = parse_functions(plugin.functions.as_str());
+    let functions = info.functions.clone();
 
     LOGGER_RUNNER_NETWORK.debug(format!(
         "name: {name}, uuid: {uuid_string}, functions: {:?}",
@@ -132,31 +81,10 @@ fn build_hello_ok(plugin: &LoadedPlugin, fallback_name: &str) -> HelloOkPayload 
     }
 }
 
-/// - args vide  => "fn:ping"
-/// - args [2]   => "fn:ping 2"
-/// - args [a,b] => "fn:scan_file a b"
-fn call_to_wire(call: &CallPayload) -> String {
-    // this part will change in the v2
-    if call.args.is_empty() {
-        format!("fn:{}", call.fn_name)
-    } else {
-        format!("fn:{} {}", call.fn_name, call.args.join(" "))
-    }
-}
-
 fn handle_call(plugin: &LoadedPlugin, call: CallPayload) -> io::Result<String> {
-    let plugin_ref: &PluginRef = &plugin.root.plugin();
-    let handle_fn = plugin_ref.handle_message().ok_or_else(|| {
-        io::Error::new(
-            io::ErrorKind::InvalidData,
-            "plugin handle_message() is None",
-        )
-    })?;
-
-    let wire = call_to_wire(&call);
-    let response: RString = handle_fn(RString::from(wire));
-
-    Ok(response.as_str().to_string())
+    plugin
+        .call(&call.fn_name, &call.args)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }
 
 fn main() {
@@ -179,12 +107,12 @@ fn main() {
         exit(1);
     }
 
-    let mut plugin = load_plugin(so_path).unwrap_or_else(|e| {
+    let plugin = LoadedPlugin::load(so_path).unwrap_or_else(|e| {
         eprintln!("[RUNNER](ERROR) Failed to load plugin: {e}");
         exit(1);
     });
 
-    spawn_start_if_exists(&mut plugin);
+    let info = init_plugin(&plugin);
 
     let fd = 3;
     let mut sock = unsafe { std::os::unix::net::UnixStream::from_raw_fd(fd) };
@@ -200,7 +128,7 @@ fn main() {
 
         match msg {
             Message::Hello => {
-                let payload = build_hello_ok(&plugin, &fallback_name);
+                let payload = build_hello_ok(&info, &fallback_name);
                 if let Err(e) = send_message(&mut sock, Message::HelloOk(payload)) {
                     eprintln!("[RUNNER {fallback_name}](ERROR) failed to send HelloOk: {e}");
                     break;

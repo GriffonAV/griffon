@@ -20,7 +20,7 @@ function getFirstTransmitValue(element: TableElement, rows: TableRowData[], rowI
   if (element.columns == null)
     return;
 
-  var value_arr: Array<any> = []
+  const value_arr: Array<any> = []
   console.log("rowID: " + rowID);
   console.log("rows: " + JSON.stringify(rows));
   console.log("element.columns: " + JSON.stringify(element.columns));
