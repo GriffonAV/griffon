@@ -1,17 +1,20 @@
 name: Griffon Pipeline & Quality Checks (CI)
 
+# Feature branches only run lint.yml on push; the full pipeline runs once per
+# PR commit, and again after merging into develop/main. Open a draft PR to get
+# it early, or use "Run workflow".
 on:
   push:
     branches:
-      - "feat/**"
-      - "fix/**"
-      - "chore/**"
       - "develop"
+      - "main"
 
   pull_request:
     branches:
       - "develop"
       - "main"
+
+  workflow_dispatch:
 
   # Lets release.yml run the full pipeline before publishing
   workflow_call:
@@ -20,40 +23,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  quality:
-    name: Formatting & Lints
-    runs-on: ubuntu-latest
-    permissions:
-      checks: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libgtk-3-dev \
-            libsoup-3.0-dev \
-            libjavascriptcoregtk-4.1-dev
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Rust Cache
-        uses: swatinem/rust-cache@v2
-
-      - name: Check Formatting
-        run: cargo fmt --all --check
-
-      - name: Run Clippy
-        uses: clechasseur/rs-clippy-check@v3
-        with:
-          args: --workspace --all-targets --locked -- -D warnings
-
   deny:
     name: Dependency Audit
     runs-on: ubuntu-latest
@@ -238,9 +207,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint
-        run: npm run lint
-
+      # ESLint runs in lint.yml
       # tsc -b && vite build
       - name: Type-check and build
         run: npm run build

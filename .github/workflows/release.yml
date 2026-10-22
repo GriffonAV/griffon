@@ -47,6 +47,14 @@ jobs:
       contents: read
       checks: write
 
+  lint:
+    name: Lint
+    needs: [verify]
+    uses: ./.github/workflows/lint.yml
+    permissions:
+      contents: read
+      checks: write
+
   # CI only checks advisories on PRs that touch dependencies, so a release
   # always runs the full check
   audit:
@@ -63,7 +71,7 @@ jobs:
 
   release:
     name: Build and Release
-    needs: [verify, ci, audit]
+    needs: [verify, ci, lint, audit]
     runs-on: ubuntu-latest
     permissions:
       contents: write

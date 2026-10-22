@@ -127,7 +127,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-The first two commands match the [Rust CI workflow](.github/workflows/ci.yml). For GUI changes, also run:
+The first two commands match the [lint workflow](.github/workflows/lint.yml), which runs on every push. The full [CI workflow](.github/workflows/ci.yml) runs on pull requests. For GUI changes, also run:
 
 ```bash
 cd gui
