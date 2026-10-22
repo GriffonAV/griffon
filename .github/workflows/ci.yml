@@ -60,10 +60,31 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: EmbarkStudios/cargo-deny-action@v2
         with:
-          command: check advisories licenses bans sources
+          # PR checkouts are a merge commit: HEAD^1 is the base branch
+          fetch-depth: 2
+
+      # Only depend on what the PR changes, so they never break on their own
+      - name: Check licenses, bans and sources
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check licenses bans sources
+
+      # New RUSTSEC advisories appear without any change on our side, so they
+      # only block PRs that touch dependencies. release.yml runs the full check.
+      - name: Detect dependency changes
+        id: deps
+        if: github.event_name == 'pull_request'
+        run: |
+          if git diff --name-only HEAD^1 HEAD | grep -qE '(^|/)Cargo\.(toml|lock)$|^deny\.toml$'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check advisories
+        if: steps.deps.outputs.changed == 'true'
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories
 
   build:
     name: Build
