@@ -4,7 +4,7 @@ use std::io;
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
-use std::sync::mpsc;
+use std::sync::{Arc, Mutex, mpsc};
 
 use uuid::Uuid;
 
@@ -109,6 +109,8 @@ pub fn setup_listener() -> io::Result<UnixListener> {
 pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) -> io::Result<()> {
     LOGGER_NETWORK.debug("Client handler started");
 
+    let writer = Arc::new(Mutex::new(stream.try_clone()?));
+
     loop {
         let (frame, req) = match recv_interface_request(&mut stream) {
             Ok(v) => v,
@@ -118,136 +120,129 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
             }
         };
 
+        let request_id = frame.request_id;
+
         LOGGER_NETWORK.debug(format!(
             "Header: version={}, mtype={:?}, request_id={} BODY: data={:?}",
-            frame.version, frame.mtype, frame.request_id, req
+            frame.version, frame.mtype, request_id, req
         ));
 
-        let resp = match req {
+        let (reply_tx, reply_rx) = mpsc::channel();
+
+        let task = match req {
             InterfaceRequest::SwitchStatusNotification { plugin_uuid } => {
-                let plugin_uuid_str = Uuid::from_bytes(plugin_uuid).to_string();
                 LOGGER_CORE.debug(format!(
                     "Switch notification status for plugin {}",
-                    plugin_uuid_str
+                    Uuid::from_bytes(plugin_uuid)
                 ));
 
-                let (reply_tx, reply_rx) = mpsc::channel();
-
-                let task = DaemonTask::SwitchStatusNotification {
-                    request_id: frame.request_id,
+                DaemonTask::SwitchStatusNotification {
+                    request_id,
                     plugin_uuid,
                     reply_tx,
-                };
-
-                if let Err(e) = task_tx.send(task) {
-                    LOGGER_CORE.error(format!("Failed to queue task: {e}"));
-                    InterfaceResponse::Error {
-                        request_id: frame.request_id,
-                        message: format!("Failed to queue task: {e}"),
-                    }
-                } else {
-                    reply_rx
-                        .recv()
-                        .unwrap_or_else(|e| InterfaceResponse::Error {
-                            request_id: frame.request_id,
-                            message: format!("Dispatcher response channel closed: {e}"),
-                        })
                 }
             }
+
             InterfaceRequest::SwitchStatusPlugin { plugin_uuid } => {
-                let plugin_uuid_str = Uuid::from_bytes(plugin_uuid).to_string();
-                LOGGER_CORE.debug(format!("Switch status plugin {}", plugin_uuid_str));
+                LOGGER_CORE.debug(format!(
+                    "Switch status plugin {}",
+                    Uuid::from_bytes(plugin_uuid)
+                ));
 
-                let (reply_tx, reply_rx) = mpsc::channel();
-
-                let task = DaemonTask::SwitchStatusPlugin {
-                    request_id: frame.request_id,
+                DaemonTask::SwitchStatusPlugin {
+                    request_id,
                     plugin_uuid,
                     reply_tx,
-                };
-
-                if let Err(e) = task_tx.send(task) {
-                    LOGGER_CORE.error(format!("Failed to queue task: {e}"));
-                    InterfaceResponse::Error {
-                        request_id: frame.request_id,
-                        message: format!("Failed to queue task: {e}"),
-                    }
-                } else {
-                    reply_rx
-                        .recv()
-                        .unwrap_or_else(|e| InterfaceResponse::Error {
-                            request_id: frame.request_id,
-                            message: format!("Dispatcher response channel closed: {e}"),
-                        })
                 }
             }
-            InterfaceRequest::RefreshPlugins => {
-                let (reply_tx, reply_rx) = mpsc::channel();
 
-                let task = DaemonTask::RefreshPlugins {
-                    request_id: frame.request_id,
-                    reply_tx,
-                };
+            InterfaceRequest::RefreshPlugins => DaemonTask::RefreshPlugins {
+                request_id,
+                reply_tx,
+            },
 
-                if let Err(e) = task_tx.send(task) {
-                    LOGGER_CORE.error(format!("Failed to queue refresh task: {e}"));
-                    InterfaceResponse::Error {
-                        request_id: frame.request_id,
-                        message: format!("Failed to queue refresh task: {e}"),
-                    }
-                } else {
-                    reply_rx
-                        .recv()
-                        .unwrap_or_else(|e| InterfaceResponse::Error {
-                            request_id: frame.request_id,
-                            message: format!("Dispatcher response channel closed: {e}"),
-                        })
-                }
-            }
             InterfaceRequest::CallPlugin {
                 plugin_uuid,
                 fn_name,
                 args,
             } => {
-                let plugin_uuid_str = Uuid::from_bytes(plugin_uuid).to_string();
                 LOGGER_CORE.debug(format!(
-                    "Fn {} to execute for plugin {:?} with args {:?}",
-                    fn_name, plugin_uuid_str, args
+                    "Function {} requested for plugin {} with args {:?}",
+                    fn_name,
+                    Uuid::from_bytes(plugin_uuid),
+                    args
                 ));
 
-                let (reply_tx, reply_rx) = mpsc::channel();
-
-                let task = DaemonTask::CallPlugin {
-                    request_id: frame.request_id,
+                DaemonTask::CallPlugin {
+                    request_id,
                     plugin_uuid,
                     fn_name,
                     args,
                     reply_tx,
-                };
-
-                if let Err(e) = task_tx.send(task) {
-                    LOGGER_CORE.error(format!("Failed to queue task: {e}"));
-                    InterfaceResponse::Error {
-                        request_id: frame.request_id,
-                        message: format!("Failed to queue task: {e}"),
-                    }
-                } else {
-                    reply_rx
-                        .recv()
-                        .unwrap_or_else(|e| InterfaceResponse::Error {
-                            request_id: frame.request_id,
-                            message: format!("Dispatcher response channel closed: {e}"),
-                        })
                 }
             }
 
-            _ => InterfaceResponse::Error {
-                request_id: frame.request_id,
-                message: "Request not implemented yet".to_string(),
-            },
+            _ => {
+                let response = InterfaceResponse::Error {
+                    request_id,
+                    message: "Request not implemented yet".to_string(),
+                };
+
+                send_interface_response(&mut stream, &response)?;
+                continue;
+            }
         };
 
-        send_interface_response(&mut stream, &resp)?;
-        LOGGER_NETWORK.debug(format!("Response sent: {:?}", resp));
+        // Transmettre la tâche sans attendre son résultat.
+        if let Err(e) = task_tx.send(task) {
+            LOGGER_CORE.error(format!("Failed to queue task: {e}"));
+
+            let response = InterfaceResponse::Error {
+                request_id,
+                message: format!("Failed to queue task: {e}"),
+            };
+
+            let mut socket = writer
+                .lock()
+                .map_err(|_| io::Error::other("Socket writer mutex poisoned"))?;
+
+            send_interface_response(&mut *socket, &response)?;
+            continue;
+        }
+
+        // Attendre la réponse dans un thread séparé afin que la lecture
+        // des prochaines requêtes puisse continuer.
+        let response_writer = Arc::clone(&writer);
+
+        std::thread::spawn(move || {
+            let response = reply_rx
+                .recv()
+                .unwrap_or_else(|e| InterfaceResponse::Error {
+                    request_id,
+                    message: format!("Dispatcher response channel closed: {e}"),
+                });
+
+            match response_writer.lock() {
+                Ok(mut socket) => {
+                    if let Err(e) = send_interface_response(&mut *socket, &response) {
+                        LOGGER_NETWORK.error(format!(
+                            "Failed to send response for request {}: {}",
+                            request_id, e
+                        ));
+                    } else {
+                        LOGGER_NETWORK.debug(format!(
+                            "Response sent for request {}: {:?}",
+                            request_id, response
+                        ));
+                    }
+                }
+                Err(e) => {
+                    LOGGER_NETWORK.error(format!(
+                        "Socket writer mutex poisoned for request {}: {}",
+                        request_id, e
+                    ));
+                }
+            }
+        });
     }
 }

@@ -1,5 +1,7 @@
-use std::sync::mpsc::{self, Sender};
+use std::collections::HashMap;
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::thread;
+use std::time::Duration;
 
 use ipc_protocol::ipc_payload_interface::{InterfaceResponse, format_uuid_bytes};
 use ipc_protocol::ipc_payload_runner::CallPayload;
@@ -18,55 +20,153 @@ static LOGGER_DISPATCHER: Logger = if cfg!(debug_assertions) {
     )
 };
 
-pub fn start_dispatcher(task_rx: mpsc::Receiver<DaemonTask>, plugin_dir_path: &'static str) {
+struct PendingCall {
+    request_id: u32,
+    plugin_uuid: [u8; 16],
+    plugin_name: String,
+    function_name: String,
+    reply_tx: Sender<InterfaceResponse>,
+}
+
+pub fn start_dispatcher(task_rx: Receiver<DaemonTask>, plugin_dir_path: &'static str) {
     thread::spawn(move || {
         LOGGER_DISPATCHER.debug("Started");
 
         let mut pm = plugin_manager::PluginManager::new(plugin_dir_path);
         pm.scan_dir();
 
-        while let Ok(task) = task_rx.recv() {
-            match task {
-                DaemonTask::SwitchStatusNotification {
-                    request_id,
-                    plugin_uuid,
-                    reply_tx,
-                } => {
-                    let response = handle_switch_notification(request_id, plugin_uuid);
-                    send_response(reply_tx, response, "notification switch");
+        let mut pending_calls: HashMap<u32, PendingCall> = HashMap::new();
+
+        loop {
+            match task_rx.recv_timeout(Duration::from_millis(50)) {
+                Ok(task) => match task {
+                    DaemonTask::SwitchStatusNotification {
+                        request_id,
+                        plugin_uuid,
+                        reply_tx,
+                    } => {
+                        let response = handle_switch_notification(request_id, plugin_uuid);
+
+                        send_response(reply_tx, response, "notification switch");
+                    }
+
+                    DaemonTask::SwitchStatusPlugin {
+                        request_id,
+                        plugin_uuid,
+                        reply_tx,
+                    } => {
+                        let response = handle_switch_plugin(&mut pm, request_id, plugin_uuid);
+
+                        send_response(reply_tx, response, "plugin switch");
+                    }
+
+                    DaemonTask::RefreshPlugins {
+                        request_id,
+                        reply_tx,
+                    } => {
+                        let response = handle_refresh_plugins(&mut pm, request_id);
+
+                        send_response(reply_tx, response, "plugin refresh");
+                    }
+
+                    DaemonTask::CallPlugin {
+                        request_id,
+                        plugin_uuid,
+                        fn_name,
+                        args,
+                        reply_tx,
+                    } => {
+                        let function_name = fn_name.clone();
+                        let call = CallPayload { fn_name, args };
+
+                        let plugin_name = pm
+                            .get_plugin_name(plugin_uuid)
+                            .unwrap_or_else(|| format_uuid_bytes(&plugin_uuid));
+
+                        match pm.send_call(plugin_uuid, call) {
+                            Ok(plugin_request_id) => {
+                                LOGGER_DISPATCHER.debug(format!(
+                                    "Plugin call sent: client request={}, plugin request={}",
+                                    request_id, plugin_request_id,
+                                ));
+
+                                pending_calls.insert(
+                                    plugin_request_id,
+                                    PendingCall {
+                                        request_id,
+                                        plugin_uuid,
+                                        plugin_name,
+                                        function_name,
+                                        reply_tx,
+                                    },
+                                );
+                            }
+
+                            Err(e) => {
+                                LOGGER_DISPATCHER.error(format!("Send call failed: {e}"));
+
+                                send_response(
+                                    reply_tx,
+                                    InterfaceResponse::Error {
+                                        request_id,
+                                        message: format!("send_call failed: {e}"),
+                                    },
+                                    "plugin call",
+                                );
+                            }
+                        }
+                    }
+                },
+
+                Err(RecvTimeoutError::Timeout) => {}
+
+                Err(RecvTimeoutError::Disconnected) => {
+                    LOGGER_DISPATCHER.warn("Task channel disconnected; stopping dispatcher");
+                    break;
+                }
+            }
+
+            while let Some(event) = pm.try_recv_event() {
+                let plugin_request_id = match &event {
+                    plugin_manager::PluginEvent::Result { request_id, .. }
+                    | plugin_manager::PluginEvent::Error { request_id, .. } => Some(*request_id),
+                    _ => None,
+                };
+
+                if let Some(plugin_request_id) = plugin_request_id {
+                    match pending_calls.remove(&plugin_request_id) {
+                        Some(pending) => {
+                            let response = handle_plugin_event_response(
+                                pending.request_id,
+                                pending.plugin_uuid,
+                                &pending.plugin_name,
+                                &pending.function_name,
+                                event,
+                            );
+
+                            send_response(pending.reply_tx, response, "plugin call");
+                        }
+                        None => {
+                            LOGGER_DISPATCHER.warn(format!(
+                                "Received an event for unknown plugin request {}",
+                                plugin_request_id,
+                            ));
+                        }
+                    }
+
+                    continue;
                 }
 
-                DaemonTask::SwitchStatusPlugin {
-                    request_id,
-                    plugin_uuid,
-                    reply_tx,
-                } => {
-                    let response = handle_switch_plugin(&mut pm, request_id, plugin_uuid);
-                    send_response(reply_tx, response, "plugin switch");
-                }
+                match event {
+                    plugin_manager::PluginEvent::Closed { pid, reason } => {
+                        LOGGER_DISPATCHER.error(format!("Plugin runner {pid} closed: {reason}",));
+                    }
 
-                DaemonTask::RefreshPlugins {
-                    request_id,
-                    reply_tx,
-                } => {
-                    let response = handle_refresh_plugins(&mut pm, request_id);
-                    send_response(reply_tx, response, "plugin refresh");
-                }
+                    plugin_manager::PluginEvent::Heartbeat { pid } => {
+                        LOGGER_DISPATCHER.debug(format!("Heartbeat received from runner {pid}",));
+                    }
 
-                DaemonTask::CallPlugin {
-                    request_id,
-                    plugin_uuid,
-                    fn_name,
-                    args,
-                    reply_tx,
-                } => {
-                    let function_name = fn_name.clone();
-                    let call = CallPayload { fn_name, args };
-
-                    let response =
-                        handle_call_plugin(&mut pm, request_id, plugin_uuid, function_name, call);
-
-                    send_response(reply_tx, response, "plugin call");
+                    _ => {}
                 }
             }
         }
@@ -125,56 +225,6 @@ fn handle_refresh_plugins(
         request_id,
         plugins: pm.list_plugins(),
     }
-}
-
-fn handle_call_plugin(
-    pm: &mut plugin_manager::PluginManager,
-    request_id: u32,
-    plugin_uuid: [u8; 16],
-    function_name: String,
-    call: CallPayload,
-) -> InterfaceResponse {
-    LOGGER_DISPATCHER.debug(format!(
-        "Executing plugin {} function {} arg {:?}",
-        format_uuid_bytes(&plugin_uuid),
-        function_name,
-        call.args
-    ));
-
-    let plugin_name = pm
-        .get_plugin_name(plugin_uuid)
-        .unwrap_or_else(|| format_uuid_bytes(&plugin_uuid));
-
-    let plugin_request_id = match pm.send_call(plugin_uuid, call) {
-        Ok(plugin_request_id) => plugin_request_id,
-        Err(e) => {
-            LOGGER_DISPATCHER.error(format!("Send call failed: {e}"));
-
-            return InterfaceResponse::Error {
-                request_id,
-                message: format!("send_call failed: {e}"),
-            };
-        }
-    };
-
-    let plugin_event = match pm.wait_for_response(plugin_request_id) {
-        Ok(plugin_event) => plugin_event,
-        Err(e) => {
-            return InterfaceResponse::CallResult {
-                request_id,
-                ok: false,
-                output: format!("wait_for_response failed: {e}"),
-            };
-        }
-    };
-
-    handle_plugin_event_response(
-        request_id,
-        plugin_uuid,
-        &plugin_name,
-        &function_name,
-        plugin_event,
-    )
 }
 
 fn handle_plugin_event_response(
