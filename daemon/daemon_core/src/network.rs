@@ -106,10 +106,7 @@ pub fn setup_listener() -> io::Result<UnixListener> {
     Ok(listener)
 }
 
-pub fn handle_client(
-    mut stream: UnixStream,
-    task_tx: mpsc::Sender<DaemonTask>,
-) -> io::Result<()> {
+pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) -> io::Result<()> {
     LOGGER_NETWORK.debug("Client handler started");
 
     let writer = Arc::new(Mutex::new(stream.try_clone()?));
@@ -118,9 +115,7 @@ pub fn handle_client(
         let (frame, req) = match recv_interface_request(&mut stream) {
             Ok(v) => v,
             Err(e) => {
-                LOGGER_NETWORK.warn(format!(
-                    "Client disconnected or invalid request: {e}"
-                ));
+                LOGGER_NETWORK.warn(format!("Client disconnected or invalid request: {e}"));
                 return Ok(());
             }
         };
@@ -220,20 +215,16 @@ pub fn handle_client(
         let response_writer = Arc::clone(&writer);
 
         std::thread::spawn(move || {
-            let response = reply_rx.recv().unwrap_or_else(|e| {
-                InterfaceResponse::Error {
+            let response = reply_rx
+                .recv()
+                .unwrap_or_else(|e| InterfaceResponse::Error {
                     request_id,
-                    message: format!(
-                        "Dispatcher response channel closed: {e}"
-                    ),
-                }
-            });
+                    message: format!("Dispatcher response channel closed: {e}"),
+                });
 
             match response_writer.lock() {
                 Ok(mut socket) => {
-                    if let Err(e) =
-                        send_interface_response(&mut *socket, &response)
-                    {
+                    if let Err(e) = send_interface_response(&mut *socket, &response) {
                         LOGGER_NETWORK.error(format!(
                             "Failed to send response for request {}: {}",
                             request_id, e
@@ -254,5 +245,4 @@ pub fn handle_client(
             }
         });
     }
-
 }

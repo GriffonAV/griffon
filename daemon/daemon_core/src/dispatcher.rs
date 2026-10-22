@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::mpsc::{self, Receiver, Sender, RecvTimeoutError};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
 use std::thread;
 use std::time::Duration;
 
@@ -28,11 +28,7 @@ struct PendingCall {
     reply_tx: Sender<InterfaceResponse>,
 }
 
-
-pub fn start_dispatcher(
-    task_rx: Receiver<DaemonTask>,
-    plugin_dir_path: &'static str,
-) {
+pub fn start_dispatcher(task_rx: Receiver<DaemonTask>, plugin_dir_path: &'static str) {
     thread::spawn(move || {
         LOGGER_DISPATCHER.debug("Started");
 
@@ -43,135 +39,97 @@ pub fn start_dispatcher(
 
         loop {
             match task_rx.recv_timeout(Duration::from_millis(50)) {
-                Ok(task) => {
-                    match task {
-                        DaemonTask::SwitchStatusNotification {
-                            request_id,
-                            plugin_uuid,
-                            reply_tx,
-                        } => {
-                            let response =
-                                handle_switch_notification(request_id, plugin_uuid);
+                Ok(task) => match task {
+                    DaemonTask::SwitchStatusNotification {
+                        request_id,
+                        plugin_uuid,
+                        reply_tx,
+                    } => {
+                        let response = handle_switch_notification(request_id, plugin_uuid);
 
-                            send_response(
-                                reply_tx,
-                                response,
-                                "notification switch",
-                            );
-                        }
+                        send_response(reply_tx, response, "notification switch");
+                    }
 
-                        DaemonTask::SwitchStatusPlugin {
-                            request_id,
-                            plugin_uuid,
-                            reply_tx,
-                        } => {
-                            let response =
-                                handle_switch_plugin(
-                                    &mut pm,
-                                    request_id,
-                                    plugin_uuid,
-                                );
+                    DaemonTask::SwitchStatusPlugin {
+                        request_id,
+                        plugin_uuid,
+                        reply_tx,
+                    } => {
+                        let response = handle_switch_plugin(&mut pm, request_id, plugin_uuid);
 
-                            send_response(
-                                reply_tx,
-                                response,
-                                "plugin switch",
-                            );
-                        }
+                        send_response(reply_tx, response, "plugin switch");
+                    }
 
-                        DaemonTask::RefreshPlugins {
-                            request_id,
-                            reply_tx,
-                        } => {
-                            let response =
-                                handle_refresh_plugins(&mut pm, request_id);
+                    DaemonTask::RefreshPlugins {
+                        request_id,
+                        reply_tx,
+                    } => {
+                        let response = handle_refresh_plugins(&mut pm, request_id);
 
-                            send_response(
-                                reply_tx,
-                                response,
-                                "plugin refresh",
-                            );
-                        }
+                        send_response(reply_tx, response, "plugin refresh");
+                    }
 
-                        DaemonTask::CallPlugin {
-                            request_id,
-                            plugin_uuid,
-                            fn_name,
-                            args,
-                            reply_tx,
-                        } => {
-                            let function_name = fn_name.clone();
-                            let call = CallPayload {
-                                fn_name,
-                                args,
-                            };
+                    DaemonTask::CallPlugin {
+                        request_id,
+                        plugin_uuid,
+                        fn_name,
+                        args,
+                        reply_tx,
+                    } => {
+                        let function_name = fn_name.clone();
+                        let call = CallPayload { fn_name, args };
 
-                            let plugin_name = pm
-                                .get_plugin_name(plugin_uuid)
-                                .unwrap_or_else(|| {
-                                    format_uuid_bytes(&plugin_uuid)
-                                });
+                        let plugin_name = pm
+                            .get_plugin_name(plugin_uuid)
+                            .unwrap_or_else(|| format_uuid_bytes(&plugin_uuid));
 
-                            match pm.send_call(plugin_uuid, call) {
-                                Ok(plugin_request_id) => {
-                                    LOGGER_DISPATCHER.debug(
-                                        format!(
-                                            "Plugin call sent: client request={}, plugin request={}",
-                                            request_id,
-                                            plugin_request_id,
-                                        ),
-                                    );
+                        match pm.send_call(plugin_uuid, call) {
+                            Ok(plugin_request_id) => {
+                                LOGGER_DISPATCHER.debug(format!(
+                                    "Plugin call sent: client request={}, plugin request={}",
+                                    request_id, plugin_request_id,
+                                ));
 
-                                    pending_calls.insert(
-                                        plugin_request_id,
-                                        PendingCall {
-                                            request_id,
-                                            plugin_uuid,
-                                            plugin_name,
-                                            function_name,
-                                            reply_tx,
-                                        },
-                                    );
-                                }
-
-                                Err(e) => {
-                                    LOGGER_DISPATCHER.error(
-                                        format!("Send call failed: {e}"),
-                                    );
-
-                                    send_response(
+                                pending_calls.insert(
+                                    plugin_request_id,
+                                    PendingCall {
+                                        request_id,
+                                        plugin_uuid,
+                                        plugin_name,
+                                        function_name,
                                         reply_tx,
-                                        InterfaceResponse::Error {
-                                            request_id,
-                                            message: format!(
-                                                "send_call failed: {e}"
-                                            ),
-                                        },
-                                        "plugin call",
-                                    );
-                                }
+                                    },
+                                );
+                            }
+
+                            Err(e) => {
+                                LOGGER_DISPATCHER.error(format!("Send call failed: {e}"));
+
+                                send_response(
+                                    reply_tx,
+                                    InterfaceResponse::Error {
+                                        request_id,
+                                        message: format!("send_call failed: {e}"),
+                                    },
+                                    "plugin call",
+                                );
                             }
                         }
                     }
-                }
+                },
 
-                Err(RecvTimeoutError::Timeout) => {
-                }
+                Err(RecvTimeoutError::Timeout) => {}
 
                 Err(RecvTimeoutError::Disconnected) => {
-                    LOGGER_DISPATCHER.warn(
-                        "Task channel disconnected; stopping dispatcher",
-                    );
+                    LOGGER_DISPATCHER.warn("Task channel disconnected; stopping dispatcher");
                     break;
                 }
             }
-            
+
             while let Some(event) = pm.try_recv_event() {
                 let plugin_request_id = match &event {
                     plugin_manager::PluginEvent::Result { request_id, .. }
-                    | plugin_manager::PluginEvent::Error { request_id, .. } => {
-                        Some(*request_id)
-                    }
+                    | plugin_manager::PluginEvent::Error { request_id, .. } => Some(*request_id),
                     _ => None,
                 };
 
@@ -186,11 +144,7 @@ pub fn start_dispatcher(
                                 event,
                             );
 
-                            send_response(
-                                pending.reply_tx,
-                                response,
-                                "plugin call",
-                            );
+                            send_response(pending.reply_tx, response, "plugin call");
                         }
                         None => {
                             LOGGER_DISPATCHER.warn(format!(
@@ -205,15 +159,11 @@ pub fn start_dispatcher(
 
                 match event {
                     plugin_manager::PluginEvent::Closed { pid, reason } => {
-                        LOGGER_DISPATCHER.error(format!(
-                            "Plugin runner {pid} closed: {reason}",
-                        ));
+                        LOGGER_DISPATCHER.error(format!("Plugin runner {pid} closed: {reason}",));
                     }
 
                     plugin_manager::PluginEvent::Heartbeat { pid } => {
-                        LOGGER_DISPATCHER.debug(format!(
-                            "Heartbeat received from runner {pid}",
-                        ));
+                        LOGGER_DISPATCHER.debug(format!("Heartbeat received from runner {pid}",));
                     }
 
                     _ => {}
