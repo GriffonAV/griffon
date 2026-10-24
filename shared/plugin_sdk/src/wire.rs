@@ -14,3 +14,26 @@ pub fn parse_payload(raw_payload: &str) -> Result<serde_json::Value, String> {
     }
     serde_json::from_str(raw_payload).map_err(|e| format!("invalid payload json: {e}"))
 }
+
+// --- Les tests ---
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_split_message_with_args() {
+        let raw = r#"scan {"path": "/tmp"}"#;
+        let (method, payload) = split_message(raw);
+        assert_eq!(method, "scan");
+        assert_eq!(payload, r#"{"path": "/tmp"}"#);
+    }
+
+    #[test]
+    fn test_split_message_no_args() {
+        let raw = "stop";
+        let (method, payload) = split_message(raw);
+        assert_eq!(method, "stop");
+        assert_eq!(payload, "");
+    }
+}
