@@ -22,6 +22,7 @@ members = [
     "gui/src-tauri",
     "cli",
     "plugin-installer",
+    "shared/plugin_sdk",
 ]
 resolver = "2"
 
@@ -37,6 +38,7 @@ plugin_host = { path = "daemon/plugin_host" }
 plugin_interface = { path = "shared/plugin_interface" }
 ipc_protocol = { path = "shared/ipc_protocol" }
 logger = { path = "shared/logger" }
+plugin_sdk = { path = "shared/plugin_sdk"}
 abi_stable = "0.11.3"
 
 

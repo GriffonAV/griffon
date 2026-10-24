@@ -1,80 +1,65 @@
-use abi_stable::{
-    export_root_module,
-    prefix_type::PrefixTypeTrait,
-    sabi_extern_fn,
-    std_types::{RResult, RString, RVec, Tuple2},
-};
-use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
+use plugin_sdk::{PluginRouter, export_plugin, params::NoParams};
+use serde::Serialize;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{JoinHandle, sleep, spawn};
-use std::time::Duration;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
+// =========================================================
+// État global (Inchangé)
+// =========================================================
 static RUNNING: AtomicBool = AtomicBool::new(false);
-use std::sync::Mutex;
 
 lazy_static::lazy_static! {
     static ref HANDLE: Mutex<Option<JoinHandle<()>>> = Mutex::new(None);
 }
 
-#[sabi_extern_fn]
-pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
-    // GET ALL INFO FROM TOML
-    let mut info = RVec::new();
-
-    info.push(Tuple2(
-        RString::from("author"),
-        RString::from("Author Name"),
-    ));
-    info.push(Tuple2(
-        RString::from("name"),
-        RString::from("Template Plugin"),
-    ));
-    info.push(Tuple2(
-        RString::from("description"),
-        RString::from("This is the template plugin"),
-    ));
-    info.push(Tuple2(
-        RString::from("UUID"),
-        RString::from("d0c90f71-b15c-4b7d-afb0-033316c871f9"),
-    ));
-    info.push(Tuple2(
-        RString::from("function"),
-        RString::from("start/stop"),
-    ));
-
-    RResult::ROk(info)
+// =========================================================
+// Types de retour pour le JSON
+// =========================================================
+#[derive(Serialize)]
+struct Ack {
+    message: String,
 }
 
-#[sabi_extern_fn]
-extern "C" fn handle_message(msg: RString) -> RString {
-    print!("[LIB1](msg) Received message: {}", msg.as_str());
+// =========================================================
+// Configuration du SDK
+// =========================================================
+fn build_router() -> PluginRouter {
+    let mut router = PluginRouter::new();
 
-    match msg.as_str() {
-        "fn:start" => {
-            start_thread();
-            RString::from(format!("ACK LIB1 {}\n", msg.as_str()))
-        }
-        "fn:stop" => {
-            stop();
-            RString::from(format!("ACK LIB1 {}\n", msg.as_str()))
-        }
-        _ => RString::from(format!("ACK LIB1 {}\n", msg.as_str())),
-    }
+    // Enregistrement de "start"
+    router.add_method("start", |_: NoParams| -> Result<Ack, String> {
+        start_thread();
+        Ok(Ack {
+            message: "ACK LIB1 start".to_string(),
+        })
+    });
+
+    // Enregistrement de "stop"
+    router.add_method("stop", |_: NoParams| -> Result<Ack, String> {
+        stop();
+        Ok(Ack {
+            message: "ACK LIB1 stop".to_string(),
+        })
+    });
+
+    router
 }
 
-#[export_root_module]
-pub fn get_library() -> PluginRoot_Ref {
-    PluginRoot {
-        plugin: PluginI {
-            init,
-            handle_message,
-        }
-        .leak_into_prefix(),
-    }
-    .leak_into_prefix()
+export_plugin! {
+    meta: PluginMeta {
+        name: "Template Plugin",
+        uuid: "d0c90f71-b15c-4b7d-afb0-033316c871f9",
+        author: "Author Name",
+        description: "This is the template plugin",
+    },
+    router: build_router,
 }
 
+// =========================================================
+// Logique métier (Nettoyée de RResult / RString)
+// =========================================================
 fn start_thread() {
     if RUNNING.load(Ordering::SeqCst) {
         println!("[LIB1] Already running");
@@ -82,36 +67,30 @@ fn start_thread() {
     }
 
     RUNNING.store(true, Ordering::SeqCst);
-
     let handle = spawn(|| {
         let _ = start();
     });
-
     *HANDLE.lock().unwrap() = Some(handle);
 }
 
-fn start() -> RResult<(), RString> {
+fn start() -> Result<(), String> {
     let interval = Duration::from_secs(5);
     let mut next_time = Instant::now() + interval;
-
     RUNNING.store(true, Ordering::SeqCst);
 
     while RUNNING.load(Ordering::SeqCst) {
         println!("[LIB1] Hi from plugin test 1!");
-
         if let Some(d) = next_time.checked_duration_since(Instant::now()) {
             sleep(d);
         }
-
         while next_time <= Instant::now() {
             next_time += interval;
         }
     }
-
-    RResult::ROk(())
+    Ok(())
 }
 
-fn stop() -> RResult<(), RString> {
+fn stop() {
     RUNNING.store(false, Ordering::SeqCst);
     println!("[LIB1] Stop signal received.");
 
@@ -119,6 +98,4 @@ fn stop() -> RResult<(), RString> {
         let _ = handle.join();
         println!("[LIB1] Thread stopped.");
     }
-
-    RResult::ROk(())
 }

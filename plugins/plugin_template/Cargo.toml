@@ -8,8 +8,10 @@ license = "Apache-2.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-plugin_interface = { workspace = true }
+plugin_sdk = { workspace = true }
+# Required: abi_stable's proc macros (used by `export_plugin!`) hardcode `::abi_stable` paths.
 abi_stable = { workspace = true }
+serde = { version = "1.0.228", features = ["derive"] }
 lazy_static = "1.5.0"
 
 [package.metadata.release]
