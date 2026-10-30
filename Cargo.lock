@@ -4530,12 +4530,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "plugin_sdk"
+version = "0.3.2"
+dependencies = [
+ "abi_stable",
+ "plugin_interface",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "plugin_template"
 version = "0.1.0"
 dependencies = [
  "abi_stable",
  "lazy_static",
- "plugin_interface",
+ "plugin_sdk",
+ "serde",
 ]
 
 [[package]]
