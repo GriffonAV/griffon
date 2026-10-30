@@ -12,6 +12,7 @@ export type Plugin = {
     author: string;
     description: string;
     notifications_enabled: boolean;
+    manifest: PluginManifest | null;
 };
 
 export interface InteractionStep {
@@ -50,18 +51,18 @@ export interface PluginManifest {
             }>;
         }>;
     };
-    store?: Record<string, any>;
-    interactions?: Interaction[];
+    store: Record<string, any>;
+    interactions: Interaction[];
 }
 
 interface PluginContextType {
     plugins: Plugin[];
-    currentManifest: PluginManifest | null;
-    isManifestLoading: boolean;
+    currentPlugin: Plugin | null;
+    isPluginLoading: boolean;
     pluginStatus: Record<string, boolean>; // ADDED
     setPluginStatus: React.Dispatch<React.SetStateAction<Record<string, boolean>>>; // ADDED
     refreshPlugins: () => Promise<void>;
-    loadPluginManifest: (pluginName: string) => Promise<void>;
+    loadPlugin: (pluginName: string) => Promise<void>;
     deletePlugin: (pluginName: string) => Promise<void>;
     callPluginFunction: (fnName: string, args: string[]) => Promise<any>;
 }
@@ -69,14 +70,13 @@ const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
 export function PluginProvider({ children }: { children: ReactNode }) {
     const [plugins, setPlugins] = useState<Plugin[]>([]);
-    const [manifests, setManifests] = useState<Record<string, PluginManifest>>({});
-    const [isManifestLoading, setIsManifestLoading] = useState(false);
-    const [currentManifest, setCurrentManifest] = useState<PluginManifest | null>(null);
+    const [isPluginLoading, setIsPluginLoading] = useState(false);
+    const [currentPlugin, setCurrentPlugin] = useState<Plugin | null>(null);
     const [pluginStatus, setPluginStatus] = useState<Record<string, boolean>>({});
 
     async function callPluginFunction(fnName: string, args: string[]): Promise<string> {
-        if (!currentManifest?.plugin?.uuid) {
-            throw new Error("No plugin manifest loaded");
+        if (!currentPlugin) {
+            throw new Error("No plugin loaded");
         }
 
         const { requestId, promise } = createPendingRequest();
@@ -86,7 +86,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         }
 
         await invoke("call_plugin", {
-            pluginUuid: currentManifest.plugin.uuid,
+            pluginUuid: currentPlugin.uuid,
             fnName,
             args,
             requestId,
@@ -105,35 +105,43 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         }
     }
 
-    async function loadPluginManifest(pluginName: string) {
-        if (manifests[pluginName]) {
-            setCurrentManifest(manifests[pluginName]);
+    async function loadPlugin(pluginName: string) {
+        setIsPluginLoading(true);
+
+        const plugin = plugins.find((p) => p.file_name === pluginName);
+        
+        if (!plugin) { // Check if the plugin exists in the list
+            error(`Plugin ${pluginName} not found`);
+            setIsPluginLoading(false);
             return;
         }
 
-        setIsManifestLoading(true);
+        if (plugin?.manifest) { // Check if the manifest is already loaded
+            setCurrentPlugin(plugin);
+            setIsPluginLoading(false);
+            return;
+        }
 
-        try {
+        try { // Try to load the manifest
             const manifest = await invoke<PluginManifest>("get_plugin_manifest", {
-                name: pluginName,
+                uuid: plugin.uuid,
             });
 
-            const normalizedManifest = {
+            const normalizedManifest : PluginManifest = {
                 ...manifest,
                 store: manifest.store ?? {},
                 interactions: manifest.interactions ?? [],
             };
 
-            setManifests((prev) => ({
-                ...prev,
-                [pluginName]: normalizedManifest,
-            }));
-
-            setCurrentManifest(normalizedManifest);
+            const updatedPlugin = { ...plugin, manifest: normalizedManifest };
+            setCurrentPlugin(updatedPlugin);
+            setPlugins((prev) =>
+                prev.map((p) => (p.file_name === pluginName ? updatedPlugin : p))
+            );
         } catch (err) {
-            error("Failed to load manifest: " + err);
+            error(`Failed to load plugin manifest for\nname: ${pluginName}\nuuid: ${plugin.uuid}\nerror: ${err}`);
         } finally {
-            setIsManifestLoading(false);
+            setIsPluginLoading(false);
         }
     }
 
@@ -147,13 +155,9 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                 prev.filter((plugin) => plugin.file_name !== pluginName)
             );
 
-            setManifests((prev) => {
-                const next = { ...prev };
-                delete next[pluginName];
-                return next;
-            });
-
-            setCurrentManifest(null);
+            if (currentPlugin?.file_name === pluginName) {
+                setCurrentPlugin(null);
+            }
 
             await refreshPlugins();
         } catch (err) {
@@ -170,12 +174,12 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         <PluginContext.Provider
             value={{
                 plugins,
-                currentManifest,
-                isManifestLoading,
+                currentPlugin,
+                isPluginLoading,
                 pluginStatus,
                 setPluginStatus,
                 refreshPlugins,
-                loadPluginManifest,
+                loadPlugin,
                 deletePlugin,
                 callPluginFunction,
             }}

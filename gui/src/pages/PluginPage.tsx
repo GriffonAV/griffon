@@ -8,27 +8,29 @@ import { PageLayout } from "@/components/layout/PageLayout";
 
 export default function PluginPage() {
   const { name } = useParams();
-  const { currentManifest, loadPluginManifest, isManifestLoading } = usePlugins();
-  const { store, handleAction } = useGriffonStore(currentManifest);
+  const { currentPlugin, loadPlugin, isPluginLoading } = usePlugins();
+  const { store, handleAction } = useGriffonStore(currentPlugin?.manifest || null);
 
   useEffect(() => {
     if (name) {
-      loadPluginManifest(name);
+      loadPlugin(name);
     }
-  }, [name, loadPluginManifest]);
+  }, [name, loadPlugin]);
 
 
-  if (isManifestLoading || !currentManifest?.plugin) {
+  if (isPluginLoading || !currentPlugin) {
     return <div>Loading extension...</div>;
   }
 
+  const manifest = currentPlugin.manifest;
+
   return (
-    <PageLayout mode="tabs" title={currentManifest.plugin.name} navigation tabs={currentManifest.plugin?.tabs}
+    <PageLayout mode="tabs" title={currentPlugin.display_name} navigation tabs={manifest.plugin.tabs}
     >
 
-      {currentManifest.plugin?.tabs?.map((tab) => {
+      {manifest?.plugin?.tabs?.map((tab) => {
         const tabSections =
-          currentManifest.ui?.sections?.filter(
+          manifest.ui?.sections?.filter(
             (section) => section.tab === tab
           ) ?? [];
 
