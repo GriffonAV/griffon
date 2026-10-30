@@ -25,7 +25,7 @@ export default function PluginPage() {
   const manifest = currentPlugin.manifest;
 
   return (
-    <PageLayout mode="tabs" title={currentPlugin.display_name} navigation tabs={manifest.plugin.tabs}
+    <PageLayout mode="tabs" title={currentPlugin.display_name} navigation tabs={manifest?.plugin.tabs}
     >
 
       {manifest?.plugin?.tabs?.map((tab) => {
