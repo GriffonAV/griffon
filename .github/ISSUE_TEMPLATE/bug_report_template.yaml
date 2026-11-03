@@ -1,0 +1,74 @@
+name: Bug Report
+description: File a bug report.
+title: "[<Scope>]: "
+labels: ["bug"]
+type: bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If this bug is related to a security vulnerability, please do not file it here. Instead, please report it to
+        ```
+        contact.griffon@proton.me
+        ```
+        scope example: "GUI", "CLI", "Daemon", "Documentation", "Testing", "CI/CD", "Security", "Performance", "Refactoring", "Build System", "Release Management", "Other";
+  - type: input
+    id: contact
+    attributes:
+      label: Contact Details
+      description: How can we get in touch with you if we need more info?
+      placeholder: ex. contact.griffon@proton.me
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior.
+      value: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: Version
+      description: What version of our software are you running?
+      options:
+        - 0.3.1 (Latest)
+        - 0.3.0
+        - 0.2 (Pre-release)
+      default: 0
+    validations:
+      required: true
+  - type: input
+    id: linux-distro
+    attributes:
+      label: What Linux distribution are you using?
+      placeholder: e.g. Ubuntu 24.04, Fedora 42, Arch Linux
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: shell
+  - type: upload
+    id: screenshots
+    attributes:
+      label: Upload screenshots
+      description: If applicable, add screenshots to help explain your problem.
+    validations:
+      required: false

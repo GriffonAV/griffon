@@ -108,15 +108,8 @@ impl ScanEngine {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scanner_engine::ScanEngine;
-    use crate::scanner_engine::scanargs::{PrepArgs, ScanArgs};
-
-    fn setup_test_engine() -> ScanEngine {
-        let mut engine = ScanEngine::new();
-        let prep = PrepArgs::default();
-        engine.prepare(&prep).expect("Engine prep failed in test");
-        engine
-    }
+    use crate::scanner_engine::scanargs::ScanArgs;
+    use crate::scanner_engine::test_utils::setup_test_engine;
 
     #[test]
     fn test_directory_exclusion_ignores_node_modules() {

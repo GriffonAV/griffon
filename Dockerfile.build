@@ -35,7 +35,8 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
 
 
 # --- STAGE 2: Build du workspace Rust (daemon + cli) ---
-FROM rust:1.94-slim AS workspace-builder
+# yara-x 1.22 requires Rust 1.95
+FROM rust:1.95-slim AS workspace-builder
 WORKDIR /app
 RUN apt-get update && apt-get install -y pkg-config libssl-dev
 
