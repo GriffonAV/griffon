@@ -124,7 +124,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
 
         try { // Try to load the manifest
             const manifest = await invoke<PluginManifest>("get_plugin_manifest", {
-                uuid: plugin.uuid,
+                name: plugin.file_name,
             });
 
             const normalizedManifest : PluginManifest = {
