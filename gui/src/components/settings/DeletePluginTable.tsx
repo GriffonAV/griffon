@@ -32,7 +32,7 @@ export function DeletePluginTable() {
           </thead>
           <tbody className="divide-y divide-border">
             {plugins.map((plugin) => {
-              const isDeleting = plugin.status === "deleting";
+              const isDeleting = plugin.status === "busy";
 
               return (
                 <tr key={plugin.uuid} className="bg-card hover:bg-muted/20 transition-colors">
