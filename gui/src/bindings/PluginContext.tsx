@@ -13,7 +13,7 @@ export type Plugin = {
     description: string;
     notifications_enabled: boolean;
     manifest: PluginManifest | null;
-    status: "healthy" | "deleting" | "no_manifest" | "error";
+    status: "healthy" | "busy" | "disabled" | "no_manifest" | "error";
 };
 
 export interface InteractionStep {
@@ -60,12 +60,11 @@ interface PluginContextType {
     plugins: Plugin[];
     currentPlugin: Plugin | null;
     isPluginLoading: boolean;
-    pluginStatus: Record<string, boolean>; // ADDED
-    setPluginStatus: React.Dispatch<React.SetStateAction<Record<string, boolean>>>; // ADDED
     refreshPlugins: () => Promise<void>;
     loadPlugin: (pluginName: string) => Promise<void>;
     deletePlugin: (pluginName: string) => Promise<void>;
     callPluginFunction: (fnName: string, args: string[]) => Promise<any>;
+    switchPluginStatus: (pluginUuid: string) => Promise<void>;
 }
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
@@ -73,7 +72,6 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     const [plugins, setPlugins] = useState<Plugin[]>([]);
     const [isPluginLoading, setIsPluginLoading] = useState(false);
     const [currentPlugin, setCurrentPlugin] = useState<Plugin | null>(null);
-    const [pluginStatus, setPluginStatus] = useState<Record<string, boolean>>({});
 
     async function callPluginFunction(fnName: string, args: string[]): Promise<string> {
         if (!currentPlugin) {
@@ -95,6 +93,38 @@ export function PluginProvider({ children }: { children: ReactNode }) {
 
         const result = await promise;
         return result;
+    }
+
+    async function switchPluginStatus(pluginUuid: string): Promise<void> {
+        const { requestId, promise } = createPendingRequest();
+
+        setPlugins((prev) =>
+            prev.map((plugin) =>
+                plugin.uuid === pluginUuid
+                    ? { ...plugin, status: "busy" }
+                    : plugin
+            )
+        );
+
+        try {
+            await invoke("switch_status_plugin", {
+                pluginUuid,
+                requestId,
+            });
+
+            const result = await promise;
+            setPlugins((prev) =>
+                prev.map((plugin) =>
+                    plugin.uuid === pluginUuid
+                        ? { ...plugin,
+                            status: result.enable ? "healthy" : "disabled",
+                        } : plugin
+                )
+            );
+        } catch (err) {
+            error(`Failed to switch plugin status: ${err}`);
+            await refreshPlugins();
+        }
     }
 
     async function refreshPlugins() {
@@ -155,12 +185,13 @@ export function PluginProvider({ children }: { children: ReactNode }) {
 
     async function deletePlugin(pluginUuid: string) {
         try {
-
-            const target_plugin = plugins.find((p) => p.uuid === pluginUuid);
-            if (!target_plugin) {
-                throw new Error(`Plugin with UUID ${pluginUuid} not found`);
-            }
-            target_plugin.status = "deleting";
+            setPlugins((prev) =>
+                prev.map((plugin) =>
+                    plugin.uuid === pluginUuid
+                        ? { ...plugin, status: "busy" }
+                        : plugin
+                )
+            );
 
             await invoke("delete_plugin", {
                 pluginUuid,
@@ -191,12 +222,11 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                 plugins,
                 currentPlugin,
                 isPluginLoading,
-                pluginStatus,
-                setPluginStatus,
                 refreshPlugins,
                 loadPlugin,
                 deletePlugin,
                 callPluginFunction,
+                switchPluginStatus,
             }}
         >
             {children}

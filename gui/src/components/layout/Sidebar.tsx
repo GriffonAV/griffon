@@ -11,7 +11,7 @@ import { useSidebar } from "@/providers/SidebarProvider.tsx";
 
 export function Sidebar() {
   const { isCollapsed } = useSidebar();
-  const { plugins, pluginStatus } = usePlugins();
+  const { plugins } = usePlugins();
   const location = useLocation();
 
   return (
@@ -48,7 +48,7 @@ export function Sidebar() {
       </div>
 
       {plugins
-        .filter((plugin) => pluginStatus[plugin.uuid] ?? true) // Only pass enabled plugins
+        .filter((plugin) => plugin.status === "healthy") // Only pass enabled plugins
         .map((plugin) => (
           <Link key={plugin.uuid} to={`/plugin/${plugin.file_name}`} className="block">
             <SidebarButton
