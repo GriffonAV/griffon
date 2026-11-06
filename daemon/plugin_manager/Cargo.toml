@@ -11,5 +11,5 @@ path = "src/plugin_manager.rs"
 nix = {  workspace = true, features = ["socket"] }
 ipc_protocol = { workspace = true }
 logger = { workspace = true}
-serde = { version = "1.0.228", features = ["derive"] }
+serde = { workspace = true}
 serde_json = { workspace = true }
