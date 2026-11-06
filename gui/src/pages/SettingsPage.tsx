@@ -22,7 +22,6 @@ const createRequestId = () => {
 export default function SettingsPage() {
   const { plugins, refreshPlugins } = usePlugins();
 
-  const [pluginBeingDeleted, setPluginBeingDeleted] = useState<string | null>(null);
   const [pluginNotificationBeingSwitched, setPluginNotificationBeingSwitched] = useState<string | null>(null);
   const [pluginRefreshKey, setPluginRefreshKey] = useState(0);
 
@@ -56,24 +55,6 @@ export default function SettingsPage() {
       getVersion().then(setVersion);
     }, []);
 
-  // Removed window.confirm, logic is now triggered securely by the AlertDialog
-  const handleDeletePlugin = async (pluginUuid: string, pluginDisplayName: string) => {
-    try {
-      setPluginBeingDeleted(pluginUuid);
-
-      await invoke("delete_plugin", {
-        pluginUuid,
-      });
-
-      await refreshPluginUi();
-    } catch (error) {
-      console.error("Failed to delete plugin:", error);
-
-      alert(`Failed to delete "${pluginDisplayName}": ${String(error)}`);
-    } finally {
-      setPluginBeingDeleted(null);
-    }
-  };
 
   return (
     <PageLayout
@@ -168,11 +149,7 @@ export default function SettingsPage() {
               </p>
 
               {/* Replace the old mapping logic with the new component */}
-              <DeletePluginTable
-                plugins={plugins}
-                pluginBeingDeleted={pluginBeingDeleted}
-                onDelete={handleDeletePlugin}
-              />
+              <DeletePluginTable/>
             </div>
           </div>
         </section>

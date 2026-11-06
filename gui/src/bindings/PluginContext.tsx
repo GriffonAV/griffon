@@ -12,6 +12,8 @@ export type Plugin = {
     author: string;
     description: string;
     notifications_enabled: boolean;
+    manifest: PluginManifest | null;
+    status: "healthy" | "busy" | "disabled" | "no_manifest" | "error";
 };
 
 export interface InteractionStep {
@@ -50,33 +52,30 @@ export interface PluginManifest {
             }>;
         }>;
     };
-    store?: Record<string, any>;
-    interactions?: Interaction[];
+    store: Record<string, any>;
+    interactions: Interaction[];
 }
 
 interface PluginContextType {
     plugins: Plugin[];
-    currentManifest: PluginManifest | null;
-    isManifestLoading: boolean;
-    pluginStatus: Record<string, boolean>; // ADDED
-    setPluginStatus: React.Dispatch<React.SetStateAction<Record<string, boolean>>>; // ADDED
+    currentPlugin: Plugin | null;
+    isPluginLoading: boolean;
     refreshPlugins: () => Promise<void>;
-    loadPluginManifest: (pluginName: string) => Promise<void>;
+    loadPlugin: (pluginName: string) => Promise<void>;
     deletePlugin: (pluginName: string) => Promise<void>;
     callPluginFunction: (fnName: string, args: string[]) => Promise<any>;
+    switchPluginStatus: (pluginUuid: string) => Promise<void>;
 }
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
 export function PluginProvider({ children }: { children: ReactNode }) {
     const [plugins, setPlugins] = useState<Plugin[]>([]);
-    const [manifests, setManifests] = useState<Record<string, PluginManifest>>({});
-    const [isManifestLoading, setIsManifestLoading] = useState(false);
-    const [currentManifest, setCurrentManifest] = useState<PluginManifest | null>(null);
-    const [pluginStatus, setPluginStatus] = useState<Record<string, boolean>>({});
+    const [isPluginLoading, setIsPluginLoading] = useState(false);
+    const [currentPlugin, setCurrentPlugin] = useState<Plugin | null>(null);
 
     async function callPluginFunction(fnName: string, args: string[]): Promise<string> {
-        if (!currentManifest?.plugin?.uuid) {
-            throw new Error("No plugin manifest loaded");
+        if (!currentPlugin) {
+            throw new Error("No plugin loaded");
         }
 
         const { requestId, promise } = createPendingRequest();
@@ -86,7 +85,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         }
 
         await invoke("call_plugin", {
-            pluginUuid: currentManifest.plugin.uuid,
+            pluginUuid: currentPlugin.uuid,
             fnName,
             args,
             requestId,
@@ -96,64 +95,115 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         return result;
     }
 
+    async function switchPluginStatus(pluginUuid: string): Promise<void> {
+        const { requestId, promise } = createPendingRequest();
+
+        setPlugins((prev) =>
+            prev.map((plugin) =>
+                plugin.uuid === pluginUuid
+                    ? { ...plugin, status: "busy" }
+                    : plugin
+            )
+        );
+
+        try {
+            await invoke("switch_status_plugin", {
+                pluginUuid,
+                requestId,
+            });
+
+            const result = await promise;
+            setPlugins((prev) =>
+                prev.map((plugin) =>
+                    plugin.uuid === pluginUuid
+                        ? { ...plugin,
+                            status: result.enable ? "healthy" : "disabled",
+                        } : plugin
+                )
+            );
+        } catch (err) {
+            error(`Failed to switch plugin status: ${err}`);
+            await refreshPlugins();
+        }
+    }
+
     async function refreshPlugins() {
         try {
             const result = await invoke<Plugin[]>("list_plugins");
+            for (const plugin of result) {
+                if (!plugin.manifest) {
+                    plugin.status = "no_manifest";
+                } else {
+                    plugin.status = "healthy";
+                }
+            }
             setPlugins(result);
         } catch (err) {
             error("Failed to load plugins: " + err);
         }
     }
 
-    async function loadPluginManifest(pluginName: string) {
-        if (manifests[pluginName]) {
-            setCurrentManifest(manifests[pluginName]);
+    async function loadPlugin(pluginName: string) {
+        setIsPluginLoading(true);
+
+        const plugin = plugins.find((p) => p.file_name === pluginName);
+        
+        if (!plugin) { // Check if the plugin exists in the list
+            error(`Plugin ${pluginName} not found`);
+            setIsPluginLoading(false);
             return;
         }
 
-        setIsManifestLoading(true);
+        if (plugin?.manifest) { // Check if the manifest is already loaded
+            setCurrentPlugin(plugin);
+            setIsPluginLoading(false);
+            return;
+        }
 
-        try {
+        try { // Try to load the manifest
             const manifest = await invoke<PluginManifest>("get_plugin_manifest", {
-                name: pluginName,
+                name: plugin.file_name,
             });
 
-            const normalizedManifest = {
+            const normalizedManifest : PluginManifest = {
                 ...manifest,
                 store: manifest.store ?? {},
                 interactions: manifest.interactions ?? [],
             };
 
-            setManifests((prev) => ({
-                ...prev,
-                [pluginName]: normalizedManifest,
-            }));
-
-            setCurrentManifest(normalizedManifest);
+            const updatedPlugin = { ...plugin, manifest: normalizedManifest, status: "healthy" } satisfies Plugin;
+            setCurrentPlugin(updatedPlugin);
+            setPlugins((prev) =>
+                prev.map((p) => (p.file_name === pluginName ? updatedPlugin : p))
+            );
         } catch (err) {
-            error("Failed to load manifest: " + err);
+            error(`Failed to load plugin manifest for\nname: ${pluginName}\nuuid: ${plugin.uuid}\nerror: ${err}`);
         } finally {
-            setIsManifestLoading(false);
+            setIsPluginLoading(false);
         }
     }
 
-    async function deletePlugin(pluginName: string) {
+    async function deletePlugin(pluginUuid: string) {
         try {
+            setPlugins((prev) =>
+                prev.map((plugin) =>
+                    plugin.uuid === pluginUuid
+                        ? { ...plugin, status: "busy" }
+                        : plugin
+                )
+            );
+
             await invoke("delete_plugin", {
-                name: pluginName,
+                pluginUuid,
             });
 
             setPlugins((prev) =>
-                prev.filter((plugin) => plugin.file_name !== pluginName)
+                prev.filter((plugin) => plugin.uuid !== pluginUuid)
             );
 
-            setManifests((prev) => {
-                const next = { ...prev };
-                delete next[pluginName];
-                return next;
-            });
-
-            setCurrentManifest(null);
+            if (currentPlugin?.uuid === pluginUuid) {
+                setCurrentPlugin(null);
+            }
 
             await refreshPlugins();
         } catch (err) {
@@ -170,14 +220,13 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         <PluginContext.Provider
             value={{
                 plugins,
-                currentManifest,
-                isManifestLoading,
-                pluginStatus,
-                setPluginStatus,
+                currentPlugin,
+                isPluginLoading,
                 refreshPlugins,
-                loadPluginManifest,
+                loadPlugin,
                 deletePlugin,
                 callPluginFunction,
+                switchPluginStatus,
             }}
         >
             {children}
