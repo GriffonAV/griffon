@@ -3,7 +3,6 @@ pub mod params;
 pub mod router;
 mod wire;
 
-// forwarding PluginRouter
 pub use router::PluginRouter;
 
 pub const SDK_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -14,12 +13,12 @@ pub mod __private {
     pub use plugin_interface;
 }
 
-// pub struct PluginMeta {
-//     pub name: String,
-//     pub uuid: String,
-//     pub author: String,
-//     pub description: String,
-// }
+pub struct PluginMeta {
+    pub name: String,
+    pub uuid: String,
+    pub author: String,
+    pub description: String,
+}
 
 #[macro_export]
 macro_rules! export_plugin {
@@ -43,7 +42,23 @@ macro_rules! export_plugin {
         pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
             let router = ROUTER.get_or_init($build_router);
             let mut info = RVec::new();
-            $( $on_init(info); )?
+            $(
+                let init_result = ::std::panic::catch_unwind(::std::panic::AssertUnwindSafe(|| {
+                   $on_init();
+                }));
+                if let Err(err) = init_result {
+                    let msg = if let Some(s) = err.downcast_ref::<&str>() {
+                        (*s).to_string()
+                    } else if let Some(s) = err.downcast_ref::<String>() {
+                        s.clone()
+                    } else {
+                        "unknown panic message".to_string()
+                    };
+                    return ::abi_stable::std_types::RResult::RErr(
+                        format!("plugin init panicked: {}", msg).into()
+                    );
+                }
+            )?
 
             info.push(Tuple2(RString::from("name"), RString::from($name)));
             info.push(Tuple2(RString::from("UUID"), RString::from($uuid)));

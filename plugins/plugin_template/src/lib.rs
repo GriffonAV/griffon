@@ -17,12 +17,9 @@ struct Ack {
 }
 
 fn build_router() -> PluginRouter {
-    let mut router = PluginRouter::new();
-
-    router.add_method("start", start);
-    router.add_method("stop", stop);
-
-    router
+    PluginRouter::new()
+        .method("start", start)
+        .method("stop", stop)
 }
 
 export_plugin! {
