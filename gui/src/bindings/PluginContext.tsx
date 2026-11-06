@@ -13,6 +13,7 @@ export type Plugin = {
     description: string;
     notifications_enabled: boolean;
     manifest: PluginManifest | null;
+    status: "healthy" | "deleting" | "no_manifest" | "error";
 };
 
 export interface InteractionStep {
@@ -99,6 +100,13 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     async function refreshPlugins() {
         try {
             const result = await invoke<Plugin[]>("list_plugins");
+            for (const plugin of result) {
+                if (!plugin.manifest) {
+                    plugin.status = "no_manifest";
+                } else {
+                    plugin.status = "healthy";
+                }
+            }
             setPlugins(result);
         } catch (err) {
             error("Failed to load plugins: " + err);
@@ -133,7 +141,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                 interactions: manifest.interactions ?? [],
             };
 
-            const updatedPlugin = { ...plugin, manifest: normalizedManifest };
+            const updatedPlugin = { ...plugin, manifest: normalizedManifest, status: "healthy" } satisfies Plugin;
             setCurrentPlugin(updatedPlugin);
             setPlugins((prev) =>
                 prev.map((p) => (p.file_name === pluginName ? updatedPlugin : p))
@@ -145,17 +153,24 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         }
     }
 
-    async function deletePlugin(pluginName: string) {
+    async function deletePlugin(pluginUuid: string) {
         try {
+
+            const target_plugin = plugins.find((p) => p.uuid === pluginUuid);
+            if (!target_plugin) {
+                throw new Error(`Plugin with UUID ${pluginUuid} not found`);
+            }
+            target_plugin.status = "deleting";
+
             await invoke("delete_plugin", {
-                name: pluginName,
+                pluginUuid,
             });
 
             setPlugins((prev) =>
-                prev.filter((plugin) => plugin.file_name !== pluginName)
+                prev.filter((plugin) => plugin.uuid !== pluginUuid)
             );
 
-            if (currentPlugin?.file_name === pluginName) {
+            if (currentPlugin?.uuid === pluginUuid) {
                 setCurrentPlugin(null);
             }
 
