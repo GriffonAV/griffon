@@ -9,9 +9,9 @@ plugin_interface = { workspace = true }
 abi_stable = { workspace = true }
 
 [dev-dependencies]
-serde_json = "1.0.150"
-toml = "1.1.2"
-uuid = "1.22.0"
+serde_json = { workspace = true }
+toml = { workspace = true }
+uuid = { workspace = true }
 
 [package.metadata.release]
 release = false
