@@ -3,11 +3,6 @@ name = "griffon_scanner"
 version = "0.3.0"
 edition = "2024"
 license = "Apache-2.0"
-default-run = "griffon_scanner"
-
-[[bin]]
-name = "griffon_scanner"
-path = "src/bin/debug.rs"
 
 [[bin]]
 name = "bench_runner"
@@ -18,7 +13,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 logger = { workspace = true }
-plugin_interface = { workspace = true }
+plugin_sdk = { workspace = true }
 abi_stable = { workspace = true }
 
 anyhow = "1.0.100"

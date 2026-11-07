@@ -2625,7 +2625,7 @@ dependencies = [
  "lazy_static",
  "log",
  "logger",
- "plugin_interface",
+ "plugin_sdk",
  "rand 0.10.3",
  "rayon",
  "regex",
