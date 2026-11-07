@@ -2,13 +2,12 @@ pub mod scanner_engine;
 pub mod scanner_quarantine;
 pub mod scanner_updater;
 
-use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::{Mutex, OnceLock};
 
 use plugin_sdk::params::NoParams;
-use plugin_sdk::{PluginMeta, PluginRouter, export_plugin};
+use plugin_sdk::{PluginRouter, export_plugin};
 use serde::{Deserialize, Serialize};
 
 use crate::scanner_engine::ScanEngine;
