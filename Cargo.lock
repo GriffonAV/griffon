@@ -1740,7 +1740,7 @@ version = "0.1.0"
 dependencies = [
  "abi_stable",
  "log",
- "plugin_interface",
+ "plugin_sdk",
  "serde",
  "serde_json",
 ]
