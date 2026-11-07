@@ -2501,7 +2501,7 @@ dependencies = [
  "chrono",
  "libc",
  "logger",
- "plugin_interface",
+ "plugin_sdk",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -2515,7 +2515,7 @@ version = "0.1.0"
 dependencies = [
  "abi_stable",
  "libc",
- "plugin_interface",
+ "plugin_sdk",
  "roxmltree",
  "serde",
  "serde_json",
