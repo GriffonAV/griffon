@@ -22,6 +22,7 @@ members = [
     "gui/src-tauri",
     "cli",
     "plugin-installer",
+    "shared/plugin_sdk",
 ]
 resolver = "2"
 
@@ -32,12 +33,23 @@ license = "Apache-2.0"
 edition = "2024"
 
 [workspace.dependencies]
+# internal workspace crates
 plugin_manager = { path = "daemon/plugin_manager" }
 plugin_host = { path = "daemon/plugin_host" }
 plugin_interface = { path = "shared/plugin_interface" }
 ipc_protocol = { path = "shared/ipc_protocol" }
 logger = { path = "shared/logger" }
+plugin_sdk = { path = "shared/plugin_sdk"}
+
+# external shared crates
 abi_stable = "0.11.3"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+uuid = { version = "1.22.0", features = ["v4"] }
+toml = "1.1.2"
+log = "0.4.28"
+nix = "0.30.1"
+zip = "8.6.0"
 
 
 [profile.dev]
