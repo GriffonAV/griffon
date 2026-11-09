@@ -4,13 +4,8 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::time::Instant;
 
-use abi_stable::{
-    export_root_module,
-    prefix_type::PrefixTypeTrait,
-    sabi_extern_fn,
-    std_types::{RResult, RString, RVec, Tuple2},
-};
-use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
+use plugin_sdk::params::NoParams;
+use plugin_sdk::{PluginRouter, export_plugin};
 use serde::{Deserialize, Serialize};
 
 const MAX_TARGET_LENGTH: usize = 253;
@@ -169,12 +164,6 @@ struct HistoryResponse {
 #[derive(Deserialize)]
 struct DeleteHistoryRequest {
     id: String,
-}
-
-fn json_error(message: impl Into<String>) -> RString {
-    RString::from(
-        serde_json::json!({ "ok": false, "message": message.into(), "hosts": [] }).to_string(),
-    )
 }
 
 fn history_path() -> PathBuf {
@@ -804,97 +793,29 @@ fn scan(request: ScanRequest) -> Result<ScanResponse, String> {
     Ok(response)
 }
 
-fn split_message(raw: &str) -> (&str, &str) {
-    let raw = raw.trim();
-    let (head, payload) = raw.split_once(char::is_whitespace).unwrap_or((raw, ""));
-    (head.strip_prefix("fn:").unwrap_or(head), payload.trim())
+fn build_router() -> PluginRouter {
+    PluginRouter::new()
+        .method("scan", scan)
+        .method("list_exegol_containers", |_: NoParams| {
+            list_exegol_containers()
+        })
+        .method("http_probe", http_probe)
+        .method("service_probe", service_probe)
+        .method("list_history", |_: NoParams| history_response())
+        .method("delete_history_entry", |req: DeleteHistoryRequest| {
+            delete_history_entry(&req.id)
+        })
+        .method("clear_history", |_: NoParams| clear_history())
 }
 
-#[sabi_extern_fn]
-pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
-    let mut info = RVec::new();
-    info.push(Tuple2(RString::from("author"), RString::from("Griffon")));
-    info.push(Tuple2(RString::from("name"), RString::from("Nmap")));
-    info.push(Tuple2(
-        RString::from("description"),
-        RString::from("Analyse réseau Nmap avec résultats structurés."),
-    ));
-    info.push(Tuple2(
-        RString::from("UUID"),
-        RString::from("5d059e05-c83f-4c59-9a85-13aa3fc1d721"),
-    ));
-    info.push(Tuple2(
-        RString::from("function"),
-        RString::from("scan/list_exegol_containers/http_probe/service_probe/list_history/delete_history_entry/clear_history"),
-    ));
-    RResult::ROk(info)
-}
-
-#[sabi_extern_fn]
-extern "C" fn handle_message(message: RString) -> RString {
-    let (function, payload) = split_message(message.as_str());
-    match function {
-        "scan" => {
-            let request = match serde_json::from_str::<ScanRequest>(payload) {
-                Ok(request) => request,
-                Err(error) => return json_error(format!("Paramètres de scan invalides : {error}")),
-            };
-            match scan(request) {
-                Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| {
-                    serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "hosts": [] }).to_string()
-                })),
-                Err(error) => json_error(error),
-            }
-        }
-        "list_exegol_containers" => match list_exegol_containers() {
-            Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| {
-                serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "containers": [] }).to_string()
-            })),
-            Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "containers": [] }).to_string()),
-        },
-        "http_probe" => match serde_json::from_str::<HttpProbeRequest>(payload) {
-            Ok(request) => match http_probe(request) {
-                Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "output": "" }).to_string())),
-                Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "output": "" }).to_string()),
-            },
-            Err(error) => RString::from(serde_json::json!({ "ok": false, "message": format!("Paramètres HTTP invalides : {error}"), "output": "" }).to_string()),
-        },
-        "service_probe" => match serde_json::from_str::<ServiceProbeRequest>(payload) {
-            Ok(request) => match service_probe(request) {
-                Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "output": "" }).to_string())),
-                Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "output": "" }).to_string()),
-            },
-            Err(error) => RString::from(serde_json::json!({ "ok": false, "message": format!("Paramètres de service invalides : {error}"), "output": "" }).to_string()),
-        },
-        "list_history" => match history_response() {
-            Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "scans": [] }).to_string())),
-            Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "scans": [] }).to_string()),
-        },
-        "delete_history_entry" => match serde_json::from_str::<DeleteHistoryRequest>(payload) {
-            Ok(request) => match delete_history_entry(&request.id) {
-                Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "scans": [] }).to_string())),
-                Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "scans": [] }).to_string()),
-            },
-            Err(error) => RString::from(serde_json::json!({ "ok": false, "message": format!("Paramètres de suppression invalides : {error}"), "scans": [] }).to_string()),
-        },
-        "clear_history" => match clear_history() {
-            Ok(response) => RString::from(serde_json::to_string(&response).unwrap_or_else(|error| serde_json::json!({ "ok": false, "message": format!("Erreur de sérialisation : {error}"), "scans": [] }).to_string())),
-            Err(error) => RString::from(serde_json::json!({ "ok": false, "message": error, "scans": [] }).to_string()),
-        },
-        _ => json_error(format!("Fonction inconnue : {function}")),
-    }
-}
-
-#[export_root_module]
-pub fn get_library() -> PluginRoot_Ref {
-    PluginRoot {
-        plugin: PluginI {
-            init,
-            handle_message,
-        }
-        .leak_into_prefix(),
-    }
-    .leak_into_prefix()
+export_plugin! {
+    meta: PluginMeta {
+        name: "Nmap",
+        uuid: "5d059e05-c83f-4c59-9a85-13aa3fc1d721",
+        author: "Griffon",
+        description: "Analyse réseau Nmap avec résultats structurés.",
+    },
+    router: build_router,
 }
 
 #[cfg(test)]

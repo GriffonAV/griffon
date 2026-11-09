@@ -1,12 +1,12 @@
 # Griffon Plugin Manifest: Docker Viewer
 [plugin]
 name = "Docker Helper"
-id = "b86fcda4-4e8d-4988-b524-8bbd9ce09abc"
+id = "3e9761ae-6061-4d87-ac45-81ae06f65740"
 version = "1.0.0"
 author = "Griffon Devs"
 description = "A simple plugin to list local Docker containers."
 tabs = ["containers"]
-uuid = "b86fcda4-4e8d-4988-b524-8bbd9ce09abc"
+uuid = "3e9761ae-6061-4d87-ac45-81ae06f65740"
 
 # =========================
 # Store

@@ -18,8 +18,8 @@ test: setup
 
 bench: setup
     @echo "[+] Building release binary..."
-    cargo build --release --bin {{bench_binary}}
-    
+    cargo build --release --bin {{bench_binary}} --features bench
+
     @echo "[+] Running benchmarks..."
     python3 tests/bench/bench_scan.py \
       --binary {{workspace_target}}/release/{{bench_binary}} \
