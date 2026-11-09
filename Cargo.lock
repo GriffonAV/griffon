@@ -2443,7 +2443,7 @@ dependencies = [
 
 [[package]]
 name = "griffon-cli"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "ipc_protocol",
  "logger",
@@ -2452,7 +2452,7 @@ dependencies = [
 
 [[package]]
 name = "griffon-daemon"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "ipc_protocol",
  "logger",
@@ -2466,7 +2466,7 @@ dependencies = [
 
 [[package]]
 name = "griffon-daemon-runner"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "ipc_protocol",
  "logger",
@@ -2476,7 +2476,7 @@ dependencies = [
 
 [[package]]
 name = "griffon-gui"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "ipc_protocol",
  "log",
@@ -4255,7 +4255,7 @@ dependencies = [
 
 [[package]]
 name = "plugin_host"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "abi_stable",
  "plugin_interface",
@@ -4273,7 +4273,7 @@ dependencies = [
 
 [[package]]
 name = "plugin_manager"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "ipc_protocol",
  "logger",
@@ -4284,7 +4284,7 @@ dependencies = [
 
 [[package]]
 name = "plugin_sdk"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "abi_stable",
  "plugin_interface",
