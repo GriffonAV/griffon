@@ -920,3 +920,6 @@ pub fn get_library() -> PluginRoot_Ref {
     }
     .leak_into_prefix()
 }
+
+#[cfg(test)]
+mod unit_tests;

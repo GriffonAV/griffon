@@ -21,3 +21,6 @@ logger = { workspace = true }
 
 [package.metadata.release]
 release = false
+
+[dev-dependencies]
+tempfile = "3"
