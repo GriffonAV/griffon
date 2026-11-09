@@ -27,6 +27,23 @@ bash scripts/plugin-coverage.sh
 Sorties : `target/plugin-coverage/coverage.json` et
 `target/plugin-coverage/html/index.html`.
 
+Pour ouvrir le rapport HTML dans le navigateur par défaut, après la génération,
+exécuter depuis la racine du dépôt :
+
+```sh
+xdg-open target/plugin-coverage/html/index.html
+```
+
+Le rapport présente la couverture par fichier. Cliquer sur un fichier pour
+consulter son code et repérer les lignes exécutées ou non par les tests : cela
+permet d'identifier les cas à ajouter. Le JSON sert au contrôle automatique des
+seuils ; le HTML facilite l'exploration des résultats.
+
+Sans `xdg-open`, ouvrir directement le fichier `index.html` dans un navigateur.
+Pour consulter un rapport téléchargé depuis la CI, extraire l'archive complète
+et conserver les fichiers et sous-dossiers HTML ensemble afin que les liens
+vers les pages de code fonctionnent.
+
 Le seuil est **70 % des lignes exécutables, séparément pour chaque plugin**.
 Le calcul additionne les lignes couvertes et mesurées des fichiers de production
 sous `plugins/<plugin>/src/`; il ne moyenne pas les pourcentages des fichiers.
