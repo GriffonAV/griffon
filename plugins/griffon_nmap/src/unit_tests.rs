@@ -350,11 +350,11 @@ fn service_probes_use_expected_programs_and_handle_failures() {
 }
 #[test]
 fn message_dispatch_rejects_invalid_payloads_without_execution() {
-    assert_eq!(split_message(" fn:scan  {} "), ("scan", "{}"));
-    assert_eq!(split_message("ping"), ("ping", ""));
     for msg in [
         "unknown",
         "scan {}",
+        " fn:scan  {} ",
+        r#"{"method":"scan","params":{}}"#,
         "http_probe {}",
         "service_probe {}",
         "delete_history_entry {}",

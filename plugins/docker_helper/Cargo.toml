@@ -8,7 +8,7 @@ license = "Apache-2.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-plugin_interface = { workspace = true }
+plugin_sdk = { workspace = true }
 abi_stable = { workspace = true }
 
 log = "0.4.28"

@@ -10,7 +10,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 walkdir = "2.5.0"
 thiserror = "2.0.17"
-plugin_interface = { workspace = true }
+plugin_sdk = { workspace = true }
 abi_stable = { workspace = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

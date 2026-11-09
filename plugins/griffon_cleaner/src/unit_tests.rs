@@ -74,27 +74,16 @@ fn boolean_filter_aliases_and_nested_precedence() {
     ] {
         assert!(parse_filters_from_value(v).is_err());
     }
-    assert!(parse_filters_from_payload(None)
-        .unwrap()
-        .file_types
-        .is_empty());
     assert_eq!(
-        parse_filters_from_command_args(" log,tmp  json ")
+        parse_filters_from_value(json!(" log,tmp  json "))
             .unwrap()
             .file_types,
         vec!["log", "tmp", "json"]
     );
     assert_eq!(
-        parse_filters_from_command_args("[\"log\"]")
-            .unwrap()
-            .file_types,
+        parse_filters_from_value(json!(["log"])).unwrap().file_types,
         vec!["log"]
     );
-    assert!(parse_filters_from_command_args("{").is_err());
-    assert!(parse_filters_from_command_args("")
-        .unwrap()
-        .file_types
-        .is_empty());
 }
 #[test]
 fn filters_normalize_and_selected_paths_take_precedence() {
@@ -353,8 +342,8 @@ fn frontend_sorts_limits_and_separates_docker_plans() {
         .warnings_preview
         .iter()
         .any(|w| w == "Docker action plan:"));
-    assert!(serialize_front_payload(f).contains("fixture-id"));
-    assert!(serialize_raw_payload(p).contains("fixture-id"));
+    assert!(serde_json::to_value(&f).unwrap()["metadata"]["run_id"] == "fixture-id");
+    assert!(serde_json::to_value(&p).unwrap()["run_id"] == "fixture-id");
 }
 #[test]
 fn metrics_do_not_double_count_permissions_and_handle_zero_duration() {
@@ -380,7 +369,7 @@ fn metrics_do_not_double_count_permissions_and_handle_zero_duration() {
         serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     assert_eq!(v["files_cleaned_total"], 4);
     assert!(write_cleaner_metrics_json_to_file(&m, dir.path()).is_err());
-    assert!(serialize_metrics_payload(m).contains("permission_denied"));
+    assert!(serde_json::to_value(&m).unwrap()["errors_by_type"]["permission_denied"] == 4);
     let empty = run_modules(&context(false), &[]).unwrap();
     let m = build_cleaner_metrics_json(&empty, build_cleaner_metrics_labels(false));
     assert_eq!(m.bytes_freed_per_second, 0.0);
@@ -388,6 +377,13 @@ fn metrics_do_not_double_count_permissions_and_handle_zero_duration() {
 }
 #[test]
 fn dispatch_rejects_bad_requests_before_side_effects() {
+    fn error(raw: &str) -> serde_json::Value {
+        let response: serde_json::Value =
+            serde_json::from_str(handle_message(raw.into()).as_str()).unwrap();
+        assert_eq!(response["ok"], false, "{raw}");
+        assert!(response["message"].as_str().is_some_and(|m| !m.is_empty()));
+        response
+    }
     for cmd in [
         "run",
         "run_front",
@@ -396,24 +392,30 @@ fn dispatch_rejects_bad_requests_before_side_effects() {
         "list_candidates",
     ] {
         for prefix in ["", "fn:"] {
-            assert!(handle_message(format!("{prefix}{cmd} {{").into()).starts_with("ERR"));
+            assert_eq!(error(&format!("{prefix}{cmd} {{"))["code"], -32602);
+            let raw = format!("{prefix}{cmd} {{\"dry_run\":\"invalid\"}}");
+            assert_eq!(error(&raw)["code"], 1);
         }
-        let msg = json!({"function":cmd,"payload":{"dry_run":"invalid"}}).to_string();
-        assert!(handle_message(msg.into()).starts_with("ERR"));
+        let msg = json!({"method":cmd,"params":{"dry_run":"invalid"}}).to_string();
+        assert_eq!(error(&msg)["code"], 1);
     }
     for msg in [
-        "bad",
         "delete_selected",
-        "fn:delete_selected []",
-        "delete_selected {",
         "delete_selected [1]",
-        "delete_selected {}",
-        r#"{"function":"delete_selected"}"#,
-        r#"{"function":"delete_selected","payload":false}"#,
-        r#"{"function":"unknown"}"#,
+        r#"{"method":"delete_selected","params":false}"#,
     ] {
-        assert!(handle_message(msg.into()).starts_with("ERR"), "{msg}");
+        assert_eq!(error(msg)["code"], 1);
     }
+    assert_eq!(error("delete_selected {")["code"], -32602);
+    for msg in ["fn:delete_selected []", "delete_selected {}"] {
+        assert_eq!(error(msg)["code"], 1);
+        assert!(error(msg)["message"]
+            .as_str()
+            .unwrap()
+            .contains("at least one path"));
+    }
+    assert_eq!(error("unknown")["code"], -32601);
+    assert_eq!(error(r#"{"method":"unknown"}"#)["code"], -32601);
     assert!(init().is_ok());
     let _ = get_library();
     assert_eq!(default_modules().len(), 2);
