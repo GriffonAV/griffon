@@ -1,0 +1,24 @@
+# Clean VMs to test the .deb/.rpm like a real user would.
+# See docs/packaging-testing.md.
+#
+# No provisioning on purpose: the VM must stay a stock system so missing
+# runtime dependencies show up.
+
+DIST = File.expand_path("../../dist", __dir__)
+
+Vagrant.configure("2") do |config|
+  config.vm.synced_folder DIST, "/dist"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = 4096
+    vb.cpus = 2
+  end
+
+  config.vm.define "ubuntu", primary: true do |m|
+    m.vm.box = "bento/ubuntu-24.04"
+  end
+
+  config.vm.define "fedora", autostart: false do |m|
+    m.vm.box = "bento/fedora-latest"
+  end
+end

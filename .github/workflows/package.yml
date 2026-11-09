@@ -1,0 +1,114 @@
+name: Griffon Packaging
+
+# Builds the .deb/.rpm and checks they install on clean systems.
+# Runs on main, and is called by release.yml before publishing.
+# The daemon/rights test needs systemd: do it in a VM, see docs/packaging-testing.md.
+on:
+  push:
+    branches:
+      - "main"
+
+  workflow_dispatch:
+
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+
+env:
+  # Releases pass their version; other runs get a dev version
+  VERSION: ${{ inputs.version || format('0.0.0-dev.{0}', github.run_number) }}
+
+jobs:
+  build:
+    name: Build Packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set workspace version
+        shell: bash
+        run: |
+          python3 -c '
+          import os, re
+          version = os.environ["VERSION"]
+          with open("Cargo.toml", "r") as f:
+              content = f.read()
+          content = re.sub(r"(?s)(\[workspace\.package\]\s*.*?version\s*=\s*\")[^\"]+(\")", r"\1" + version + r"\2", content)
+          with open("Cargo.toml", "w") as f:
+              f.write(content)
+          '
+          git diff Cargo.toml
+
+      - name: Build Docker packaging image
+        run: docker build -t griffon-builder -f Dockerfile.build .
+
+      - name: Run packaging container
+        run: |
+          mkdir -p dist
+          docker run --rm -e VERSION="$VERSION" -v "$(pwd)/dist:/out" griffon-builder
+          ls -la dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: |
+            dist/*.deb
+            dist/*.rpm
+          if-no-files-found: error
+
+  install:
+    name: Install on ${{ matrix.image }}
+    needs: [build]
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ubuntu:24.04
+            install: apt-get update && apt-get install -y ./dist/*.deb
+          - image: debian:trixie
+            install: apt-get update && apt-get install -y ./dist/*.deb
+          - image: fedora:latest
+            install: dnf install -y ./dist/*.rpm
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
+
+      - name: Install package
+        shell: bash
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: ${{ matrix.install }}
+
+      # ldd reports both missing libraries and "GLIBC_x.y not found"
+      - name: Check binaries can load
+        shell: bash
+        run: |
+          fail=0
+          for f in /usr/bin/griffon-daemon /usr/bin/griffon-daemon-runner \
+                   /usr/bin/griffon-cli /usr/bin/griffon-gui \
+                   /usr/libexec/griffon-plugin-installer \
+                   /usr/lib/griffon/plugins/*.so; do
+            if out=$(ldd "$f" 2>&1) && ! grep -q "not found" <<<"$out"; then
+              echo "✅ $f"
+            else
+              echo "❌ $f"
+              grep "not found" <<<"$out" || echo "$out"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Check post-install
+        shell: bash
+        run: |
+          getent group griffon
+          test -f /lib/systemd/system/griffon-daemon.service || test -f /usr/lib/systemd/system/griffon-daemon.service
+          test -f /etc/griffon/config_griffon_daemon.json

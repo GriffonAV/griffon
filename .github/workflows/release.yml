@@ -61,43 +61,28 @@ jobs:
         with:
           command: check advisories licenses bans sources
 
+  # Builds the packages and checks they install on clean systems
+  package:
+    name: Packaging
+    needs: [verify]
+    uses: ./.github/workflows/package.yml
+    with:
+      version: ${{ needs.verify.outputs.version }}
+    permissions:
+      contents: read
+
   release:
-    name: Build and Release
-    needs: [verify, ci, audit]
+    name: Publish Release
+    needs: [verify, ci, audit, package]
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    env:
-      VERSION: ${{ needs.verify.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Update Cargo.toml Workspace Version
-        shell: bash
-        run: |
-          python3 -c '
-          import os, re
-          version = os.environ["VERSION"]
-          with open("Cargo.toml", "r") as f:
-              content = f.read()
-          content = re.sub(r"(?s)(\[workspace\.package\]\s*.*?version\s*=\s*\")[^\"]+(\")", r"\1" + version + r"\2", content)
-          with open("Cargo.toml", "w") as f:
-              f.write(content)
-          '
-          git diff Cargo.toml
-
-      - name: Build Docker packaging image
-        run: |
-          docker build -t griffon-builder -f Dockerfile.build .
-
-      - name: Run packaging container
-        run: |
-          mkdir -p dist
-          docker run --rm \
-            -e VERSION="$VERSION" \
-            -v "$(pwd)/dist:/out" \
-            griffon-builder
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: dist
 
       - name: List built artifacts
         run: ls -la dist/
