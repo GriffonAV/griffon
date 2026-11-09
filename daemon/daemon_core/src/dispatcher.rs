@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::mpsc::{self, Receiver, RecvTimeoutError, Sender};
+use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
 use std::thread;
 use std::time::Duration;
 
