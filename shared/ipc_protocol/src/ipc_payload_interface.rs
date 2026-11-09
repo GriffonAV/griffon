@@ -32,6 +32,8 @@ pub enum InterfaceRequest {
     SwitchStatusNotification {
         plugin_uuid: [u8; 16],
     },
+
+    TestUnimplemented,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

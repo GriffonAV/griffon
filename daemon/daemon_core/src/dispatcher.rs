@@ -287,3 +287,60 @@ fn send_response(reply_tx: Sender<InterfaceResponse>, response: InterfaceRespons
         ));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ipc_protocol::ipc_payload_interface::InterfaceResponse;
+    use plugin_manager::PluginEvent;
+    
+    #[test]
+    fn test_handle_switch_notification() {
+        let dummy_uuid = [8u8; 16];
+        let response = handle_switch_notification(102, dummy_uuid);
+
+        match response {
+            InterfaceResponse::SwitchDone { request_id, .. } => assert_eq!(request_id, 102),
+            InterfaceResponse::Error { request_id, .. } => assert_eq!(request_id, 102),
+            _ => panic!("Unexpected response type"),
+        }
+    }
+
+    #[test]
+    fn test_send_response_helper() {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let response = InterfaceResponse::Error {
+            request_id: 1,
+            message: "test".to_string(),
+        };
+
+        send_response(tx, response, "test_context");
+
+        let received = rx.recv_timeout(std::time::Duration::from_secs(1)).unwrap();
+        match received {
+            InterfaceResponse::Error { request_id, .. } => assert_eq!(request_id, 1),
+            _ => panic!("Expected Error variant"),
+        }
+    }
+
+    #[test]
+    fn test_handle_plugin_event_response_all_variants() {
+        let uuid = [0u8; 16];
+
+        let ev1 = PluginEvent::Result { pid: 1, request_id: 1, ok: true, output: "ok".into() };
+        let r1 = handle_plugin_event_response(10, uuid, "p", "f", ev1);
+        assert!(matches!(r1, InterfaceResponse::CallResult { ok: true, .. }));
+
+        let ev2 = PluginEvent::Error { pid: 1, request_id: 1, message: "err".into() };
+        let r2 = handle_plugin_event_response(11, uuid, "p", "f", ev2);
+        assert!(matches!(r2, InterfaceResponse::CallResult { ok: false, .. }));
+
+        let ev3 = PluginEvent::Closed { pid: 1, reason: "exit".into() };
+        let r3 = handle_plugin_event_response(12, uuid, "p", "f", ev3);
+        assert!(matches!(r3, InterfaceResponse::Error { .. }));
+
+        let ev4 = PluginEvent::Heartbeat { pid: 1 };
+        let r4 = handle_plugin_event_response(13, uuid, "p", "f", ev4);
+        assert!(matches!(r4, InterfaceResponse::Error { .. }));
+    }
+}

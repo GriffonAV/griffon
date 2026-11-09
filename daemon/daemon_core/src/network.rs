@@ -36,8 +36,6 @@ static LOGGER_CORE: Logger = if cfg!(debug_assertions) {
 };
 
 pub const DAEMON_SOCK_PATH: &str = if cfg!(debug_assertions) {
-    // "/tmp/griffon-dev.sock"
-    // Use a fixed path in the Griffon directory to avoid issues with some IDEs that create random temp directories
     "./griffon.sock"
 } else {
     "/run/griffon/griffon.sock"
@@ -193,7 +191,6 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
             }
         };
 
-        // Transmettre la tâche sans attendre son résultat.
         if let Err(e) = task_tx.send(task) {
             LOGGER_CORE.error(format!("Failed to queue task: {e}"));
 
@@ -210,8 +207,6 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
             continue;
         }
 
-        // Attendre la réponse dans un thread séparé afin que la lecture
-        // des prochaines requêtes puisse continuer.
         let response_writer = Arc::clone(&writer);
 
         std::thread::spawn(move || {
@@ -244,5 +239,239 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
                 }
             }
         });
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::net::UnixStream;
+    use std::sync::mpsc;
+    use std::thread;
+    use std::time::Duration;
+    use ipc_protocol::ipc_payload_interface::{
+        InterfaceRequest, InterfaceResponse, send_interface_request, recv_interface_response,
+    };
+
+    #[test]
+    fn test_handle_client_refresh_plugins_success() {
+        let (mut client_socket, server_socket) = UnixStream::pair().expect("Failed to create socket pair");
+
+        let (task_tx, task_rx) = mpsc::channel();
+
+        let handle = thread::spawn(move || {
+            let _ = handle_client(server_socket, task_tx);
+        });
+
+        let request_id = 42;
+        let req = InterfaceRequest::RefreshPlugins;
+        send_interface_request(&mut client_socket, &req, request_id)
+            .expect("Failed to send interface request from client");
+
+        let received_task = task_rx
+            .recv_timeout(Duration::from_secs(1))
+            .expect("Timeout waiting for DaemonTask");
+
+        match received_task {
+            DaemonTask::RefreshPlugins { request_id: req_id, reply_tx } => {
+                assert_eq!(req_id, request_id);
+
+                let dummy_response = InterfaceResponse::Plugins {
+                    request_id: req_id,
+                    plugins: vec![],
+                };
+                reply_tx.send(dummy_response).expect("Failed to send reply to client handler");
+            }
+            other => panic!("Unexpected DaemonTask variant received: {:?}", other),
+        }
+
+        let response = recv_interface_response(&mut client_socket)
+            .expect("Failed to receive interface response on client");
+
+        match response {
+            InterfaceResponse::Plugins { request_id: resp_req_id, plugins } => {
+                assert_eq!(resp_req_id, request_id);
+                assert!(plugins.is_empty());
+            }
+            other => panic!("Unexpected InterfaceResponse received: {:?}", other),
+        }
+
+        drop(client_socket);
+        let _ = handle.join();
+    }
+
+    #[test]
+    fn test_handle_client_unimplemented_request() {
+        let (mut client_socket, server_socket) = UnixStream::pair().expect("Failed to create socket pair");
+        let (task_tx, _task_rx) = mpsc::channel();
+
+        thread::spawn(move || {
+            let _ = handle_client(server_socket, task_tx);
+        });
+
+        let request_id = 100;
+        
+        let req = InterfaceRequest::TestUnimplemented; 
+
+        send_interface_request(&mut client_socket, &req, request_id)
+            .expect("Failed to send interface request");
+
+        let response = recv_interface_response(&mut client_socket)
+            .expect("Failed to receive interface response on client");
+
+        match response {
+            InterfaceResponse::Error { request_id: resp_req_id, message } => {
+                assert_eq!(resp_req_id, request_id);
+                assert!(
+                    message.contains("Request not implemented"),
+                    "Message d'erreur inattendu : {}",
+                    message
+                );
+            }
+            other => panic!("Expected InterfaceResponse::Error, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_handle_client_task_tx_disconnected() {
+        let (mut client_socket, server_socket) = UnixStream::pair().expect("Failed to create socket pair");
+        
+        let (task_tx, task_rx) = mpsc::channel::<DaemonTask>();
+        drop(task_rx); 
+
+        let handle = thread::spawn(move || {
+            let _ = handle_client(server_socket, task_tx);
+        });
+
+        let request_id = 200;
+        let req = InterfaceRequest::RefreshPlugins;
+        send_interface_request(&mut client_socket, &req,request_id)
+            .expect("Failed to send interface request");
+
+        let response = recv_interface_response(&mut client_socket)
+            .expect("Failed to receive response when channel is disconnected");
+
+        match response {
+            InterfaceResponse::Error { request_id: resp_req_id, message } => {
+                assert_eq!(resp_req_id, request_id);
+                assert!(
+                    message.contains("Failed to queue task"),
+                    "Le message devrait indiquer l'échec d'envoi de la tâche : {}",
+                    message
+                );
+            }
+            other => panic!("Expected InterfaceResponse::Error, got {:?}", other),
+        }
+
+        drop(client_socket);
+        let _ = handle.join();
+    }
+
+   #[test]
+    fn test_setup_listener_removes_old_socket() {
+        use std::path::Path;
+
+        let path = Path::new(DAEMON_SOCK_PATH);
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        
+        std::fs::write(path, b"old socket garbage data").expect("Failed to create fake old socket");
+        assert!(path.exists());
+
+        let listener = setup_listener();
+
+        assert!(
+            listener.is_ok(),
+            "setup_listener a échoué avec l'erreur: {:?}",
+            listener.err()
+        );
+        assert!(path.exists());
+
+        drop(listener);
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_handle_client_all_request_types() {
+        let (mut client_socket, server_socket) = UnixStream::pair().unwrap();
+        let (task_tx, task_rx) = mpsc::channel();
+
+        std::thread::spawn(move || {
+            let _ = handle_client(server_socket, task_tx);
+        });
+
+        let dummy_uuid = [1u8; 16];
+
+        let req1 = InterfaceRequest::SwitchStatusNotification { plugin_uuid: dummy_uuid };
+        send_interface_request(&mut client_socket, &req1, 1).unwrap();
+        let task1 = task_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+        assert!(matches!(task1, DaemonTask::SwitchStatusNotification { request_id: 1, .. }));
+
+        let req2 = InterfaceRequest::SwitchStatusPlugin { plugin_uuid: dummy_uuid };
+        send_interface_request(&mut client_socket, &req2, 2).unwrap();
+        let task2 = task_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+        assert!(matches!(task2, DaemonTask::SwitchStatusPlugin { request_id: 2, .. }));
+
+        let req3 = InterfaceRequest::CallPlugin {
+            plugin_uuid: dummy_uuid,
+            fn_name: "test_fn".into(),
+            args: vec!["arg1".into()],
+        };
+        send_interface_request(&mut client_socket, &req3, 3).unwrap();
+        let task3 = task_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+        assert!(matches!(task3, DaemonTask::CallPlugin { request_id: 3, .. }));
+    }
+
+    #[test]
+    fn test_handle_client_invalid_payload_disconnects() {
+        let (mut client_socket, server_socket) = UnixStream::pair().expect("Failed to create socket pair");
+        let (task_tx, _task_rx) = mpsc::channel();
+
+        let handle = thread::spawn(move || {
+            let _ = handle_client(server_socket, task_tx);
+        });
+
+        use std::io::Write;
+        let _ = client_socket.write_all(b"invalid garbage header payload data");
+
+        let _ = handle.join();
+    }
+
+    #[test]
+    fn test_handle_client_reply_channel_drop_sends_error() {
+        let (mut client_socket, server_socket) = UnixStream::pair().expect("Failed to create socket pair");
+        let (task_tx, task_rx) = mpsc::channel();
+
+        let handle = thread::spawn(move || {
+            let _ = handle_client(server_socket, task_tx);
+        });
+
+        let request_id = 999;
+        let req = InterfaceRequest::RefreshPlugins;
+        send_interface_request(&mut client_socket, &req, request_id).unwrap();
+
+        let task = task_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+        match task {
+            DaemonTask::RefreshPlugins { reply_tx, .. } => {
+                drop(reply_tx);
+            }
+            _ => panic!("Expected RefreshPlugins task"),
+        }
+
+        let response = recv_interface_response(&mut client_socket)
+            .expect("Failed to receive response when reply_tx is dropped");
+
+        match response {
+            InterfaceResponse::Error { request_id: resp_id, message } => {
+                assert_eq!(resp_id, request_id);
+                assert!(message.contains("Dispatcher response channel closed"));
+            }
+            other => panic!("Expected InterfaceResponse::Error, got {:?}", other),
+        }
+
+        drop(client_socket);
+        let _ = handle.join();
     }
 }
