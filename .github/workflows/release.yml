@@ -93,6 +93,23 @@ jobs:
           files: |
             dist/*.deb
             dist/*.rpm
+          # The changelog is appended after this body
+          body: |
+            ## Installation
+
+            Supported: Ubuntu 22.04+, Debian 12+, Fedora 36+ (x86_64).
+
+            ```bash
+            # Debian / Ubuntu
+            sudo apt update && sudo apt install ./griffon-${{ needs.verify.outputs.version }}.deb
+
+            # Fedora
+            sudo dnf install ./griffon-${{ needs.verify.outputs.version }}.rpm
+            ```
+
+            **Then log out and back in** (or run `newgrp griffon`): the install adds your user to the `griffon` group, which the GUI and CLI need to talk to the daemon.
+
+            Check: `systemctl status griffon-daemon` should say *active (running)*. Full guide and troubleshooting: [README](https://github.com/GriffonAV/griffon#installation).
           generate_release_notes: true
           draft: false
           prerelease: false

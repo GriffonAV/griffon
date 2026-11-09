@@ -41,19 +41,40 @@ Built-in plugins include a **YARA-based scanner** (with quarantine and rule upda
 
 ## Installation
 
-Download the latest `.deb` or `.rpm` from the [releases page](https://github.com/GriffonAV/griffon/releases/latest), then install it (replace `<version>` with the version you downloaded):
+**Supported systems:** Ubuntu 22.04+, Debian 12+, Fedora 36+ (x86_64), and derivatives (Linux Mint 21+, Pop!_OS 22.04+…).
+
+**1. Download and install** the latest `.deb` (Debian/Ubuntu) or `.rpm` (Fedora) from the [releases page](https://github.com/GriffonAV/griffon/releases/latest). The `./` in front of the file name is required:
 
 ```bash
 # Debian / Ubuntu
-sudo apt install ./griffon-<version>.deb
+sudo apt update
+sudo apt install ./griffon-*.deb
 
 # Fedora
-sudo dnf install ./griffon-<version>.rpm
+sudo dnf install ./griffon-*.rpm
 ```
 
 The install enables and starts the `griffon-daemon` systemd service, and adds your user to the `griffon` group so the GUI and CLI can talk to the daemon without `sudo`.
 
-**Log out and back in** (or run `newgrp griffon`) for the group change to take effect. Then launch **Griffon** from your application menu, or run `griffon-cli` in a terminal.
+**2. Log out and back in** (or run `newgrp griffon` in your terminal) so the group change takes effect. This step is required.
+
+**3. Check that it works:**
+
+```bash
+systemctl status griffon-daemon   # should say "active (running)"
+id | grep griffon                 # your user must be in the griffon group
+griffon-cli
+```
+
+Then launch **Griffon** from your application menu, or run `griffon-gui`.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `permission denied` when the CLI/GUI connects to the daemon | You haven't logged out and back in yet. If you installed as root (without `sudo`), add your user manually: `sudo usermod -aG griffon $USER`, then log out and back in. |
+| The daemon isn't running | `sudo systemctl restart griffon-daemon`, and see the logs with `journalctl -u griffon-daemon -b` |
+| `apt` says a dependency is not installable | Run `sudo apt update`, then install again. |
 
 To uninstall: `sudo apt remove griffon` or `sudo dnf remove griffon`.
 

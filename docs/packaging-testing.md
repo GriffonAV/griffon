@@ -12,9 +12,18 @@ a VM. Do the VM test before tagging a release.
 
 ## Supported systems
 
-The binaries are built on Debian 13 and need **glibc ≥ 2.39**:
-Ubuntu 24.04+, Debian 13+, Fedora 40+. Ubuntu 22.04 / Debian 12 are **not**
-supported (the daemon fails with `GLIBC_2.39 not found`).
+A binary only runs on systems whose glibc is at least as new as the one it was
+built against. `Dockerfile.build` therefore compiles everything on
+**Ubuntu 22.04** (glibc 2.35), which makes the packages work on
+Ubuntu 22.04+, Debian 12+ and Fedora 36+. CI checks Ubuntu 22.04/24.04,
+Debian 12/13 and Fedora.
+
+Rust is installed with rustup, so the old base image doesn't limit the Rust
+version. When Ubuntu 22.04 reaches end of life (April 2027), move the base
+image to the next oldest LTS.
+
+If a binary fails with `GLIBC_2.xx not found`, it was built on a system that
+is too new.
 
 ## 1. Build the packages
 
