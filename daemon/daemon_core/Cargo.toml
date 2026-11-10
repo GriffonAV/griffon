@@ -12,5 +12,8 @@ logger = { workspace = true }
 serde = { workspace = true }
 uuid = { workspace = true }
 nix = { workspace = true, features = ["fs", "user"] }
-notify-rust = "4.17.0"
 serde_json = { workspace = true }
+notify-rust = "4.17.0"
+
+[dev-dependencies]
+tempfile = "3.27.0"

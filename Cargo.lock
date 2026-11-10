@@ -2461,6 +2461,7 @@ dependencies = [
  "plugin_manager",
  "serde",
  "serde_json",
+ "tempfile",
  "uuid",
 ]
 

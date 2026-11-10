@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Griffon
 Comment=Security monitoring and antivirus tool
-Exec=sg griffon -c /usr/bin/griffon-gui
+Exec=sh -c "exec sg griffon -c /usr/bin/griffon-gui"
 Icon=griffon
 Terminal=false
 Type=Application
