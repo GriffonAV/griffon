@@ -1,10 +1,14 @@
 name: Griffon Packaging
 
 # Builds the .deb/.rpm and checks they install on clean systems.
-# Runs on main, and is called by release.yml before publishing.
+# Runs on main and on PRs targeting main, and is called by release.yml before publishing.
 # The daemon/rights test needs systemd: do it in a VM, see docs/packaging-testing.md.
 on:
   push:
+    branches:
+      - "main"
+
+  pull_request:
     branches:
       - "main"
 
@@ -15,6 +19,11 @@ on:
       version:
         type: string
         required: true
+
+# A new push to a PR cancels its previous packaging run
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 env:
   # Releases pass their version; other runs get a dev version
@@ -40,7 +49,10 @@ jobs:
           with open("Cargo.toml", "w") as f:
               f.write(content)
           '
-          git diff Cargo.toml
+          # Cargo.lock stores the workspace crates' versions: sync them so the
+          # --locked build doesn't fail. Only workspace entries change.
+          cargo update --workspace
+          git diff Cargo.toml Cargo.lock
 
       - name: Build Docker packaging image
         run: docker build -t griffon-builder -f Dockerfile.build .
