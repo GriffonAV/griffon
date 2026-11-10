@@ -15,12 +15,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# yara-x 1.22 requires Rust 1.95
-ARG RUST_VERSION=1.95
+# Rust version comes from rust-toolchain.toml (same as local dev and CI)
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-    | sh -s -- -y --profile minimal --default-toolchain ${RUST_VERSION}
+    | sh -s -- -y --profile minimal --default-toolchain none
 ENV PATH="/root/.cargo/bin:${PATH}"
 WORKDIR /app
+COPY rust-toolchain.toml .
+RUN rustup toolchain install
 
 
 # --- STAGE 1: Build du GUI (Vite + Tauri Binary) ---
