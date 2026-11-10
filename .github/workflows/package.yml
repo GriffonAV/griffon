@@ -36,7 +36,7 @@ jobs:
           version = os.environ["VERSION"]
           with open("Cargo.toml", "r") as f:
               content = f.read()
-          content = re.sub(r"(?s)(\[workspace\.package\]\s*.*?version\s*=\s*\")[^\"]+(\")", r"\1" + version + r"\2", content)
+          content = re.sub(r"(?s)(\[workspace\.package\]\s*.*?version\s*=\s*\")[^\"]+(\")", r"\g<1>" + version + r"\g<2>", content)
           with open("Cargo.toml", "w") as f:
               f.write(content)
           '
