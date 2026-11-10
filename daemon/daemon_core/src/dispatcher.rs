@@ -293,7 +293,7 @@ mod tests {
     use super::*;
     use ipc_protocol::ipc_payload_interface::InterfaceResponse;
     use plugin_manager::PluginEvent;
-    
+
     #[test]
     fn test_handle_switch_notification() {
         let dummy_uuid = [8u8; 16];
@@ -327,15 +327,30 @@ mod tests {
     fn test_handle_plugin_event_response_all_variants() {
         let uuid = [0u8; 16];
 
-        let ev1 = PluginEvent::Result { pid: 1, request_id: 1, ok: true, output: "ok".into() };
+        let ev1 = PluginEvent::Result {
+            pid: 1,
+            request_id: 1,
+            ok: true,
+            output: "ok".into(),
+        };
         let r1 = handle_plugin_event_response(10, uuid, "p", "f", ev1);
         assert!(matches!(r1, InterfaceResponse::CallResult { ok: true, .. }));
 
-        let ev2 = PluginEvent::Error { pid: 1, request_id: 1, message: "err".into() };
+        let ev2 = PluginEvent::Error {
+            pid: 1,
+            request_id: 1,
+            message: "err".into(),
+        };
         let r2 = handle_plugin_event_response(11, uuid, "p", "f", ev2);
-        assert!(matches!(r2, InterfaceResponse::CallResult { ok: false, .. }));
+        assert!(matches!(
+            r2,
+            InterfaceResponse::CallResult { ok: false, .. }
+        ));
 
-        let ev3 = PluginEvent::Closed { pid: 1, reason: "exit".into() };
+        let ev3 = PluginEvent::Closed {
+            pid: 1,
+            reason: "exit".into(),
+        };
         let r3 = handle_plugin_event_response(12, uuid, "p", "f", ev3);
         assert!(matches!(r3, InterfaceResponse::Error { .. }));
 

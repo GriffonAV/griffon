@@ -242,21 +242,21 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ipc_protocol::ipc_payload_interface::{
+        InterfaceRequest, InterfaceResponse, recv_interface_response, send_interface_request,
+    };
     use std::os::unix::net::UnixStream;
     use std::sync::mpsc;
     use std::thread;
     use std::time::Duration;
-    use ipc_protocol::ipc_payload_interface::{
-        InterfaceRequest, InterfaceResponse, send_interface_request, recv_interface_response,
-    };
 
     #[test]
     fn test_handle_client_refresh_plugins_success() {
-        let (mut client_socket, server_socket) = UnixStream::pair().expect("Failed to create socket pair");
+        let (mut client_socket, server_socket) =
+            UnixStream::pair().expect("Failed to create socket pair");
 
         let (task_tx, task_rx) = mpsc::channel();
 
@@ -274,14 +274,19 @@ mod tests {
             .expect("Timeout waiting for DaemonTask");
 
         match received_task {
-            DaemonTask::RefreshPlugins { request_id: req_id, reply_tx } => {
+            DaemonTask::RefreshPlugins {
+                request_id: req_id,
+                reply_tx,
+            } => {
                 assert_eq!(req_id, request_id);
 
                 let dummy_response = InterfaceResponse::Plugins {
                     request_id: req_id,
                     plugins: vec![],
                 };
-                reply_tx.send(dummy_response).expect("Failed to send reply to client handler");
+                reply_tx
+                    .send(dummy_response)
+                    .expect("Failed to send reply to client handler");
             }
             other => panic!("Unexpected DaemonTask variant received: {:?}", other),
         }
@@ -290,7 +295,10 @@ mod tests {
             .expect("Failed to receive interface response on client");
 
         match response {
-            InterfaceResponse::Plugins { request_id: resp_req_id, plugins } => {
+            InterfaceResponse::Plugins {
+                request_id: resp_req_id,
+                plugins,
+            } => {
                 assert_eq!(resp_req_id, request_id);
                 assert!(plugins.is_empty());
             }
@@ -303,7 +311,8 @@ mod tests {
 
     #[test]
     fn test_handle_client_unimplemented_request() {
-        let (mut client_socket, server_socket) = UnixStream::pair().expect("Failed to create socket pair");
+        let (mut client_socket, server_socket) =
+            UnixStream::pair().expect("Failed to create socket pair");
         let (task_tx, _task_rx) = mpsc::channel();
 
         thread::spawn(move || {
@@ -311,8 +320,8 @@ mod tests {
         });
 
         let request_id = 100;
-        
-        let req = InterfaceRequest::TestUnimplemented; 
+
+        let req = InterfaceRequest::TestUnimplemented;
 
         send_interface_request(&mut client_socket, &req, request_id)
             .expect("Failed to send interface request");
@@ -321,7 +330,10 @@ mod tests {
             .expect("Failed to receive interface response on client");
 
         match response {
-            InterfaceResponse::Error { request_id: resp_req_id, message } => {
+            InterfaceResponse::Error {
+                request_id: resp_req_id,
+                message,
+            } => {
                 assert_eq!(resp_req_id, request_id);
                 assert!(
                     message.contains("Request not implemented"),
@@ -335,10 +347,11 @@ mod tests {
 
     #[test]
     fn test_handle_client_task_tx_disconnected() {
-        let (mut client_socket, server_socket) = UnixStream::pair().expect("Failed to create socket pair");
-        
+        let (mut client_socket, server_socket) =
+            UnixStream::pair().expect("Failed to create socket pair");
+
         let (task_tx, task_rx) = mpsc::channel::<DaemonTask>();
-        drop(task_rx); 
+        drop(task_rx);
 
         let handle = thread::spawn(move || {
             let _ = handle_client(server_socket, task_tx);
@@ -346,14 +359,17 @@ mod tests {
 
         let request_id = 200;
         let req = InterfaceRequest::RefreshPlugins;
-        send_interface_request(&mut client_socket, &req,request_id)
+        send_interface_request(&mut client_socket, &req, request_id)
             .expect("Failed to send interface request");
 
         let response = recv_interface_response(&mut client_socket)
             .expect("Failed to receive response when channel is disconnected");
 
         match response {
-            InterfaceResponse::Error { request_id: resp_req_id, message } => {
+            InterfaceResponse::Error {
+                request_id: resp_req_id,
+                message,
+            } => {
                 assert_eq!(resp_req_id, request_id);
                 assert!(
                     message.contains("Failed to queue task"),
@@ -368,7 +384,7 @@ mod tests {
         let _ = handle.join();
     }
 
-   #[test]
+    #[test]
     fn test_setup_listener_removes_old_socket() {
         use std::path::Path;
 
@@ -376,7 +392,7 @@ mod tests {
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        
+
         std::fs::write(path, b"old socket garbage data").expect("Failed to create fake old socket");
         assert!(path.exists());
 
@@ -404,15 +420,25 @@ mod tests {
 
         let dummy_uuid = [1u8; 16];
 
-        let req1 = InterfaceRequest::SwitchStatusNotification { plugin_uuid: dummy_uuid };
+        let req1 = InterfaceRequest::SwitchStatusNotification {
+            plugin_uuid: dummy_uuid,
+        };
         send_interface_request(&mut client_socket, &req1, 1).unwrap();
         let task1 = task_rx.recv_timeout(Duration::from_secs(1)).unwrap();
-        assert!(matches!(task1, DaemonTask::SwitchStatusNotification { request_id: 1, .. }));
+        assert!(matches!(
+            task1,
+            DaemonTask::SwitchStatusNotification { request_id: 1, .. }
+        ));
 
-        let req2 = InterfaceRequest::SwitchStatusPlugin { plugin_uuid: dummy_uuid };
+        let req2 = InterfaceRequest::SwitchStatusPlugin {
+            plugin_uuid: dummy_uuid,
+        };
         send_interface_request(&mut client_socket, &req2, 2).unwrap();
         let task2 = task_rx.recv_timeout(Duration::from_secs(1)).unwrap();
-        assert!(matches!(task2, DaemonTask::SwitchStatusPlugin { request_id: 2, .. }));
+        assert!(matches!(
+            task2,
+            DaemonTask::SwitchStatusPlugin { request_id: 2, .. }
+        ));
 
         let req3 = InterfaceRequest::CallPlugin {
             plugin_uuid: dummy_uuid,
@@ -421,12 +447,16 @@ mod tests {
         };
         send_interface_request(&mut client_socket, &req3, 3).unwrap();
         let task3 = task_rx.recv_timeout(Duration::from_secs(1)).unwrap();
-        assert!(matches!(task3, DaemonTask::CallPlugin { request_id: 3, .. }));
+        assert!(matches!(
+            task3,
+            DaemonTask::CallPlugin { request_id: 3, .. }
+        ));
     }
 
     #[test]
     fn test_handle_client_invalid_payload_disconnects() {
-        let (mut client_socket, server_socket) = UnixStream::pair().expect("Failed to create socket pair");
+        let (mut client_socket, server_socket) =
+            UnixStream::pair().expect("Failed to create socket pair");
         let (task_tx, _task_rx) = mpsc::channel();
 
         let handle = thread::spawn(move || {
@@ -441,7 +471,8 @@ mod tests {
 
     #[test]
     fn test_handle_client_reply_channel_drop_sends_error() {
-        let (mut client_socket, server_socket) = UnixStream::pair().expect("Failed to create socket pair");
+        let (mut client_socket, server_socket) =
+            UnixStream::pair().expect("Failed to create socket pair");
         let (task_tx, task_rx) = mpsc::channel();
 
         let handle = thread::spawn(move || {
@@ -464,7 +495,10 @@ mod tests {
             .expect("Failed to receive response when reply_tx is dropped");
 
         match response {
-            InterfaceResponse::Error { request_id: resp_id, message } => {
+            InterfaceResponse::Error {
+                request_id: resp_id,
+                message,
+            } => {
                 assert_eq!(resp_id, request_id);
                 assert!(message.contains("Dispatcher response channel closed"));
             }

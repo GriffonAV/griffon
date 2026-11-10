@@ -226,12 +226,8 @@ mod tests {
     fn test_send_plugin_response_notification_exec() {
         let plugin_uuid = [7u8; 16];
 
-        let result = send_plugin_response_notification(
-            plugin_uuid,
-            "test_plugin",
-            "test_function",
-            true,
-        );
+        let result =
+            send_plugin_response_notification(plugin_uuid, "test_plugin", "test_function", true);
 
         let _ = result;
     }
