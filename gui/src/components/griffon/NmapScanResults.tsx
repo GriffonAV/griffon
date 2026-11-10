@@ -37,6 +37,7 @@ type NmapHost = {
 };
 
 type NmapScanResult = {
+  diagnostics?: string;
   hosts?: NmapHost[];
 };
 
@@ -95,13 +96,19 @@ export default function NmapScanResults({ element, store = {}, onAction }: Props
   const serviceProbe = resolveFromPath("store.data.service_probe", { store }) as ProbeResult | undefined;
   const hosts = Array.isArray(result?.hosts) ? result.hosts : [];
 
-  if (hosts.length === 0) {
+  if (hosts.length === 0 && !result?.diagnostics) {
     return null;
   }
 
   return (
     <div id={element.id} className="space-y-4">
-      <h2 className="text-lg font-semibold">Open services</h2>
+      {result?.diagnostics && (
+        <Card>
+          <CardHeader><CardTitle>Nmap diagnostics</CardTitle></CardHeader>
+          <CardContent><pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words text-sm font-mono">{result.diagnostics}</pre></CardContent>
+        </Card>
+      )}
+      {hosts.length > 0 && <h2 className="text-lg font-semibold">Open services</h2>}
       {hosts.map((host, hostIndex) => (
         <Card key={`${host.address}-${hostIndex}`}>
           <CardHeader className="pb-0">

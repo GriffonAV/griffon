@@ -191,6 +191,38 @@ jobs:
           reporter: java-junit
           fail-on-error: false
 
+  plugin-coverage:
+    name: Cleaner & Nmap Coverage (70% each)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust and LLVM tools
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main' }}
+      - name: Install coverage tool
+        run: cargo install cargo-llvm-cov --version 0.9.1 --locked
+      - name: Run isolated unit tests and check coverage
+        run: bash scripts/plugin-coverage.sh
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          if [ -f target/plugin-coverage/coverage.json ]; then
+            python3 scripts/check-plugin-coverage.py target/plugin-coverage/coverage.json >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cleaner-nmap-coverage
+          path: target/plugin-coverage/
+
   plugin-contract:
     name: Plugin Contract
     runs-on: ubuntu-latest

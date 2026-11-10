@@ -55,6 +55,7 @@ struct ScanResponse {
     command: String,
     duration_ms: u128,
     hosts: Vec<Host>,
+    diagnostics: String,
 }
 
 #[derive(Serialize)]
@@ -152,6 +153,10 @@ struct HistoryEntry {
     command: String,
     duration_ms: u128,
     hosts: Vec<Host>,
+    #[serde(default)]
+    message: String,
+    #[serde(default)]
+    diagnostics: String,
 }
 
 #[derive(Serialize)]
@@ -173,9 +178,8 @@ fn history_path() -> PathBuf {
     PathBuf::from("/var/lib/griffon/nmap/history.json")
 }
 
-fn load_history() -> Result<ScanHistory, String> {
-    let path = history_path();
-    match fs::read_to_string(&path) {
+fn load_history_at(path: &std::path::Path) -> Result<ScanHistory, String> {
+    match fs::read_to_string(path) {
         Ok(contents) => serde_json::from_str(&contents)
             .map_err(|error| format!("Historique Nmap invalide dans {} : {error}", path.display())),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(ScanHistory {
@@ -186,8 +190,7 @@ fn load_history() -> Result<ScanHistory, String> {
     }
 }
 
-fn save_history(history: &ScanHistory) -> Result<(), String> {
-    let path = history_path();
+fn save_history_at(path: &std::path::Path, history: &ScanHistory) -> Result<(), String> {
     let parent = path.parent().ok_or("Chemin d’historique invalide")?;
     fs::create_dir_all(parent)
         .map_err(|error| format!("Impossible de créer le dossier d’historique : {error}"))?;
@@ -196,12 +199,20 @@ fn save_history(history: &ScanHistory) -> Result<(), String> {
         .map_err(|error| format!("Impossible de sérialiser l’historique : {error}"))?;
     fs::write(&temporary, contents)
         .map_err(|error| format!("Impossible d’écrire l’historique : {error}"))?;
-    fs::rename(&temporary, &path)
+    fs::rename(&temporary, path)
         .map_err(|error| format!("Impossible de finaliser l’historique : {error}"))
 }
 
 fn store_scan(response: &ScanResponse, executor: &str) -> Result<(), String> {
-    let mut history = load_history()?;
+    store_scan_at(&history_path(), response, executor)
+}
+
+fn store_scan_at(
+    path: &std::path::Path,
+    response: &ScanResponse,
+    executor: &str,
+) -> Result<(), String> {
+    let mut history = load_history_at(path)?;
     let created_at_ms = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
@@ -217,14 +228,20 @@ fn store_scan(response: &ScanResponse, executor: &str) -> Result<(), String> {
             command: response.command.clone(),
             duration_ms: response.duration_ms,
             hosts: response.hosts.clone(),
+            message: response.message.clone(),
+            diagnostics: response.diagnostics.clone(),
         },
     );
     history.scans.truncate(100);
-    save_history(&history)
+    save_history_at(path, &history)
 }
 
 fn history_response() -> Result<HistoryResponse, String> {
-    let history = load_history()?;
+    history_response_at(&history_path())
+}
+
+fn history_response_at(path: &std::path::Path) -> Result<HistoryResponse, String> {
+    let history = load_history_at(path)?;
     Ok(HistoryResponse {
         ok: true,
         message: format!("{} analyse(s) enregistrée(s).", history.scans.len()),
@@ -233,13 +250,17 @@ fn history_response() -> Result<HistoryResponse, String> {
 }
 
 fn delete_history_entry(id: &str) -> Result<HistoryResponse, String> {
-    let mut history = load_history()?;
+    delete_history_entry_at(&history_path(), id)
+}
+
+fn delete_history_entry_at(path: &std::path::Path, id: &str) -> Result<HistoryResponse, String> {
+    let mut history = load_history_at(path)?;
     let previous_count = history.scans.len();
     history.scans.retain(|scan| scan.id != id);
     if history.scans.len() == previous_count {
         return Err("Cette analyse n’existe plus dans l’historique.".to_string());
     }
-    save_history(&history)?;
+    save_history_at(path, &history)?;
     Ok(HistoryResponse {
         ok: true,
         message: "Analyse supprimée de l’historique.".to_string(),
@@ -248,9 +269,13 @@ fn delete_history_entry(id: &str) -> Result<HistoryResponse, String> {
 }
 
 fn clear_history() -> Result<HistoryResponse, String> {
-    let mut history = load_history()?;
+    clear_history_at(&history_path())
+}
+
+fn clear_history_at(path: &std::path::Path) -> Result<HistoryResponse, String> {
+    let mut history = load_history_at(path)?;
     history.scans.clear();
-    save_history(&history)?;
+    save_history_at(path, &history)?;
     Ok(HistoryResponse {
         ok: true,
         message: "Historique Nmap supprimé.".to_string(),
@@ -386,9 +411,13 @@ fn scan_args(request: &ScanRequest) -> Result<Vec<String>, String> {
 }
 
 fn list_exegol_containers() -> Result<ExegolContainerList, String> {
-    let output = Command::new("docker")
-        .args(["ps", "--format", "{{json .}}"])
-        .output()
+    list_exegol_containers_with(&mut Command::output)
+}
+
+fn list_exegol_containers_with(
+    run: &mut impl FnMut(&mut Command) -> std::io::Result<std::process::Output>,
+) -> Result<ExegolContainerList, String> {
+    let output = run(Command::new("docker").args(["ps", "--format", "{{json .}}"]))
         .map_err(|error| format!("Impossible de lancer Docker : {error}"))?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
@@ -485,6 +514,13 @@ fn page_title(body: &str) -> String {
 }
 
 fn http_probe(request: HttpProbeRequest) -> Result<HttpProbeResponse, String> {
+    http_probe_with(request, &mut Command::output)
+}
+
+fn http_probe_with(
+    request: HttpProbeRequest,
+    run: &mut impl FnMut(&mut Command) -> std::io::Result<std::process::Output>,
+) -> Result<HttpProbeResponse, String> {
     let target = request.target.trim();
     if !is_valid_target(target) || !valid_port_number(&request.port) {
         return Err("La cible ou le port HTTP est invalide.".to_string());
@@ -523,9 +559,8 @@ fn http_probe(request: HttpProbeRequest) -> Result<HttpProbeResponse, String> {
     } else {
         format!("curl {} {url}", args.join(" "))
     };
-    let output = command
-        .output()
-        .map_err(|error| format!("Impossible de lancer curl : {error}"))?;
+    let output =
+        run(&mut command).map_err(|error| format!("Impossible de lancer curl : {error}"))?;
     if !output.status.success() {
         return Err(format!(
             "curl a échoué : {}",
@@ -567,6 +602,13 @@ fn probe_command(executor: &str, container: &str, program: &str) -> Result<Comma
 }
 
 fn service_probe(request: ServiceProbeRequest) -> Result<ServiceProbeResponse, String> {
+    service_probe_with(request, &mut Command::output)
+}
+
+fn service_probe_with(
+    request: ServiceProbeRequest,
+    run: &mut impl FnMut(&mut Command) -> std::io::Result<std::process::Output>,
+) -> Result<ServiceProbeResponse, String> {
     let target = request.target.trim();
     if !is_valid_target(target) || !valid_port_number(&request.port) {
         return Err("La cible ou le port du service est invalide.".to_string());
@@ -652,9 +694,8 @@ fn service_probe(request: ServiceProbeRequest) -> Result<ServiceProbeResponse, S
     } else {
         format!("{program} {}", args.join(" "))
     };
-    let output = command
-        .output()
-        .map_err(|error| format!("Impossible de lancer {program} : {error}"))?;
+    let output =
+        run(&mut command).map_err(|error| format!("Impossible de lancer {program} : {error}"))?;
     let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
     let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
     if !output.status.success() {
@@ -752,7 +793,65 @@ fn parse_nmap_xml(xml: &str) -> Result<Vec<Host>, String> {
         .collect())
 }
 
+fn scan_feedback(
+    xml: &str,
+    stderr: &str,
+    request: &ScanRequest,
+) -> Result<(String, String), String> {
+    let document = roxmltree::Document::parse_with_options(
+        xml,
+        roxmltree::ParsingOptions {
+            allow_dtd: true,
+            ..Default::default()
+        },
+    )
+    .map_err(|error| format!("Résultat Nmap XML invalide : {error}"))?;
+    let counts = document
+        .descendants()
+        .find(|node| node.has_tag_name("hosts"));
+    let up = counts
+        .and_then(|node| node.attribute("up"))
+        .and_then(|value| value.parse::<u64>().ok());
+    let total = counts
+        .and_then(|node| node.attribute("total"))
+        .and_then(|value| value.parse::<u64>().ok());
+    let message = match (up, total) {
+        (_, Some(0)) => {
+            "Aucune cible analysée. Vérifie le nom d’hôte et sa résolution DNS.".to_string()
+        }
+        (Some(0), Some(_)) => {
+            let mut message = "Aucun hôte détecté actif. La cible peut être indisponible ou bloquer les sondes de découverte.".to_string();
+            if !request.skip_host_discovery && request.profile != "discovery" {
+                message.push_str(
+                    " Si tu sais qu’elle est active, active l’option -Pn puis relance le scan.",
+                );
+            }
+            message
+        }
+        _ => "Analyse terminée.".to_string(),
+    };
+    let summary = document
+        .descendants()
+        .find(|node| node.has_tag_name("finished"))
+        .and_then(|node| node.attribute("summary"))
+        .unwrap_or_default();
+    let diagnostics = [stderr.trim(), summary]
+        .into_iter()
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    Ok((message, diagnostics))
+}
+
 fn scan(request: ScanRequest) -> Result<ScanResponse, String> {
+    scan_with(request, &mut Command::output, &mut store_scan)
+}
+
+fn scan_with(
+    request: ScanRequest,
+    run: &mut impl FnMut(&mut Command) -> std::io::Result<std::process::Output>,
+    store: &mut impl FnMut(&ScanResponse, &str) -> Result<(), String>,
+) -> Result<ScanResponse, String> {
     let target = request.target.trim();
     if !is_valid_target(target) {
         return Err(
@@ -763,11 +862,9 @@ fn scan(request: ScanRequest) -> Result<ScanResponse, String> {
     let args = scan_args(&request)?;
     let command = displayed_command(&request, &args, target);
     let started = Instant::now();
-    let output = nmap_command(&request, &args, target)?
-        .output()
-        .map_err(|error| {
-            format!("Impossible de lancer Nmap. Vérifie qu’il est installé : {error}")
-        })?;
+    let output = run(&mut nmap_command(&request, &args, target)?).map_err(|error| {
+        format!("Impossible de lancer Nmap. Vérifie qu’il est installé : {error}")
+    })?;
     let duration_ms = started.elapsed().as_millis();
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
@@ -780,16 +877,19 @@ fn scan(request: ScanRequest) -> Result<ScanResponse, String> {
     let xml = String::from_utf8(output.stdout)
         .map_err(|_| "Nmap a renvoyé une sortie qui n’est pas du texte UTF-8.".to_string())?;
     let hosts = parse_nmap_xml(&xml)?;
+    let (message, diagnostics) =
+        scan_feedback(&xml, &String::from_utf8_lossy(&output.stderr), &request)?;
     let response = ScanResponse {
         ok: true,
-        message: "Analyse terminée.".to_string(),
+        message,
+        diagnostics,
         target: target.to_string(),
         profile: request.profile.clone(),
         command,
         duration_ms,
         hosts,
     };
-    store_scan(&response, &request.executor)?;
+    store(&response, &request.executor)?;
     Ok(response)
 }
 
@@ -819,110 +919,10 @@ export_plugin! {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+mod tests;
 
-    #[test]
-    fn accepts_an_ip_or_hostname_but_not_target_expressions() {
-        assert!(is_valid_target("192.168.1.10"));
-        assert!(is_valid_target("scan.example.org"));
-        assert!(!is_valid_target("192.168.1.0/24"));
-        assert!(!is_valid_target("scanme.nmap.org --script vuln"));
-    }
+#[cfg(test)]
+mod feedback_tests;
 
-    #[test]
-    fn parses_open_ports() {
-        let xml = r#"<!DOCTYPE nmaprun SYSTEM "nmap.dtd"><nmaprun><host><status state="up"/><address addr="192.0.2.10" addrtype="ipv4"/><ports><port protocol="tcp" portid="443"><state state="open"/><service name="https" product="nginx" version="1.24"/></port><port protocol="tcp" portid="80"><state state="closed"/></port></ports></host></nmaprun>"#;
-        let hosts = parse_nmap_xml(xml).unwrap();
-        assert_eq!(hosts.len(), 1);
-        assert_eq!(hosts[0].ports.len(), 1);
-        assert_eq!(hosts[0].ports[0].service, "https");
-    }
-
-    #[test]
-    fn adds_pn_only_when_requested() {
-        let without_pn = ScanRequest {
-            target: "192.0.2.1".to_string(),
-            profile: "quick".to_string(),
-            skip_host_discovery: false,
-            timing: "t4".to_string(),
-            version_detection: false,
-            os_detection: false,
-            default_scripts: false,
-            ports: String::new(),
-            scan_type: "auto".to_string(),
-            executor: "local".to_string(),
-            exegol_container: String::new(),
-        };
-        assert!(!scan_args(&without_pn).unwrap().contains(&"-Pn".to_string()));
-        let with_pn = ScanRequest {
-            skip_host_discovery: true,
-            ..without_pn
-        };
-        assert!(scan_args(&with_pn).unwrap().contains(&"-Pn".to_string()));
-    }
-
-    #[test]
-    fn accepts_only_valid_custom_port_lists() {
-        assert!(is_valid_port_spec("22,80,443,8000-8100"));
-        assert!(!is_valid_port_spec("80; -Pn"));
-        assert!(!is_valid_port_spec("0"));
-    }
-
-    #[test]
-    fn custom_ports_replace_the_profile_port_selection() {
-        let request = ScanRequest {
-            target: "192.0.2.1".to_string(),
-            profile: "quick".to_string(),
-            skip_host_discovery: false,
-            timing: "t4".to_string(),
-            version_detection: false,
-            os_detection: false,
-            default_scripts: false,
-            ports: "22,443".to_string(),
-            scan_type: "auto".to_string(),
-            executor: "local".to_string(),
-            exegol_container: String::new(),
-        };
-        let args = scan_args(&request).unwrap();
-        assert!(args.windows(2).any(|pair| pair == ["-p", "22,443"]));
-        assert!(!args.contains(&"-F".to_string()));
-    }
-
-    #[test]
-    fn adds_the_requested_tcp_connect_scan() {
-        let request = ScanRequest {
-            target: "192.0.2.1".to_string(),
-            profile: "service".to_string(),
-            skip_host_discovery: false,
-            timing: "t4".to_string(),
-            version_detection: true,
-            os_detection: false,
-            default_scripts: false,
-            ports: String::new(),
-            scan_type: "connect".to_string(),
-            executor: "local".to_string(),
-            exegol_container: String::new(),
-        };
-        assert!(scan_args(&request).unwrap().contains(&"-sT".to_string()));
-    }
-
-    #[test]
-    fn rejects_an_unsafe_container_name() {
-        assert!(is_valid_container_name("htb"));
-        assert!(!is_valid_container_name("htb; command"));
-    }
-
-    #[test]
-    fn only_accepts_actions_for_the_matching_service() {
-        let request = ServiceProbeRequest {
-            target: "192.0.2.10".to_string(),
-            port: "22".to_string(),
-            service: "ssh".to_string(),
-            action: "smtp_capabilities".to_string(),
-            executor: "local".to_string(),
-            exegol_container: String::new(),
-        };
-        assert!(service_probe(request).is_err());
-    }
-}
+#[cfg(test)]
+mod unit_tests;

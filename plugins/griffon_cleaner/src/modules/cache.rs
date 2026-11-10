@@ -190,10 +190,17 @@ impl CacheCleaner {
         &self,
         ctx: &ExecutionContext,
     ) -> CleanerResult<Vec<CleanerCandidate>> {
-        let mut items = Vec::new();
         let mut report = ModuleReport::empty(self.id());
         let cache_paths = Self::default_cache_paths_with_logs(ctx, &mut report);
+        self.collect_candidates_in(ctx, cache_paths)
+    }
 
+    fn collect_candidates_in(
+        &self,
+        ctx: &ExecutionContext,
+        cache_paths: Vec<(String, PathBuf)>,
+    ) -> CleanerResult<Vec<CleanerCandidate>> {
+        let mut items = Vec::new();
         for (root_label, root_path) in cache_paths {
             if !root_path.exists() || !root_path.is_dir() {
                 continue;
@@ -434,21 +441,30 @@ impl CacheCleaner {
         items: &[String],
         allow_cleaner_roots: bool,
     ) -> DeleteSelectedResponse {
-        let mut deleted_count = 0;
-        let mut deleted_bytes = 0;
-        let mut failed = Vec::new();
-
         let mut report = ModuleReport::empty(self.id());
         let allowed_roots: Vec<PathBuf> = Self::default_cache_paths_with_logs(ctx, &mut report)
             .into_iter()
             .map(|(_, path)| path)
             .collect();
+        self.delete_selected_in(ctx, items, allow_cleaner_roots, &allowed_roots)
+    }
+
+    fn delete_selected_in(
+        &self,
+        ctx: &ExecutionContext,
+        items: &[String],
+        allow_cleaner_roots: bool,
+        allowed_roots: &[PathBuf],
+    ) -> DeleteSelectedResponse {
+        let mut deleted_count = 0;
+        let mut deleted_bytes = 0;
+        let mut failed = Vec::new();
 
         for item in items {
             let raw_path = Path::new(item);
 
             let path =
-                match Self::validate_delete_target(raw_path, &allowed_roots, allow_cleaner_roots) {
+                match Self::validate_delete_target(raw_path, allowed_roots, allow_cleaner_roots) {
                     Ok(path) => path,
                     Err(error) => {
                         failed.push(DeleteFailure {
@@ -716,3 +732,7 @@ impl CleanerModule for CacheCleaner {
         Ok(report)
     }
 }
+
+#[cfg(test)]
+#[path = "cache_tests.rs"]
+mod tests;
