@@ -74,6 +74,18 @@ acceptent un exécuteur de commandes, un chemin d'historique ou des racines de
 cache explicites. La production continue d'utiliser `Command::output`, son
 historique et les chemins de cache connus.
 
+## Tests d'intégration disponibles
+
+Les suites Cleaner et Nmap sont décrites dans [le guide des tests d'intégration](plugin-integration-tests.md).
+Pour lancer uniquement leurs seize scénarios :
+
+```sh
+cargo test --locked -p griffon_cleaner -p griffon_nmap --test integration_tests
+```
+
+La commande de couverture utilise `--all-targets` et inclut désormais ces scénarios
+en plus des tests unitaires.
+
 ## Suite : intégration, fonctionnel, end-to-end
 
 1. **Intégration des plugins et du daemon** : prolonger les tests existants de
