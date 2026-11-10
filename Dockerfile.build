@@ -92,7 +92,7 @@ COPY ./plugins/griffon_cleaner/libgriffon_cleaner.toml ./plugins/griffon_cleaner
 COPY ./plugins/griffon_scanner/libgriffon_scanner.toml ./plugins/griffon_scanner/libgriffon_scanner.toml
 COPY daemon/griffon-daemon.service ./daemon/griffon-daemon.service
 
-COPY ./daemon/config_griffon_daemon.json ./daemon/config_griffon_daemon.json
+COPY ./daemon/config_griffon_daemon.default.json ./daemon/config_griffon_daemon.default.json
 COPY ./bench/configs/light.json ./bench/configs/light.json
 COPY ./bench/configs/medium.json ./bench/configs/medium.json
 COPY ./bench/configs/stress.json ./bench/configs/stress.json
