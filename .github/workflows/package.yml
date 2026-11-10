@@ -49,7 +49,10 @@ jobs:
           with open("Cargo.toml", "w") as f:
               f.write(content)
           '
-          git diff Cargo.toml
+          # Cargo.lock stores the workspace crates' versions: sync them so the
+          # --locked build doesn't fail. Only workspace entries change.
+          cargo update --workspace
+          git diff Cargo.toml Cargo.lock
 
       - name: Build Docker packaging image
         run: docker build -t griffon-builder -f Dockerfile.build .
