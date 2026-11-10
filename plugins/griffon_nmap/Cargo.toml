@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 abi_stable = { workspace = true }
-plugin_interface = { workspace = true }
+plugin_sdk = { workspace = true }
 libc = "0.2"
 roxmltree = "0.21.1"
 serde = { version = "1", features = ["derive"] }

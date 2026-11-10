@@ -7,5 +7,5 @@ license = "Apache-2.0"
 [dependencies]
 plugin_host = { workspace = true }
 ipc_protocol = { workspace = true }
-uuid = { version = "1.22.0", features = ["v4"] }
+uuid = { workspace = true }
 logger = { workspace = true }
