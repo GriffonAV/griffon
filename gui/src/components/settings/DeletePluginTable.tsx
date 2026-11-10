@@ -10,27 +10,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { usePlugins } from "@/bindings/PluginContext";
 
-type Plugin = {
-  uuid: string;
-  display_name: string;
-  file_name: string;
-  version: string;
-  author: string;
-  description?: string;
-};
+export function DeletePluginTable() {
+  const { plugins, deletePlugin } = usePlugins();
 
-type DeletePluginTableProps = {
-  plugins: Plugin[];
-  pluginBeingDeleted: string | null;
-  onDelete: (pluginUuid: string, pluginDisplayName: string) => void | Promise<void>;
-};
-
-export function DeletePluginTable({
-  plugins,
-  pluginBeingDeleted,
-  onDelete,
-}: DeletePluginTableProps) {
   if (plugins.length === 0) {
     return <p className="mt-4 text-sm text-muted-foreground">No installed plugin found.</p>;
   }
@@ -48,7 +32,7 @@ export function DeletePluginTable({
           </thead>
           <tbody className="divide-y divide-border">
             {plugins.map((plugin) => {
-              const isDeleting = pluginBeingDeleted === plugin.uuid;
+              const isDeleting = plugin.status === "busy";
 
               return (
                 <tr key={plugin.uuid} className="bg-card hover:bg-muted/20 transition-colors">
@@ -117,7 +101,7 @@ export function DeletePluginTable({
 
                           <AlertDialogAction
                             disabled={isDeleting}
-                            onClick={() => void onDelete(plugin.uuid, plugin.display_name)}
+                            onClick={() => deletePlugin(plugin.uuid)}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           >
                             {isDeleting ? "Deleting..." : "Delete"}

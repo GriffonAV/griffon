@@ -1,0 +1,240 @@
+# Plugin SDK spec (phase 1)
+
+## 1. Scope
+
+**The SDK should:**
+- Turn the incoming message string into a method name and typed parameters.
+- Call the right function.
+- Turn the result or the error back into a string, always in the same format.
+- Generate `init()`, `handle_message()` and `get_library()` for the plugin.
+- Stop a plugin `panic` from killing the runner.
+
+**Leave out of this step:** `plugin_interface`, `plugin_host`, `ipc_protocol` and the GUI. The SDK has to work with the **current ABI** (`handle_message(RString) -> RString`). That way you can migrate one plugin at a time and nothing else changes. ABI v2 comes later, and only the SDK internals will need updating then.
+
+## 2. What to use
+
+| Need                | Use                                                              | Why                                                                                                      |
+| ------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| FFI / plugin export | `abi_stable` (workspace) + `plugin_interface`                    | Already used by every plugin                                                                             |
+| (De)serialization   | `serde` + `serde_json`                                           | Already used by every plugin                                                                             |
+| Code generation     | **`macro_rules!`** (a declarative macro)                         | Easy to write. A proc macro needs a separate crate plus `syn`/`quote` and is much harder; skip it for v1 |
+| Method registry     | `BTreeMap<&'static str, Handler>` inside a `std::sync::OnceLock` | Standard library, thread-safe, built once                                                                |
+| Panic safety        | `std::panic::catch_unwind`                                       | Required: a panic inside an `extern "C"` fn **aborts the process** (Rust ≥ 1.81)                         |
+
+You don't need any new external dependency.
+
+## 3. Crate layout
+
+```
+shared/plugin_sdk/
+├── Cargo.toml        # deps: abi_stable, plugin_interface, serde, serde_json
+└── src/
+    ├── lib.rs        # public re-exports + the export_plugin! macro
+    ├── error.rs      # PluginError + error codes
+    ├── router.rs     # Router, method registration, dispatch
+    ├── wire.rs       # string in → (method, params) ; result → string out
+    ├── meta.rs       # PluginMeta → init() key/value list
+    └── params.rs     # NoParams
+```
+
+Root `Cargo.toml`: add `"shared/plugin_sdk"` to `members` and `plugin_sdk = { path = "shared/plugin_sdk" }` to `[workspace.dependencies]`.
+
+## 4. Public API
+
+```rust
+// meta.rs
+pub struct PluginMeta {
+    pub name: &'static str,
+    pub uuid: &'static str,
+    pub author: &'static str,
+    pub description: &'static str,
+}
+
+// error.rs
+pub struct PluginError {
+    pub code: i32,
+    pub message: String,
+}
+impl PluginError {
+    pub fn new(code: i32, msg: impl Into<String>) -> Self;
+    pub fn method_not_found(method: &str) -> Self;   // -32601
+    pub fn invalid_params(msg: impl Display) -> Self; // -32602
+    pub fn internal(msg: impl Display) -> Self;       // -32603
+}
+impl From<String> for PluginError { /* code 1 */ }
+impl From<&str>   for PluginError { /* code 1 */ }
+
+// params.rs
+pub struct NoParams;   // accepts empty input, null, {} or []
+
+// router.rs
+pub struct Router { /* BTreeMap or Vec of (name, Handler) */ }
+impl Router {
+    pub fn new() -> Self;
+    pub fn method<I, O, E, F>(self, name: &'static str, f: F) -> Self
+    where
+        I: DeserializeOwned,
+        O: Serialize,
+        E: Into<PluginError>,
+        F: Fn(I) -> Result<O, E> + Send + Sync + 'static;
+
+    pub fn method_names(&self) -> Vec<&'static str>;                     // in registration order
+    pub fn call_json(&self, method: &str, params: Value) -> Result<Value, PluginError>; // for unit tests
+    pub fn handle_raw(&self, raw: &str) -> String;                         // the full pipeline, string → string
+}
+```
+
+Two choices here are deliberate:
+
+- **`E: Into<PluginError>`** means your existing functions that return `Result<_, String>` work **without any change**.
+- **`call_json`** lets you test a plugin without loading a `.so`.
+
+### The macro
+
+```rust
+plugin_sdk::export_plugin! {
+    meta: PluginMeta { name: "Nmap", uuid: "5d059e05-...", author: "Griffon", description: "..." },
+    router: build_router,        // fn build_router() -> Router
+    on_init: start_engine,       // optional: fn(), runs once inside init()
+}
+```
+
+It expands to, in the plugin crate:
+1. `static ROUTER: OnceLock<Router>`
+2. `#[sabi_extern_fn] extern "C" fn init()`
+3. `#[sabi_extern_fn] extern "C" fn handle_message(msg: RString) -> RString`, which calls `ROUTER.handle_raw(...)`
+4. `#[export_root_module] pub fn get_library() -> PluginRoot_Ref`
+
+> ⚠️ **Pitfall:** the code generated by `abi_stable`'s attribute macros refers to `::abi_stable::...`, so **each plugin must keep `abi_stable` as a direct dependency**. Inside your macro, write SDK paths as `$crate::...` (e.g. `$crate::Router`), never `plugin_sdk::...`.
+
+## 5. Behaviour
+
+### 5.1 Input (`wire.rs`)
+
+The host currently sends `"fn:<method> <params>"` (`plugin_host/src/lib.rs:41`). Accept:
+
+| Input | method | params |
+|---|---|---|
+| `fn:scan {"target":"x"}` | `scan` | `{"target":"x"}` |
+| `fn:check` / `fn:check ` | `check` | `null` |
+| `scan {...}` (no `fn:`) | `scan` | `{...}` |
+| `{"method":"scan","params":{...}}` | `scan` | `{...}` (forward-compatible JSON-RPC form) |
+
+Rules:
+- Trim the input. Split on the **first** whitespace only, because the params themselves contain spaces.
+- Empty params become `Value::Null`.
+- If the params aren't valid JSON, return error `-32602`.
+- **Don't** support the cleaner's `a,b,c` format in the SDK. If the cleaner still needs it, handle it inside the cleaner's own function. First check whether any manifest or the CLI actually sends it.
+
+### 5.2 Dispatch (`router.rs`)
+
+1. Unknown method: `-32601 method not found: <name>`
+2. `serde_json::from_value::<I>(params)` fails: `-32602 invalid params: <serde error>`
+3. Call `f(input)`:
+   - `Ok(o)`: serialize `o`. If serialization fails, return `-32603`.
+   - `Err(e)`: `e.into()` gives a `PluginError`.
+4. Wrap the whole call in `catch_unwind(AssertUnwindSafe(...))`. A panic becomes `-32603 plugin panicked: <message>`. Get the message by downcasting the payload to `&str` or `String`.
+
+### 5.3 Output
+
+- **Success:** the JSON of `O`, **unchanged, with no wrapper**. The GUI and the manifests (`key = "store.data.scan_result"`) keep working exactly as they do now.
+- **Error:**
+  ```json
+  {"ok": false, "code": -32602, "message": "invalid params: missing field `target`"}
+  ```
+  This shape is compatible with what the scanner (`{"message"}`) and nmap (`{"ok":false,"message"}`) already return. It will move into a real `Err` when ABI v2 arrives.
+
+> ⚠️ Nmap's errors currently also include empty arrays (`"hosts": []`, `"scans": []`). Check whether `NmapScanResults.tsx` crashes without them (e.g. `result.hosts.map` on `undefined`). If it does, use `?? []` on the GUI side. Don't add those arrays back in the SDK.
+
+### 5.4 Error codes (JSON-RPC conventions)
+
+| Code | Meaning |
+|---|---|
+| `-32700` | Input couldn't be parsed at all (only for the JSON envelope form) |
+| `-32601` | Method not found |
+| `-32602` | Invalid params |
+| `-32603` | Internal error: serialization failure or panic |
+| `1` | Generic plugin error (`From<String>`) |
+| `≥ 2` | Free for each plugin to define |
+
+### 5.5 `init()`
+
+It must return exactly the keys `plugin_host` reads (`lib.rs:74-80`):
+
+| Key | Value |
+|---|---|
+| `name` | `meta.name` |
+| `UUID` | `meta.uuid` (uppercase key, as today) |
+| `author` | `meta.author` |
+| `description` | `meta.description` |
+| `function` | `router.method_names().join("/")`, **generated automatically** |
+| `sdk_version` | `env!("CARGO_PKG_VERSION")` of the SDK. It's new; the host ignores unknown keys, and it will help with ABI v2 later |
+
+Order inside `init()`:
+1. Build the router (`ROUTER.get_or_init(build_router)`).
+2. Run `on_init` if present. Wrap it in `catch_unwind` too and return `RErr` if it panics.
+3. Return the list.
+
+### 5.6 Thread safety
+
+Handlers must be `Send + Sync`. Plugin state stays in `static`s / `OnceLock` / `Mutex`, like the scanner's `ENGINE_STATE` today. The runner currently calls one method at a time, but **don't rely on that**.
+
+## 6. Definition of done
+
+**SDK unit tests (`cargo test -p plugin_sdk`):**
+- [ ] `fn:echo {"a":1}` returns `{"a":1}`
+- [ ] `echo {"a":1}` (no `fn:`) works too
+- [ ] `fn:ping`, `fn:ping {}` and `fn:ping null` all reach a `NoParams` handler
+- [ ] An unknown method returns code `-32601`
+- [ ] A missing field returns code `-32602`
+- [ ] Non-JSON params return `-32602`
+- [ ] A handler that returns `Err("boom".to_string())` produces code `1` and message `boom`
+- [ ] A handler that panics produces `-32603`, **and the test process keeps running**
+- [ ] `method_names()` keeps registration order
+- [ ] The `init` metadata contains `function = "a/b/c"`
+
+**Integration:**
+- [ ] `plugin_template` is migrated first (smallest one)
+- [ ] `cargo test -p plugin_host` passes. The contract tests check the UUID, the function list against the manifest, and that an unknown function doesn't crash
+- [ ] Then nmap is migrated, and the GUI is tested by hand (scan, http_probe, history)
+- [ ] Then scanner and docker_helper; delete their copied `command()` / `split_message` / `parse_payload`
+- [ ] Cleaner last
+
+## 7. Target result: nmap after migration
+
+```rust
+use plugin_sdk::{export_plugin, NoParams, PluginMeta, Router};
+
+fn build_router() -> Router {
+    Router::new()
+        .method("scan", scan)
+        .method("list_exegol_containers", |_: NoParams| list_exegol_containers())
+        .method("http_probe", http_probe)
+        .method("service_probe", service_probe)
+        .method("list_history", |_: NoParams| history_response())
+        .method("delete_history_entry", |r: DeleteHistoryRequest| delete_history_entry(&r.id))
+        .method("clear_history", |_: NoParams| clear_history())
+}
+
+export_plugin! {
+    meta: PluginMeta {
+        name: "Nmap",
+        uuid: "5d059e05-c83f-4c59-9a85-13aa3fc1d721",
+        author: "Griffon",
+        description: "Analyse réseau Nmap avec résultats structurés.",
+    },
+    router: build_router,
+}
+```
+
+This replaces `split_message`, `json_error`, `init`, `handle_message` and `get_library`, roughly lines 800–895 of `griffon_nmap/src/lib.rs`. The business functions (`scan`, `http_probe`…) don't change.
+
+## Suggested build order
+
+1. `error.rs` and `params.rs`
+2. `wire.rs` and its tests
+3. `router.rs` and its tests
+4. `meta.rs`
+5. The `export_plugin!` macro, last. Write it by hand in `plugin_template` first, then move it into the macro once it works.
+
+If you want, I can review your code as you go, e.g. after `router.rs` or after the macro.

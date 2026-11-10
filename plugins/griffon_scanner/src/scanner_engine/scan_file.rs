@@ -161,28 +161,38 @@ impl ScanEngine {
 mod tests {
     use crate::scanner_engine::ScanEngine;
     use crate::scanner_engine::scanargs::{PrepArgs, ScanArgs};
+    use crate::scanner_engine::test_utils::setup_test_engine;
     use std::path::{Path, PathBuf};
-    use std::sync::Once;
 
     use crate::scanner_updater::ScannerUpdater;
 
-    static INIT: Once = Once::new();
-
-    fn setup_test_engine() -> ScanEngine {
-        INIT.call_once(|| {
-            println!("[+] Initializing YARA rules for test suite...");
-            let updater = ScannerUpdater::default();
-
-            // In debug mode, this saves to the local "rules/" directory
-            if let Err(e) = updater.update() {
-                panic!("CRITICAL: Failed to download YARA rules for testing: {}", e);
-            }
-        });
+    /// Downloads the real ruleset and checks it still detects EICAR.
+    /// Run explicitly with `cargo test -- --ignored`.
+    #[test]
+    #[ignore = "requires network access"]
+    fn test_downloaded_rules_detect_eicar() {
+        let rules_dir = std::env::temp_dir().join(format!("griffon_rules_{}", std::process::id()));
+        let updater = ScannerUpdater::new(&rules_dir).expect("Failed to create rules directory");
+        updater.update().expect("Failed to download YARA rules");
 
         let mut engine = ScanEngine::new();
-        let prep = PrepArgs::default();
+        let prep = PrepArgs {
+            yara_rules: Some(rules_dir.to_string_lossy().into_owned()),
+            ..Default::default()
+        };
         engine.prepare(&prep).expect("Engine prep failed in test");
-        engine
+
+        let args = ScanArgs {
+            paths: vec![PathBuf::from("tests/fixtures/eicar.com")],
+            ..Default::default()
+        };
+        let report = engine.scan(&args);
+        let _ = std::fs::remove_dir_all(&rules_dir);
+
+        assert!(
+            report.total_threats > 0,
+            "Downloaded rules must detect EICAR"
+        );
     }
 
     #[test]

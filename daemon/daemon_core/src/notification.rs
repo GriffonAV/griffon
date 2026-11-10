@@ -200,3 +200,35 @@ fn default_true() -> bool {
 fn default_config_version() -> u32 {
     1
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_notification_config_switch() {
+        let plugin_uuid = [5u8; 16];
+
+        let first_switch = NotificationConfig::switch_plugin_notification(plugin_uuid);
+        assert!(first_switch.is_ok());
+
+        let second_switch = NotificationConfig::switch_plugin_notification(plugin_uuid);
+        assert!(second_switch.is_ok());
+
+        assert_ne!(
+            first_switch.unwrap(),
+            second_switch.unwrap(),
+            "Le deuxième switch doit inverser le statut de notification"
+        );
+    }
+
+    #[test]
+    fn test_send_plugin_response_notification_exec() {
+        let plugin_uuid = [7u8; 16];
+
+        let result =
+            send_plugin_response_notification(plugin_uuid, "test_plugin", "test_function", true);
+
+        let _ = result;
+    }
+}

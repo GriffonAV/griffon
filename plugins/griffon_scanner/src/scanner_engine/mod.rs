@@ -12,6 +12,25 @@ pub mod scan_file;
 pub mod scanargs;
 pub mod yara_engine;
 
+#[cfg(test)]
+pub(crate) mod test_utils {
+    use super::ScanEngine;
+    use super::scanargs::PrepArgs;
+
+    /// Offline ruleset committed with the tests, so no network access is needed.
+    pub const TEST_RULES_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/rules");
+
+    pub fn setup_test_engine() -> ScanEngine {
+        let mut engine = ScanEngine::new();
+        let prep = PrepArgs {
+            yara_rules: Some(TEST_RULES_DIR.to_string()),
+            ..Default::default()
+        };
+        engine.prepare(&prep).expect("Engine prep failed in test");
+        engine
+    }
+}
+
 use std::sync::OnceLock;
 static THREAD_POOL_INIT: OnceLock<()> = OnceLock::new();
 

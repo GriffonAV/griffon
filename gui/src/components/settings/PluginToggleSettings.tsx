@@ -1,57 +1,12 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ToyBrick } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
 
 import { usePlugins } from "@/bindings/PluginContext.tsx";
 import { Button } from "../ui/button";
-import { createPendingRequest } from "@/services/requestManager";
 
-type PluginSwitchDonePayload = {
-    request_id: string;
-    enable: boolean;
-};
-
-async function switchPluginStatus(
-    pluginUuid: string
-): Promise<PluginSwitchDonePayload> {
-    const { requestId, promise } = createPendingRequest();
-
-    await invoke("switch_status_plugin", {
-        pluginUuid,
-        requestId,
-    });
-
-    return promise;
-}
 
 export function PluginToggleSettings() {
-    const { plugins, pluginStatus, setPluginStatus } = usePlugins();
-    // const [pluginStatus, setPluginStatus] = useState<Record<string, boolean>>({});
-    const [switchingPlugins, setSwitchingPlugins] = useState<Record<string, boolean>>({});
-
-    async function handleSwitchPlugin(pluginUuid: string) {
-        try {
-            setSwitchingPlugins((prev) => ({
-                ...prev,
-                [pluginUuid]: true,
-            }));
-
-            const result = await switchPluginStatus(pluginUuid);
-
-            setPluginStatus((prev) => ({
-                ...prev,
-                [pluginUuid]: result.enable,
-            }));
-        } catch (error) {
-            console.error("Failed to switch plugin status:", error);
-        } finally {
-            setSwitchingPlugins((prev) => ({
-                ...prev,
-                [pluginUuid]: false,
-            }));
-        }
-    }
+    const { plugins, switchPluginStatus } = usePlugins();
 
     if (plugins.length === 0) {
         return (
@@ -64,8 +19,7 @@ export function PluginToggleSettings() {
     return (
         <div className="flex flex-col gap-3 w-full">
             {plugins.map((plugin) => {
-                const isEnabled = pluginStatus[plugin.uuid] ?? true;
-                const isSwitching = switchingPlugins[plugin.uuid] ?? false;
+                const isEnabled = plugin.status === "healthy";
 
                 return (
                     <div
@@ -93,10 +47,10 @@ export function PluginToggleSettings() {
 
                         <Button
                             variant="outline"
-                            disabled={isSwitching}
+                            disabled={plugin.status === "busy"}
                             className="min-w-28 cursor-pointer gap-2"
                             title={isEnabled ? "Disable plugin" : "Enable plugin"}
-                            onClick={() => handleSwitchPlugin(plugin.uuid)}
+                            onClick={() => switchPluginStatus(plugin.uuid)}
                         >
                             <span
                                 className={
@@ -106,7 +60,7 @@ export function PluginToggleSettings() {
                                 ●
                             </span>
 
-                            {isSwitching
+                            {plugin.status === "busy"
                                 ? "Switching..."
                                 : isEnabled
                                     ? "Enabled"

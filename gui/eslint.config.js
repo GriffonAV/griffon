@@ -24,5 +24,14 @@ export default tseslint.config(
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // TODO: back to "error" once plugin manifests/payloads have typed schemas
+      "@typescript-eslint/no-explicit-any": "warn",
+      // Providers export their context hook alongside the component
+      "react-refresh/only-export-components": [
+        "error",
+        { allowExportNames: ["usePlugins", "useSidebar", "useTheme"] },
+      ],
+    },
   }
 );

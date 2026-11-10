@@ -1,5 +1,6 @@
 use crate::{CleanerModule, CleanerResult, ExecutionContext, ModuleReport, Profile};
-use std::process::Command;
+use std::process::{Command, Output};
+type DockerRunner<'a> = dyn FnMut(&[&str]) -> std::io::Result<Output> + 'a;
 
 #[derive(Default)]
 pub struct DockerCleaner;
@@ -16,24 +17,23 @@ impl DockerCleaner {
         Self
     }
 
-    fn docker_available() -> bool {
-        Command::new("docker")
-            .arg("--version")
-            .output()
+    fn docker_available(run: &mut DockerRunner<'_>) -> bool {
+        run(&["--version"])
             .map(|output| output.status.success())
             .unwrap_or(false)
     }
 
-    fn docker_daemon_available() -> bool {
-        Command::new("docker")
-            .args(["info", "--format", "{{json .ServerVersion}}"])
-            .output()
+    fn docker_daemon_available(run: &mut DockerRunner<'_>) -> bool {
+        run(&["info", "--format", "{{json .ServerVersion}}"])
             .map(|output| output.status.success())
             .unwrap_or(false)
     }
 
-    fn run_docker_command(args: &[&str]) -> std::io::Result<(bool, String, String)> {
-        let output = Command::new("docker").args(args).output()?;
+    fn run_docker_command(
+        run: &mut DockerRunner<'_>,
+        args: &[&str],
+    ) -> std::io::Result<(bool, String, String)> {
+        let output = run(args)?;
 
         Ok((
             output.status.success(),
@@ -42,10 +42,8 @@ impl DockerCleaner {
         ))
     }
 
-    fn estimate_reclaimable_bytes() -> u64 {
-        let output = Command::new("docker")
-            .args(["system", "df", "--format", "{{json .}}"])
-            .output();
+    fn estimate_reclaimable_bytes(run: &mut DockerRunner<'_>) -> u64 {
+        let output = run(&["system", "df", "--format", "{{json .}}"]);
 
         let output = match output {
             Ok(output) if output.status.success() => output,
@@ -182,9 +180,19 @@ impl CleanerModule for DockerCleaner {
     }
 
     fn run(&self, ctx: &ExecutionContext) -> CleanerResult<ModuleReport> {
+        self.run_with(ctx, &mut |args| Command::new("docker").args(args).output())
+    }
+}
+
+impl DockerCleaner {
+    fn run_with(
+        &self,
+        ctx: &ExecutionContext,
+        run: &mut DockerRunner<'_>,
+    ) -> CleanerResult<ModuleReport> {
         let mut report = ModuleReport::empty(self.id());
 
-        if !Self::docker_available() {
+        if !Self::docker_available(run) {
             report
                 .warnings
                 .push("Docker CLI is not installed.".to_string());
@@ -192,7 +200,7 @@ impl CleanerModule for DockerCleaner {
             return Ok(report);
         }
 
-        if !Self::docker_daemon_available() {
+        if !Self::docker_daemon_available(run) {
             report
                 .warnings
                 .push("Docker daemon is not available or permission is denied.".to_string());
@@ -207,7 +215,7 @@ impl CleanerModule for DockerCleaner {
             report.warnings.push(line);
         }
 
-        let estimated_reclaimable = Self::estimate_reclaimable_bytes();
+        let estimated_reclaimable = Self::estimate_reclaimable_bytes(run);
 
         if ctx.dry_run {
             report.bytes_freed = estimated_reclaimable;
@@ -240,7 +248,7 @@ impl CleanerModule for DockerCleaner {
             .push("Executed Docker cleanup actions:".to_string());
 
         for action in actions.iter().filter(|action| action.enabled) {
-            match Self::run_docker_command(&action.args) {
+            match Self::run_docker_command(run, &action.args) {
                 Ok((true, stdout, stderr)) => {
                     report.files_touched += 1;
                     report.deleted_files_count += 1;
@@ -293,3 +301,7 @@ impl CleanerModule for DockerCleaner {
         Ok(report)
     }
 }
+
+#[cfg(test)]
+#[path = "docker_tests.rs"]
+mod tests;

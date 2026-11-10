@@ -1,0 +1,12 @@
+[package]
+name = "plugin_sdk"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+plugin_interface = { workspace = true }
+abi_stable = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

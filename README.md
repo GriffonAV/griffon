@@ -36,24 +36,63 @@ Griffon is a fast, secure, and easy-to-use antivirus and security toolbox for Li
 
 Built-in plugins include a **YARA-based scanner** (with quarantine and rule updates) and a **system cleaner** (caches, logs, packages, big files, Docker).
 
+<p align="center">
+  <img src="docs/img/img.png" alt="Griffon dashboard" width="49%" />
+  <img src="docs/img/img_1.png" alt="Griffon scanner" width="49%" />
+</p>
+
 > [!WARNING]
 > Griffon is an academic project in pre-release. It has not been professionally audited — see [SECURITY.md](SECURITY.md).
 
+## What can you do with Griffon?
+
+Griffon provides a set of security and system maintenance tools, with the flexibility to extend its capabilities through your own plugins.
+
+- **Scan your files for malware:** Use the built-in YARA-based scanner to scan files on your computer, detect potentially malicious files, and manage threats through quarantine.
+- **Free up disk space:** Use the system cleaner to identify and remove unnecessary files, including caches, logs, unused packages, large files, and Docker-related data.
+- **Build your own tools:** Extend Griffon with custom Rust plugins to add virtually any functionality you need, from security analysis to system administration and automation.
+- **Generate custom interfaces:** Describe your plugin's user interface in a TOML configuration file, and Griffon automatically generates the corresponding interface.
+
+Whether you want to scan your system for threats, clean up your disk, or build your own security and system utilities, Griffon provides a modular foundation that you can adapt to your needs.
+
+---
+
 ## Installation
 
-Download the latest `.deb` or `.rpm` from the [releases page](https://github.com/GriffonAV/griffon/releases/latest), then install it (replace `<version>` with the version you downloaded):
+**Supported systems:** Ubuntu 22.04+, Debian 12+, Fedora 36+ (x86_64), and derivatives (Linux Mint 21+, Pop!_OS 22.04+…).
+
+**1. Download and install** the latest `.deb` (Debian/Ubuntu) or `.rpm` (Fedora) from the [releases page](https://github.com/GriffonAV/griffon/releases/latest). The `./` in front of the file name is required:
 
 ```bash
 # Debian / Ubuntu
-sudo apt install ./griffon-<version>.deb
+sudo apt update
+sudo apt install ./griffon-*.deb
 
 # Fedora
-sudo dnf install ./griffon-<version>.rpm
+sudo dnf install ./griffon-*.rpm
 ```
 
 The install enables and starts the `griffon-daemon` systemd service, and adds your user to the `griffon` group so the GUI and CLI can talk to the daemon without `sudo`.
 
-**Log out and back in** (or run `newgrp griffon`) for the group change to take effect. Then launch **Griffon** from your application menu, or run `griffon-cli` in a terminal.
+**2. Log out and back in** (or run `newgrp griffon` in your terminal) so the group change takes effect. This step is required.
+
+**3. Check that it works:**
+
+```bash
+systemctl status griffon-daemon   # should say "active (running)"
+id | grep griffon                 # your user must be in the griffon group
+griffon-cli
+```
+
+Then launch **Griffon** from your application menu, or run `griffon-gui`.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `permission denied` when the CLI/GUI connects to the daemon | You haven't logged out and back in yet. If you installed as root (without `sudo`), add your user manually: `sudo usermod -aG griffon $USER`, then log out and back in. |
+| The daemon isn't running | `sudo systemctl restart griffon-daemon`, and see the logs with `journalctl -u griffon-daemon -b` |
+| `apt` says a dependency is not installable | Run `sudo apt update`, then install again. |
 
 To uninstall: `sudo apt remove griffon` or `sudo dnf remove griffon`.
 

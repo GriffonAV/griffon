@@ -1,7 +1,7 @@
 name: "griffon"
 arch: "amd64"
 platform: "linux"
-version: "0.3.2"
+version: "${VERSION}"
 section: "utils"
 priority: "optional"
 maintainer: "Griffon contact.griffon@proton.me"
@@ -28,7 +28,7 @@ contents:
       mode: 0755
 
 # Le GUI (issu de tauri build)
-  - src: ./target/release/griffon-gui 
+  - src: ./target/release/griffon-gui
     dst: /usr/bin/griffon-gui
     file_info:
       mode: 0755
@@ -100,15 +100,15 @@ contents:
 overrides:
   deb:
     depends:
-      - libwebkit2gtk-4.1-dev
-      - libssl-dev
-      - pkexec
+      - libwebkit2gtk-4.1-0
+      - libssl3 | libssl3t64
+      - pkexec | policykit-1
   rpm:
     depends:
-      - webkit2gtk4.1-devel
-      - openssl-devel
+      - webkit2gtk4.1
+      - openssl-libs
       - polkit
-      
+
 scripts:
   postinstall: ./scripts/postinstall.sh
   preremove: ./scripts/preremove.sh

@@ -26,8 +26,8 @@ type ScanData = {
 };
 
 export default function ScannerTable({ element, store = {}, onAction }: Props) {
-  var scan_result = resolveFromPath(element.scan_result, { store })
-  var scanData: ScanData = scan_result ? JSON.parse(scan_result) : {};
+  const scan_result = resolveFromPath(element.scan_result, { store })
+  const scanData: ScanData = scan_result ? JSON.parse(scan_result) : {};
   const rows: Threat[] = scanData.threats;
 
   return (

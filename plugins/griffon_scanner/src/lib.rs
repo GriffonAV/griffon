@@ -2,19 +2,12 @@ pub mod scanner_engine;
 pub mod scanner_quarantine;
 pub mod scanner_updater;
 
-use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::{Mutex, OnceLock};
 
-use abi_stable::std_types::{RVec, Tuple2};
-use abi_stable::{
-    export_root_module,
-    prefix_type::PrefixTypeTrait,
-    sabi_extern_fn,
-    std_types::{RResult, RString},
-};
-use plugin_interface::{PluginI, PluginRoot, PluginRoot_Ref};
+use plugin_sdk::params::NoParams;
+use plugin_sdk::{PluginRouter, export_plugin};
 use serde::{Deserialize, Serialize};
 
 use crate::scanner_engine::ScanEngine;
@@ -91,11 +84,6 @@ impl Ack {
     }
 }
 
-/// Unit-like input for functions that take no arguments.
-/// Accepts `null`, `{}`, or a missing payload — anything else is a usage error.
-#[derive(Deserialize, Default)]
-struct NoArgs {}
-
 #[derive(Deserialize)]
 pub struct ScanOptions {
     paths: Vec<String>,
@@ -130,43 +118,6 @@ struct QuarantineTarget {
 // Generic command registry
 // =========================================================
 
-type Handler = Box<dyn Fn(serde_json::Value) -> RString + Send + Sync>;
-
-/// Wraps a typed `(input) -> Result<output, String>` function into a
-/// `Handler` that deserializes its JSON input and serializes its JSON
-/// output automatically. This is the only place generic (de)serialization
-/// logic lives — every entry in the registry is just business logic.
-fn command<I, O, F>(f: F) -> Handler
-where
-    I: serde::de::DeserializeOwned,
-    O: Serialize,
-    F: Fn(I) -> Result<O, String> + Send + Sync + 'static,
-{
-    Box::new(move |payload: serde_json::Value| -> RString {
-        let input: I = match serde_json::from_value(payload) {
-            Ok(v) => v,
-            Err(e) => {
-                let err_json = serde_json::json!({ "message": format!("invalid arguments: {e}") });
-                return RString::from(err_json.to_string());
-            }
-        };
-
-        match f(input) {
-            Ok(output) => match serde_json::to_string(&output) {
-                Ok(json) => RString::from(json),
-                Err(e) => {
-                    let err_json = serde_json::json!({ "message": format!("json serialize: {e}") });
-                    RString::from(err_json.to_string())
-                }
-            },
-            Err(e) => {
-                let err_json = serde_json::json!({ "message": e });
-                RString::from(err_json.to_string())
-            }
-        }
-    })
-}
-
 #[derive(Serialize)]
 struct GuiThreat {
     path: String,
@@ -185,44 +136,32 @@ struct GuiScanResponse {
     threats: Vec<GuiThreat>,
 }
 
-fn registry() -> &'static HashMap<&'static str, Handler> {
-    static REGISTRY: OnceLock<HashMap<&'static str, Handler>> = OnceLock::new();
-    REGISTRY.get_or_init(|| {
-        let mut m: HashMap<&'static str, Handler> = HashMap::new();
-
-        m.insert(
-            "check",
-            command(|_: NoArgs| -> Result<EngineStatus, String> {
-                let state = ENGINE_STATE.load(Ordering::SeqCst);
-                Ok(EngineStatus {
-                    state: engine_state_label(state).to_string(),
-                    message: match state {
-                        STATE_READY => "Engine is ready".into(),
-                        STATE_LOADING => "Engine is still loading signatures".into(),
-                        STATE_ERROR => "Engine failed to initialize".into(),
-                        _ => "Engine is not running".into(),
-                    },
-                })
-            }),
-        );
-
-        m.insert(
-            "stop",
-            command(|_: NoArgs| -> Result<Ack, String> { Ok(stop_engine()) }),
-        );
-
-        m.insert(
+fn build_router() -> PluginRouter {
+    PluginRouter::new()
+        .method("check", |_: NoParams| -> Result<EngineStatus, String> {
+            let state = ENGINE_STATE.load(Ordering::SeqCst);
+            Ok(EngineStatus {
+                state: engine_state_label(state).to_string(),
+                message: match state {
+                    STATE_READY => "Engine is ready".into(),
+                    STATE_LOADING => "Engine is still loading signatures".into(),
+                    STATE_ERROR => "Engine failed to initialize".into(),
+                    _ => "Engine is not running".into(),
+                },
+            })
+        })
+        .method("stop", |_: NoParams| -> Result<Ack, String> {
+            Ok(stop_engine())
+        })
+        .method(
             "scan",
-            command(|opts: ScanOptions| -> Result<GuiScanResponse, String> {
-                // Note: Return GuiScanResponse instead of serde_json::Value
+            |opts: ScanOptions| -> Result<GuiScanResponse, String> {
                 if let Some(status) = engine_not_ready() {
                     return Err(status.message);
                 }
 
                 let mut lock = ENGINE.lock().unwrap();
                 let engine = lock.as_mut().ok_or("Engine state is invalid")?;
-
-                // if path is ##/download then use the default download path, otherwise use the provided paths
 
                 let default_download_path = dirs::download_dir()
                     .ok_or("Failed to get default download directory")?
@@ -278,11 +217,11 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                     threats: gui_threats,
                     time_taken: report.time_taken,
                 })
-            }),
-        );
-        m.insert(
+            },
+        )
+        .method(
             "db_state",
-            command(|_: NoArgs| -> Result<serde_json::Value, String> {
+            |_: NoParams| -> Result<serde_json::Value, String> {
                 if let Some(status) = engine_not_ready() {
                     return Err(status.message);
                 }
@@ -302,66 +241,51 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                     "message": format!("Engine is ready, {}.", update_status),
                     "rules_count": rules_count,
                 }))
-            }),
-        );
+            },
+        )
+        .method("db_update", |_: NoParams| -> Result<Ack, String> {
+            let updater = ScannerUpdater::default();
+            updater
+                .update()
+                .map_err(|e| format!("Update failed: {e}"))?;
 
-        m.insert(
-            "db_update",
-            command(|_: NoArgs| -> Result<Ack, String> {
-                let updater = ScannerUpdater::default();
-                updater
-                    .update()
-                    .map_err(|e| format!("Update failed: {e}"))?;
+            if ENGINE_STATE.load(Ordering::SeqCst) == STATE_READY {
+                log::info!(
+                    "[LIBSCANNER] Signatures updated. Restarting engine to apply changes..."
+                );
+                stop_engine();
+                std::thread::spawn(start_engine);
+            }
 
-                if ENGINE_STATE.load(Ordering::SeqCst) == STATE_READY {
-                    log::info!(
-                        "[LIBSCANNER] Signatures updated. Restarting engine to apply changes..."
-                    );
-                    stop_engine();
-                    std::thread::spawn(start_engine);
-                }
-
-                Ok(Ack::ok(
-                    "Rules updated successfully, Scanner will restart if it was running.",
-                ))
-            }),
-        );
-
-        m.insert(
-            "quarantine",
-            command(|target: PathTarget| -> Result<Ack, String> {
-                let q = Quarantine::new(&Quarantine::default_dir())
-                    .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
-                if target.paths.is_empty() {
-                    return Err("No paths provided for quarantine".into());
-                }
-                let pathbufs = target.paths.iter().map(PathBuf::from).collect::<Vec<_>>();
-                q.quarantine_files(&pathbufs)
-                    .map(|_| Ack::ok(format!("{} quarantined successfully", target.paths[0])))
-                    .map_err(|e| e.to_string())
-            }),
-        );
-
-        // "delete" is currently an alias for "quarantine" pending a real
-        // permanent-delete implementation.
-        m.insert(
-            "delete",
-            command(|target: PathTarget| -> Result<Ack, String> {
-                let q = Quarantine::new(&Quarantine::default_dir())
-                    .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
-                if target.paths.is_empty() {
-                    return Err("No paths provided for quarantine".into());
-                }
-                let pathbufs = target.paths.iter().map(PathBuf::from).collect::<Vec<_>>();
-                q.quarantine_files(&pathbufs)
-                    .map(|_| Ack::ok(format!("{} quarantined successfully", target.paths[0])))
-                    .map_err(|e| e.to_string())
-            }),
-        );
-
-        m.insert(
+            Ok(Ack::ok(
+                "Rules updated successfully, Scanner will restart if it was running.",
+            ))
+        })
+        .method("quarantine", |target: PathTarget| -> Result<Ack, String> {
+            let q = Quarantine::new(&Quarantine::default_dir())
+                .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
+            if target.paths.is_empty() {
+                return Err("No paths provided for quarantine".into());
+            }
+            let pathbufs = target.paths.iter().map(PathBuf::from).collect::<Vec<_>>();
+            q.quarantine_files(&pathbufs)
+                .map(|_| Ack::ok(format!("{} quarantined successfully", target.paths[0])))
+                .map_err(|e| e.to_string())
+        })
+        .method("delete", |target: PathTarget| -> Result<Ack, String> {
+            let q = Quarantine::new(&Quarantine::default_dir())
+                .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
+            if target.paths.is_empty() {
+                return Err("No paths provided for quarantine".into());
+            }
+            let pathbufs = target.paths.iter().map(PathBuf::from).collect::<Vec<_>>();
+            q.quarantine_files(&pathbufs)
+                .map(|_| Ack::ok(format!("{} quarantined successfully", target.paths[0])))
+                .map_err(|e| e.to_string())
+        })
+        .method(
             "q_list",
-            command(|_: NoArgs| -> Result<serde_json::Value, String> {
+            |_: NoParams| -> Result<serde_json::Value, String> {
                 let q = Quarantine::new(&Quarantine::default_dir())
                     .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
                 let manifests = q.list_sorted();
@@ -369,12 +293,11 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                 Ok(serde_json::json!({
                     "quarantined_items": manifests,
                 }))
-            }),
-        );
-
-        m.insert(
+            },
+        )
+        .method(
             "q_restore",
-            command(|target: QuarantineTarget| -> Result<Ack, String> {
+            |target: QuarantineTarget| -> Result<Ack, String> {
                 let q = Quarantine::new(&Quarantine::default_dir())
                     .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
                 if target.file_name.is_empty() {
@@ -383,12 +306,11 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                 q.restore_files(&target.file_name)
                     .map(|_path| Ack::ok("Files restored"))
                     .map_err(|e| format!("Failed to restore {}: {e}", target.file_name[0]))
-            }),
-        );
-
-        m.insert(
+            },
+        )
+        .method(
             "q_delete",
-            command(|target: QuarantineTarget| -> Result<Ack, String> {
+            |target: QuarantineTarget| -> Result<Ack, String> {
                 let q = Quarantine::new(&Quarantine::default_dir())
                     .map_err(|e| format!("Failed to initialize quarantine: {e}"))?;
                 if target.file_name.is_empty() {
@@ -397,101 +319,27 @@ fn registry() -> &'static HashMap<&'static str, Handler> {
                 q.delete_quarantined_files(&target.file_name)
                     .map(|_| Ack::ok("Deleted quarantined files"))
                     .map_err(|e| format!("Failed to delete quarantined file: {e}"))
-            }),
-        );
-
-        m
-    })
+            },
+        )
 }
 
-// =========================================================
-// Plugin entry points
-// =========================================================
-
-/// Splits the wire format `"fn:<name> <json-payload>"` into the function
-/// name and its raw JSON payload string. The payload is optional — a bare
-/// `"fn:check"` or `"fn:check "` is treated as having no arguments.
-///
-/// Also tolerates a leading `"fn:"` being omitted (`"check ..."`), in case
-/// some caller sends the bare name.
-fn split_message(raw: &str) -> (&str, &str) {
-    let raw = raw.trim();
-    let (head, rest) = match raw.split_once(char::is_whitespace) {
-        Some((h, r)) => (h, r.trim()),
-        None => (raw, ""),
-    };
-    let name = head.strip_prefix("fn:").unwrap_or(head);
-    (name, rest)
-}
-
-/// Parses the payload portion of a message into a `serde_json::Value`.
-/// An empty string becomes `Value::Null`, so `NoArgs` (and any other type
-/// with all-optional / no fields) still deserializes correctly.
-fn parse_payload(raw_payload: &str) -> Result<serde_json::Value, String> {
-    if raw_payload.is_empty() {
-        return Ok(serde_json::Value::Null);
-    }
-    serde_json::from_str(raw_payload).map_err(|e| format!("invalid payload json: {e}"))
-}
-
-#[sabi_extern_fn]
-pub extern "C" fn init() -> RResult<RVec<Tuple2<RString, RString>>, RString> {
-    let mut info = RVec::new();
+fn init_background_engine() {
     std::thread::spawn(|| {
         start_engine();
     });
-
-    info.push(Tuple2(RString::from("author"), RString::from("DiaboloAB")));
-    info.push(Tuple2(RString::from("name"), RString::from("GriffonScan")));
-    info.push(Tuple2(
-        RString::from("description"),
-        RString::from("YARA & Hash Antivirus Scanner"),
-    ));
-    info.push(Tuple2(
-        RString::from("UUID"),
-        RString::from("a75fcda4-4e8d-4988-b524-8bbd9ce09aeb"),
-    ));
-    info.push(Tuple2(
-        RString::from("function"),
-        RString::from(
-            "check/stop/scan/quarantine/delete/db_state/db_update/q_list/q_delete/q_restore",
-        ),
-    ));
-
-    RResult::ROk(info)
 }
 
-#[sabi_extern_fn]
-extern "C" fn handle_message(msg: RString) -> RString {
-    let raw = msg.as_str().trim();
-    log::info!("[LIBSCANNER] Received message: {}", raw);
-
-    let (function, raw_payload) = split_message(raw);
-
-    let payload = match parse_payload(raw_payload) {
-        Ok(v) => v,
-        Err(_e) => return RString::from(format!("ERR invalid payload json: {raw_payload}")),
-        // Err(e) => return RString::from(format!("ERR {e}")),
-    };
-
-    match registry().get(function) {
-        Some(handler) => handler(payload),
-        None => RString::from(format!("ERR unknown function: {function}")),
-    }
+export_plugin! {
+    meta: PluginMeta {
+        name: "GriffonScan",
+        uuid: "a75fcda4-4e8d-4988-b524-8bbd9ce09aeb",
+        author: "DiaboloAB",
+        description: "YARA & Hash Antivirus Scanner",
+    },
+    router: build_router,
+    // 2. Pass the function name directly
+    on_init: init_background_engine,
 }
-
-#[export_root_module]
-pub fn get_library() -> PluginRoot_Ref {
-    PluginRoot {
-        plugin: PluginI {
-            init,
-            handle_message,
-        }
-        .leak_into_prefix(),
-    }
-    .leak_into_prefix()
-}
-
 // =========================================================
 // Engine lifecycle (unchanged logic, just no longer returns RString)
 // =========================================================
@@ -540,4 +388,135 @@ fn stop_engine() -> Ack {
     ENGINE_STATE.store(STATE_STOPPED, Ordering::SeqCst);
 
     Ack::ok("Engine stopped")
+}
+
+#[cfg(test)]
+mod router_tests {
+    //! Router-level tests. They never start the engine, so ENGINE_STATE stays
+    //! `stopped` and tests can run in parallel. Quarantine methods are left out
+    //! because they write to the real default quarantine dir; tests/quarantine.rs
+    //! covers that logic directly.
+    use super::*;
+    use serde_json::json;
+
+    fn call(method: &str, params: serde_json::Value) -> Result<serde_json::Value, (i32, String)> {
+        build_router()
+            .call_json(method, params)
+            .map_err(|e| (e.code, e.message))
+    }
+
+    #[test]
+    fn exposes_every_method() {
+        let router = build_router();
+        assert_eq!(
+            router.method_names(),
+            [
+                "check",
+                "stop",
+                "scan",
+                "db_state",
+                "db_update",
+                "quarantine",
+                "delete",
+                "q_list",
+                "q_restore",
+                "q_delete",
+            ]
+        );
+    }
+
+    #[test]
+    fn check_reports_stopped_engine() {
+        let status = call("check", json!(null)).unwrap();
+        assert_eq!(status["state"], "stopped");
+        assert_eq!(status["message"], "Engine is not running");
+    }
+
+    #[test]
+    fn check_accepts_raw_wire_forms() {
+        let router = build_router();
+        for raw in ["fn:check", "fn:check {}", "check null", "  fn:check  "] {
+            let out: serde_json::Value =
+                serde_json::from_str(router.handle_raw(raw).as_str()).unwrap();
+            assert_eq!(out["state"], "stopped", "raw message {raw:?}");
+        }
+    }
+
+    #[test]
+    fn stop_is_idempotent_when_stopped() {
+        let ack = call("stop", json!({})).unwrap();
+        assert_eq!(ack, json!({ "ok": true, "message": "Already stopped" }));
+    }
+
+    #[test]
+    fn scan_requires_ready_engine() {
+        let (code, msg) = call("scan", json!({ "paths": ["/tmp"] })).unwrap_err();
+        assert_eq!(code, 1);
+        assert_eq!(msg, "Engine is not running, call start first");
+    }
+
+    #[test]
+    fn db_state_requires_ready_engine() {
+        let (code, _) = call("db_state", json!(null)).unwrap_err();
+        assert_eq!(code, 1);
+    }
+
+    #[test]
+    fn scan_rejects_missing_paths() {
+        let (code, msg) = call("scan", json!({ "archive": true })).unwrap_err();
+        assert_eq!(code, -32602);
+        assert!(msg.contains("missing field `paths`"), "{msg}");
+    }
+
+    #[test]
+    fn scan_rejects_wrong_types() {
+        let (code, _) = call("scan", json!({ "paths": "not-a-list" })).unwrap_err();
+        assert_eq!(code, -32602);
+    }
+
+    #[test]
+    fn quarantine_methods_reject_bad_params_before_touching_disk() {
+        // Deserialization fails before the handler (and Quarantine::new) runs.
+        for (method, params) in [
+            ("quarantine", json!({})),
+            ("delete", json!({ "paths": 3 })),
+            ("q_restore", json!({ "file_name": "single-string" })),
+            ("q_delete", json!(null)),
+        ] {
+            let (code, _) = call(method, params).unwrap_err();
+            assert_eq!(code, -32602, "{method}");
+        }
+    }
+
+    #[test]
+    fn unknown_method_is_reported() {
+        let (code, msg) = call("format_disk", json!(null)).unwrap_err();
+        assert_eq!(code, -32601);
+        assert!(msg.contains("format_disk"), "{msg}");
+    }
+
+    #[test]
+    fn malformed_payload_json_is_rejected() {
+        let out: serde_json::Value =
+            serde_json::from_str(build_router().handle_raw("fn:scan {oops").as_str()).unwrap();
+        assert_eq!(out["ok"], false);
+        assert_eq!(out["code"], -32602);
+    }
+
+    #[test]
+    fn scan_options_defaults() {
+        let opts: ScanOptions = serde_json::from_value(json!({ "paths": ["a"] })).unwrap();
+        assert_eq!(opts.paths, ["a"]);
+        assert!(!opts.archive && !opts.folder);
+        assert!(opts.threading.is_empty() && opts.threads.is_empty() && opts.threats.is_empty());
+    }
+
+    #[test]
+    fn engine_state_labels() {
+        assert_eq!(engine_state_label(STATE_STOPPED), "stopped");
+        assert_eq!(engine_state_label(STATE_LOADING), "loading");
+        assert_eq!(engine_state_label(STATE_READY), "ready");
+        assert_eq!(engine_state_label(STATE_ERROR), "error");
+        assert_eq!(engine_state_label(42), "unknown");
+    }
 }
