@@ -38,7 +38,7 @@ contents:
     file_info:
       mode: 0644
 
-  - src: logo.png
+  - src: assets/logo.png
     dst: /usr/share/icons/hicolor/256x256/apps/griffon.png
     file_info:
       mode: 0644
