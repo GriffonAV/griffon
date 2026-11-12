@@ -167,7 +167,7 @@ griffon/
 ├── plugin-installer/    # privileged helper used by the GUI to install plugins
 ├── plugins/
 │   ├── griffon_scanner/ # YARA + hash based scanner, quarantine, rule updater
-│   ├── griffon_cleaner/ # system cleaner
+│   ├── griffon_cleaner/ # system cleaner (profiles/ = shipped configs, bench/ = benchmark VM)
 │   ├── griffon_nmap/    # network scan (nmap)
 │   ├── docker_helper/   # Docker helper plugin
 │   └── plugin_template/ # starter template for new plugins
@@ -177,7 +177,7 @@ griffon/
 │   ├── plugin_interface/ # stable ABI contract between the host and plugins
 │   └── plugin_sdk/      # SDK every plugin is written with
 ├── assets/              # logo and README screenshots
-├── bench/               # benchmark VM (Vagrant) and datasets
+├── packaging/test/      # clean VMs to test the .deb / .rpm install
 ├── scripts/             # packaging scripts (post-install, pre-remove)
 ├── nfpm.yaml            # .deb / .rpm package definition
 └── justfile             # dev shortcuts

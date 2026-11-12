@@ -17,20 +17,23 @@ This environment is designed to support development and validation of Griffon Cl
 
 The benchmark environment includes:
 ```
-bench/
-├── Vagrantfile
-├── configs/
+plugins/griffon_cleaner/
+├── profiles/              # shipped cleaner profiles (packaged to /etc/griffon/plugins/griffon_cleaner/)
 │   ├── light.json
 │   ├── medium.json
 │   └── stress.json
-├── scripts/
-│   ├── populate_light.sh
-│   ├── populate_medium.sh
-│   ├── populate_stress.sh
-│   ├── cleanup_dataset.sh
-│   └── run_benchmark.sh
-├── results/
-└── README.md
+└── bench/
+    ├── Vagrantfile
+    ├── configs/           # bench-only configs (stress_full, test_*)
+    ├── scripts/
+    │   ├── bootstrap.sh
+    │   ├── populate_light.sh
+    │   ├── populate_medium.sh
+    │   ├── populate_stress.sh
+    │   ├── cleanup_dataset.sh
+    │   └── run_benchmark.sh
+    ├── results/           # git-ignored
+    └── README.md
 ```
 It provides:
 
@@ -57,7 +60,7 @@ Optional:
 
 ## Start the Virtual Machine
 
-From inside the bench/ directory:
+From inside the `plugins/griffon_cleaner/bench/` directory (or `just bench-vm` from the repo root):
 
 ```
 vagrant up
@@ -106,7 +109,7 @@ Example:
 
 ```
 cd ~/Griffon
-./bench/scripts/populate_medium.sh
+./plugins/griffon_cleaner/bench/scripts/populate_medium.sh
 ```
 
 Datasets are typically generated inside:
@@ -121,13 +124,13 @@ Datasets are typically generated inside:
 Always reset datasets before benchmarking:
 
 ```
-./bench/scripts/cleanup_dataset.sh
+./plugins/griffon_cleaner/bench/scripts/cleanup_dataset.sh
 ```
 
 Then regenerate:
 
 ```
-./bench/scripts/populate_medium.sh
+./plugins/griffon_cleaner/bench/scripts/populate_medium.sh
 ```
 This guarantees reproducible results.
 
@@ -151,7 +154,7 @@ griffon_cleaner_report.json
 Use the benchmark script:
 
 ```
-./bench/scripts/run_benchmark.sh medium
+./plugins/griffon_cleaner/bench/scripts/run_benchmark.sh medium
 ```
 
 Available profiles:
@@ -170,11 +173,20 @@ The script automatically:
 
 ## Benchmark Configurations
 
-Configs are located in:
+Shipped profiles (`light`, `medium`, `stress`) are in:
 
 ```
-bench/configs/
+plugins/griffon_cleaner/profiles/
 ```
+
+Bench-only configs (`stress_full`, `test_*`) are in:
+
+```
+plugins/griffon_cleaner/bench/configs/
+```
+
+Debug builds read `profiles/light.json` by default. Override with `--config <path>`
+or the `GRIFFON_CLEANER_CONFIG` environment variable.
 
 Example profiles:
 
@@ -230,13 +242,13 @@ permission errors are expected and reported.
 Results are stored inside:
 
 ```
-bench/results/
+plugins/griffon_cleaner/bench/results/
 ```
 
 Typical structure:
 
 ```
-bench/results/medium_timestamp/
+plugins/griffon_cleaner/bench/results/medium_timestamp/
 ├── report.json
 ├── stdout.log
 ├── stderr.log
@@ -278,8 +290,8 @@ vagrant up
 vagrant ssh
 cd ~/Griffon
 
-./bench/scripts/cleanup_dataset.sh
-./bench/scripts/populate_medium.sh
+./plugins/griffon_cleaner/bench/scripts/cleanup_dataset.sh
+./plugins/griffon_cleaner/bench/scripts/populate_medium.sh
 
 cargo build --release --package griffon_cleaner
 
@@ -289,7 +301,7 @@ sudo ./target/release/griffon_cleaner
 Archive result:
 
 ```
-bench/results/manual_medium/
+plugins/griffon_cleaner/bench/results/manual_medium/
 ```
 
 ## Recommended Benchmark Strategy
@@ -316,7 +328,7 @@ Across runs.
 vagrant up
 vagrant ssh
 cd ~/Griffon
-./bench/scripts/populate_medium.sh
+./plugins/griffon_cleaner/bench/scripts/populate_medium.sh
 sudo ./target/release/griffon_cleaner
 ```
 Output:
@@ -325,5 +337,5 @@ griffon_cleaner_report.json
 ```
 stored for analysis inside:
 ```
-bench/results/
+plugins/griffon_cleaner/bench/results/
 ```
