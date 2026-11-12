@@ -74,7 +74,7 @@ sudo dnf install ./griffon-*.rpm
 
 The install enables and starts the `griffon-daemon` systemd service, and adds your user to the `griffon` group so the GUI and CLI can talk to the daemon without `sudo`.
 
-**2. Log out and back in** (or run `newgrp griffon` in your terminal) so the group change takes effect. This step is required.
+**2. Restart your computer** so the group change takes effect. This step is required. Logging out and back in is often not enough, because your desktop session keeps its old groups (see [#258](https://github.com/GriffonAV/griffon/issues/258)). To try the CLI before restarting, run `newgrp griffon` in a terminal; it only applies to that terminal.
 
 **3. Check that it works:**
 
@@ -90,7 +90,7 @@ Then launch **Griffon** from your application menu, or run `griffon-gui`.
 
 | Problem | Fix |
 |---|---|
-| `permission denied` when the CLI/GUI connects to the daemon | You haven't logged out and back in yet. If you installed as root (without `sudo`), add your user manually: `sudo usermod -aG griffon $USER`, then log out and back in. |
+| `permission denied` when the CLI/GUI connects to the daemon | Restart your computer (logging out and back in is often not enough). Check with `id \| grep griffon`. If you installed as root (without `sudo`), add your user manually: `sudo usermod -aG griffon $USER`, then restart. |
 | The daemon isn't running | `sudo systemctl restart griffon-daemon`, and see the logs with `journalctl -u griffon-daemon -b` |
 | `apt` says a dependency is not installable | Run `sudo apt update`, then install again. |
 
