@@ -69,3 +69,4 @@ eicar*
 **/tests/fixtures/heavy_fs/
 
 *.zip
+.data/
