@@ -1,12 +1,12 @@
 # Contributing to Griffon
 
-Thanks for helping improve Griffon. Contributions to code, documentation, testing, and bug reports are welcome. Griffon is an experimental, student-built security platform for Linux; please read [SECURITY.md](SECURITY.md) before using it in a sensitive environment.
+Thanks for helping improve Griffon. Contributions to code, documentation, testing, and bug reports are welcome. Griffon is an experimental, student-built security platform for Linux; please read [SECURITY.md](../SECURITY.md) before using it in a sensitive environment.
 
 ## Before you start
 
 - Check existing issues before reporting a problem or proposing a change. See [Issues](#issues) for what to include.
 - For a feature or substantial architecture change, open an issue first to discuss its scope. Small fixes and documentation improvements can go straight to a pull request.
-- **Do not post vulnerabilities in public issues or pull requests.** Follow [SECURITY.md](SECURITY.md) and contact `contact.griffon@proton.me` privately.
+- **Do not post vulnerabilities in public issues or pull requests.** Follow [SECURITY.md](../SECURITY.md) and contact `contact.griffon@proton.me` privately.
 - Only test scans and cleanup on files and systems you own or are authorized to use. Use disposable test data for destructive operations. Never commit malware samples, credentials, private data, or generated build artifacts.
 
 ## Issues
@@ -27,7 +27,7 @@ Use **Bug report** and include:
 
 For build problems, also include the output of `rustc --version` and `cargo --version`. Include `node --version` and `npm --version` if the GUI build is affected. Paste commands and logs in fenced code blocks so others can copy and search them. The bug template contains generic device fields; provide the Linux environment details above and mark unrelated fields as not applicable.
 
-Remove tokens, credentials, personal file contents, and other sensitive data from logs and screenshots. Never attach malware samples or private files. Report suspected vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
+Remove tokens, credentials, personal file contents, and other sensitive data from logs and screenshots. Never attach malware samples or private files. Report suspected vulnerabilities privately as described in [SECURITY.md](../SECURITY.md).
 
 ### Suggest a feature
 
@@ -43,15 +43,15 @@ Read the discussion and check for linked pull requests before starting. Leave a 
 
 ## Get the project running
 
-You need a Linux development machine, the latest stable Rust toolchain with `rustfmt` and `clippy`, Node.js and npm for the desktop UI, and [`just`](https://github.com/casey/just). Tauri also needs Linux system libraries; consult the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your distribution. On Fedora, the [root README](README.md#running-from-source-development) lists the packages used by this project. Docker is only needed for the packaged build.
+You need a Linux development machine, the latest stable Rust toolchain with `rustfmt` and `clippy`, Node.js and npm for the desktop UI, and [`just`](https://github.com/casey/just). Tauri also needs Linux system libraries; consult the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your distribution. On Fedora, the [root README](../README.md#running-from-source-development) lists the packages used by this project. Docker is only needed for the packaged build.
 
 ### Rust version
 
-For local development, use the **latest stable Rust**, matching the [Rust CI workflow](.github/workflows/ci.yml). CI follows the `stable` channel rather than a fixed version, and the repository does not currently contain a `rust-toolchain.toml` or `rust-toolchain` file.
+For local development, use the **latest stable Rust**, matching the [Rust CI workflow](../.github/workflows/ci.yml). CI follows the `stable` channel rather than a fixed version, and the repository does not currently contain a `rust-toolchain.toml` or `rust-toolchain` file.
 
-The packaged build uses **Rust 1.94** (`rust:1.94-slim`) for its non-GUI workspace stage in [Dockerfile.build](Dockerfile.build). The GUI stage installs Rust through rustup without pinning a version. Rust 1.94 is therefore a packaging configuration, not a declared minimum version for the whole project.
+The packaged build uses **Rust 1.94** (`rust:1.94-slim`) for its non-GUI workspace stage in [Dockerfile.build](../Dockerfile.build). The GUI stage installs Rust through rustup without pinning a version. Rust 1.94 is therefore a packaging configuration, not a declared minimum version for the whole project.
 
-The workspace and most crates use **Rust edition 2024**, which requires [Rust 1.85.0 or newer](https://doc.rust-lang.org/edition-guide/rust-2024/index.html). Dependencies may require a newer compiler, and Griffon does not currently declare a workspace-wide minimum supported Rust version (MSRV). The `rust-version = "1.77.2"` entry in [the GUI manifest](gui/src-tauri/Cargo.toml) applies to that package's declaration; it does not establish compatibility for the full workspace.
+The workspace and most crates use **Rust edition 2024**, which requires [Rust 1.85.0 or newer](https://doc.rust-lang.org/edition-guide/rust-2024/index.html). Dependencies may require a newer compiler, and Griffon does not currently declare a workspace-wide minimum supported Rust version (MSRV). The `rust-version = "1.77.2"` entry in [the GUI manifest](../gui/src-tauri/Cargo.toml) applies to that package's declaration; it does not establish compatibility for the full workspace.
 
 ### Setup
 
@@ -94,7 +94,7 @@ The workspace and most crates use **Rust edition 2024**, which requires [Rust 1.
    just run-cli
    ```
 
-   Build before using `just run-daemon` or `just run-cli`: these recipes launch binaries from `target/debug/`. The CLI and GUI expect the daemon when exercising connected features. The [README](README.md) has an example CLI session.
+   Build before using `just run-daemon` or `just run-cli`: these recipes launch binaries from `target/debug/`. The CLI and GUI expect the daemon when exercising connected features. The [README](../README.md) has an example CLI session.
 
    Optional: `just setup-dev-env` enables the repository's local pre-commit hook. The CI checks remain the authoritative gate for pull requests.
 
@@ -117,7 +117,7 @@ For a new plugin, start with `plugins/plugin_template/` and the [plugin guide](h
 - Keep each pull request focused. Explain behavior changes in the relevant user or developer documentation.
 - Add or update tests for changed behavior, especially IPC, plugin loading, detection, quarantine, and cleanup. For cleanup or quarantine, test that unselected files remain intact. Use harmless fixtures rather than live malware.
 - Handle errors explicitly. A plugin runs inside the daemon's process, so review paths, permissions, untrusted input, and potentially destructive actions carefully. Avoid panics and unintended file deletion at plugin boundaries.
-- Follow the existing style in nearby files and [GUI conventions](gui/STANDARDS.md) when editing the frontend.
+- Follow the existing style in nearby files and [GUI conventions](../gui/STANDARDS.md) when editing the frontend.
 
 Run the checks relevant to your changes before opening a pull request:
 
@@ -127,7 +127,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 ```
 
-The first two commands match the [Rust CI workflow](.github/workflows/ci.yml). For GUI changes, also run:
+The first two commands match the [Rust CI workflow](../.github/workflows/ci.yml). For GUI changes, also run:
 
 ```bash
 cd gui
@@ -144,4 +144,4 @@ Exercise the affected feature manually when automation cannot cover it, and incl
 3. List the commands you ran and any manual verification. Highlight security implications, file operations, migrations, or changes to the plugin ABI or IPC format.
 4. Respond to review comments and keep the branch current when needed. CI runs Rust formatting and Clippy on pull requests to `main` and `develop`; contributors should still run the other relevant checks locally.
 
-All contributions are provided under the project's [Apache 2.0 license](LICENSE). Thank you for contributing.
+All contributions are provided under the project's [Apache 2.0 license](../LICENSE). Thank you for contributing.
