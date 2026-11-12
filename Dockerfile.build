@@ -83,7 +83,7 @@ COPY --from=gui-builder /app/gui-out/ /app/target/release/
 COPY --from=workspace-builder /app/ws-out/ /app/target/release/
 
 COPY nfpm.yaml .
-COPY logo.png .
+COPY assets/logo.png ./assets/logo.png
 COPY griffon.desktop .
 COPY scripts/ ./scripts/
 

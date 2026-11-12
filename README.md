@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="125" height="125" src="logo.png" alt="Griffon logo">
+  <img width="125" height="125" src="assets/logo.png" alt="Griffon logo">
 </p>
 
 <h1 align="center">Griffon</h1>
@@ -37,8 +37,8 @@ Griffon is a fast, secure, and easy-to-use antivirus and security toolbox for Li
 Built-in plugins include a **YARA-based scanner** (with quarantine and rule updates) and a **system cleaner** (caches, logs, packages, big files, Docker).
 
 <p align="center">
-  <img src="docs/img/img.png" alt="Griffon dashboard" width="49%" />
-  <img src="docs/img/img_1.png" alt="Griffon scanner" width="49%" />
+  <img src="assets/screenshots/dashboard.png" alt="Griffon dashboard" width="49%" />
+  <img src="assets/screenshots/scanner.png" alt="Griffon scanner" width="49%" />
 </p>
 
 > [!WARNING]
@@ -168,14 +168,15 @@ griffon/
 ├── plugins/
 │   ├── griffon_scanner/ # YARA + hash based scanner, quarantine, rule updater
 │   ├── griffon_cleaner/ # system cleaner
+│   ├── griffon_nmap/    # network scan (nmap)
 │   ├── docker_helper/   # Docker helper plugin
-│   ├── plugin_template/ # starter template for new plugins
-│   └── plugin-guide.md  # plugin development guide
+│   └── plugin_template/ # starter template for new plugins
 ├── shared/
 │   ├── ipc_protocol/    # IPC messages between daemon, runner, GUI and CLI
 │   ├── logger/          # shared logging
-│   └── plugin_interface/ # stable ABI contract implemented by every plugin
-├── docs/                # TOML manifest / GUI generation docs
+│   ├── plugin_interface/ # stable ABI contract between the host and plugins
+│   └── plugin_sdk/      # SDK every plugin is written with
+├── assets/              # logo and README screenshots
 ├── bench/               # benchmark VM (Vagrant) and datasets
 ├── scripts/             # packaging scripts (post-install, pre-remove)
 ├── nfpm.yaml            # .deb / .rpm package definition
@@ -184,7 +185,7 @@ griffon/
 
 ### Writing a plugin
 
-Start from [`plugins/plugin_template`](plugins/plugin_template), then read the [plugin guide](plugins/plugin-guide.md) and the [TOML / GUI guide](docs/guiTomlHowTo.md). The full developer documentation is at [griffon-av.vercel.app/docs](https://griffon-av.vercel.app/docs/introduction).
+Start from [`plugins/plugin_template`](plugins/plugin_template), then follow [Creating a plugin](https://griffon-av.vercel.app/docs/category/plugin-development) and the [UI component reference](https://griffon-av.vercel.app/docs/creating_a_plugin/component-reference). The full developer documentation is at [griffon-av.vercel.app/docs](https://griffon-av.vercel.app/docs/introduction). Where the project is heading: [ROADMAP.md](ROADMAP.md).
 
 ## Community & contributing
 
