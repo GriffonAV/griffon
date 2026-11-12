@@ -100,7 +100,7 @@ A buggy or malicious plugin has full control of the machine.
 Every action is triggered by the GUI or the CLI today. There is no scheduling
 in the daemon.
 
-- **Jobs:** a plugin function plus its arguments, run on an interval or a cron
+- **Jobs:** a plugin function plus its arguments, run on an interval, managed inside the daemon.
   expression (for example a nightly scan, or weekly YARA rule updates).
 - **Persistence:** jobs are stored in the daemon config and survive restarts. They
   catch up on missed runs according to a per-job policy.
