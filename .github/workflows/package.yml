@@ -2,7 +2,7 @@ name: Griffon Packaging
 
 # Builds the .deb/.rpm and checks they install on clean systems.
 # Runs on main and on PRs targeting main, and is called by release.yml before publishing.
-# The daemon/rights test needs systemd: do it in a VM, see docs/packaging-testing.md.
+# The daemon/rights test needs systemd: do it in a VM, see https://griffon-av.vercel.app/docs/contributing/packaging_testing
 on:
   push:
     branches:

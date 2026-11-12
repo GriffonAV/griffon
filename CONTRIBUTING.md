@@ -108,9 +108,9 @@ The workspace and most crates use **Rust edition 2024**, which requires [Rust 1.
 | Shared contracts | `shared/` | IPC messages, plugin ABI, logging |
 | Built-in plugins | `plugins/` | Scanner, cleaner, Docker helper, plugin template |
 | Installer and packaging | `plugin-installer/`, `scripts/`, `nfpm.yaml` | Plugin installation and distribution packaging |
-| Docs | `docs/`, `README.md`, `plugins/plugin-guide.md` | User and developer guidance |
+| Docs | `README.md`, `ROADMAP.md`, [griffon-doc](https://github.com/GriffonAV/griffon-doc) ([website](https://griffon-av.vercel.app/docs/introduction)) | User, plugin-author and contributor guidance |
 
-For a new plugin, start with `plugins/plugin_template/` and the [plugin guide](plugins/plugin-guide.md). Plugins are Rust `cdylib` libraries using the shared `plugin_interface` and `abi_stable` types at the ABI boundary. Add a manifest, document each exposed command, and verify that the daemon can load and call the plugin. Changes to `shared/plugin_interface` or `shared/ipc_protocol` can affect plugins, daemon, CLI, and GUI; explain compatibility implications in the pull request.
+For a new plugin, start with `plugins/plugin_template/` and the [plugin guide](https://griffon-av.vercel.app/docs/category/plugin-development). Plugins are Rust `cdylib` libraries written with the plugin SDK (`shared/plugin_sdk`), which generates the `abi_stable` ABI boundary for you. Add a manifest, document each exposed command, and verify that the daemon can load and call the plugin. Changes to `shared/plugin_interface` or `shared/ipc_protocol` can affect plugins, daemon, CLI, and GUI; explain compatibility implications in the pull request.
 
 ## Make and verify a change
 
