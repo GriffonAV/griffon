@@ -115,3 +115,15 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Rebuilds the documentation website (griffon-doc on Vercel), which reads
+      # the release list from GitHub at build time. Skipped if the secret is not set.
+      - name: Update the documentation website
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "VERCEL_DEPLOY_HOOK_URL is not set, skipping"
+            exit 0
+          fi
+          curl --fail --silent --show-error -X POST "$HOOK"
