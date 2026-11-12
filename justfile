@@ -33,7 +33,7 @@ lint-fix:
 ## packaging
 
 build-deb:
-    docker build -t griffon-builder -f Dockerfile.build .
+    docker build -t griffon-builder -f packaging/Dockerfile .
     docker run --rm -v $(pwd)/dist:/out griffon-builder
 
 ## dev utils

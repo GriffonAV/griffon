@@ -47,9 +47,9 @@ You need a Linux development machine, the latest stable Rust toolchain with `rus
 
 ### Rust version
 
-For local development, use the **latest stable Rust**, matching the [Rust CI workflow](.github/workflows/ci.yml). CI follows the `stable` channel rather than a fixed version, and the repository does not currently contain a `rust-toolchain.toml` or `rust-toolchain` file.
+The Rust version is pinned in [`rust-toolchain.toml`](rust-toolchain.toml) (currently **Rust 1.95**, required by `yara-x`). rustup picks it up automatically, so local development, the [Rust CI workflow](.github/workflows/ci.yml) and the packaged build all use the same compiler. To change the Rust version, update that file in a pull request.
 
-The packaged build uses **Rust 1.94** (`rust:1.94-slim`) for its non-GUI workspace stage in [Dockerfile.build](Dockerfile.build). The GUI stage installs Rust through rustup without pinning a version. Rust 1.94 is therefore a packaging configuration, not a declared minimum version for the whole project.
+The packaged build ([packaging/Dockerfile](packaging/Dockerfile)) compiles on Ubuntu 22.04 so the binaries work on any distribution with glibc 2.35 or newer. It installs Rust through rustup, using the version from `rust-toolchain.toml`.
 
 The workspace and most crates use **Rust edition 2024**, which requires [Rust 1.85.0 or newer](https://doc.rust-lang.org/edition-guide/rust-2024/index.html). Dependencies may require a newer compiler, and Griffon does not currently declare a workspace-wide minimum supported Rust version (MSRV). The `rust-version = "1.77.2"` entry in [the GUI manifest](gui/src-tauri/Cargo.toml) applies to that package's declaration; it does not establish compatibility for the full workspace.
 
@@ -107,7 +107,7 @@ The workspace and most crates use **Rust edition 2024**, which requires [Rust 1.
 | CLI | `cli/` | Terminal commands and daemon interactions |
 | Shared contracts | `shared/` | IPC messages, plugin ABI, logging |
 | Built-in plugins | `plugins/` | Scanner, cleaner, Docker helper, plugin template |
-| Installer and packaging | `plugin-installer/`, `scripts/`, `nfpm.yaml` | Plugin installation and distribution packaging |
+| Installer and packaging | `plugin-installer/`, `packaging/` | Plugin installation and distribution packaging |
 | Docs | `README.md`, `ROADMAP.md`, [griffon-doc](https://github.com/GriffonAV/griffon-doc) ([website](https://griffon-av.vercel.app/docs/introduction)) | User, plugin-author and contributor guidance |
 
 For a new plugin, start with `plugins/plugin_template/` and the [plugin guide](https://griffon-av.vercel.app/docs/category/plugin-development). Plugins are Rust `cdylib` libraries written with the plugin SDK (`shared/plugin_sdk`), which generates the `abi_stable` ABI boundary for you. Add a manifest, document each exposed command, and verify that the daemon can load and call the plugin. Changes to `shared/plugin_interface` or `shared/ipc_protocol` can affect plugins, daemon, CLI, and GUI; explain compatibility implications in the pull request.

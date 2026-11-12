@@ -55,7 +55,7 @@ jobs:
           git diff Cargo.toml Cargo.lock
 
       - name: Build Docker packaging image
-        run: docker build -t griffon-builder -f Dockerfile.build .
+        run: docker build -t griffon-builder -f packaging/Dockerfile .
 
       - name: Run packaging container
         run: |

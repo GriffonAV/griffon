@@ -33,7 +33,7 @@ contents:
     file_info:
       mode: 0755
 
-  - src: griffon.desktop
+  - src: ./packaging/griffon.desktop
     dst: /usr/share/applications/griffon.desktop
     file_info:
       mode: 0644
@@ -87,7 +87,7 @@ contents:
       mode: 0644
 
   # Les config pour le daemon
-  - src: ./daemon/griffon-daemon.service
+  - src: ./packaging/griffon-daemon.service
     dst: /lib/systemd/system/griffon-daemon.service
     file_info:
       mode: 0644
@@ -111,5 +111,5 @@ overrides:
       - polkit
 
 scripts:
-  postinstall: ./scripts/postinstall.sh
-  preremove: ./scripts/preremove.sh
+  postinstall: ./packaging/postinstall.sh
+  preremove: ./packaging/preremove.sh

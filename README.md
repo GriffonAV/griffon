@@ -161,8 +161,7 @@ griffon/
 ├── daemon/
 │   ├── daemon_core/     # griffon-daemon: socket server, dispatcher, notifications
 │   ├── daemon_runner/   # griffon-daemon-runner: isolated process that hosts a plugin
-│   ├── plugin_manager/  # loads, enables/disables and talks to plugins
-│   └── griffon-daemon.service   # systemd unit (packaged install)
+│   └── plugin_manager/  # loads, enables/disables and talks to plugins
 ├── gui/                 # desktop app (React + Vite frontend, Tauri v2 in src-tauri/)
 ├── plugin-installer/    # privileged helper used by the GUI to install plugins
 ├── plugins/
@@ -177,9 +176,10 @@ griffon/
 │   ├── plugin_interface/ # stable ABI contract between the host and plugins
 │   └── plugin_sdk/      # SDK every plugin is written with
 ├── assets/              # logo and README screenshots
-├── packaging/test/      # clean VMs to test the .deb / .rpm install
-├── scripts/             # packaging scripts (post-install, pre-remove)
-├── nfpm.yaml            # .deb / .rpm package definition
+├── packaging/           # .deb / .rpm build: nfpm.yaml, Dockerfile, install scripts,
+│   │                    #   systemd unit, .desktop entry
+│   └── test/            # clean VMs to test the .deb / .rpm install
+├── scripts/             # dev scripts (plugin scaffolding, coverage)
 └── justfile             # dev shortcuts
 ```
 
