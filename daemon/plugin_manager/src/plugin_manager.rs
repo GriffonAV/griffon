@@ -109,6 +109,10 @@ fn resolve_runner_binary() -> Result<PathBuf, String> {
 impl PluginManager {
     pub fn new<P: AsRef<Path>>(dir: P) -> Self {
         let runner_binary = resolve_runner_binary().expect("runner binary not found");
+        Self::new_with_runner_binary(dir, runner_binary)
+    }
+
+    fn new_with_runner_binary<P: AsRef<Path>>(dir: P, runner_binary: PathBuf) -> Self {
         let (events_tx, events_rx) = mpsc::channel();
 
         Self {
@@ -726,4 +730,42 @@ fn read_plugin_messages(
     });
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PluginManager;
+    use std::fs;
+    use std::os::unix::fs::PermissionsExt;
+    use std::path::Path;
+
+    fn fake_runner(dir: &Path) -> std::path::PathBuf {
+        let runner = dir.join("fake-runner");
+        fs::write(&runner, "#!/bin/sh\nexit 0\n").expect("write fake runner");
+        let mut permissions = fs::metadata(&runner)
+            .expect("read fake runner metadata")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&runner, permissions).expect("make fake runner executable");
+        runner
+    }
+
+    #[test]
+    fn launch_runner_uses_fake_runner_without_loading_a_plugin() {
+        let temp_dir = tempfile::tempdir().expect("create temp directory");
+        let runner = fake_runner(temp_dir.path());
+        let plugin_path = temp_dir.path().join("example.so");
+
+        let manager = PluginManager::new_with_runner_binary(temp_dir.path(), runner);
+
+        let (mut child, _stream, info) = manager
+            .launch_runner(&plugin_path)
+            .expect("launch fake runner");
+
+        assert_eq!(info.name, "example.so");
+        assert_eq!(info.path, plugin_path.display().to_string());
+        assert!(info.status);
+        assert_eq!(info.pid, child.id());
+        assert!(child.wait().expect("wait for fake runner").success());
+    }
 }
