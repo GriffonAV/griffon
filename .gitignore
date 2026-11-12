@@ -60,6 +60,7 @@ dev_only.json
 ## testing
 
 .vagrant/
+plugins/griffon_cleaner/bench/results/
 /eicar_files
 eicar*
 **/tests/fixtures/eicar.com
@@ -69,3 +70,4 @@ eicar*
 **/tests/fixtures/heavy_fs/
 
 *.zip
+.data/

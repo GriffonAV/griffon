@@ -233,13 +233,17 @@ pub fn build_execution_context() -> CleanerResult<(ExecutionContext, String)> {
 pub fn build_execution_context_with_filters(
     filters: CleanerFilters,
 ) -> CleanerResult<(ExecutionContext, String)> {
+    // Debug builds read the profile from the source tree so they work from any cwd.
     let default_config_path = if cfg!(debug_assertions) {
-        "bench/configs/light.json"
+        concat!(env!("CARGO_MANIFEST_DIR"), "/profiles/light.json")
     } else {
         "/etc/griffon/plugins/griffon_cleaner/light.json"
     };
 
-    let config_path = parse_arg("--config").unwrap_or_else(|| default_config_path.to_string());
+    // Precedence: --config flag, then GRIFFON_CLEANER_CONFIG, then the build default.
+    let config_path = parse_arg("--config")
+        .or_else(|| std::env::var("GRIFFON_CLEANER_CONFIG").ok())
+        .unwrap_or_else(|| default_config_path.to_string());
 
     let file_cfg = FileCleanerConfig::load_from_file(PathBuf::from(&config_path).as_path())?;
 

@@ -37,14 +37,15 @@ echo "to communicate with the daemon without sudo."
 if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
     echo ""
     echo "User '$SUDO_USER' has been added to the 'griffon' group."
-    echo "You may need to log out and log back in for the change to apply."
+    echo "Restart your computer for the change to apply."
+    echo "(Logging out and back in is often not enough.)"
 else
     echo ""
     echo "If needed, add your user manually:"
     echo "  sudo usermod -aG griffon \$USER"
     echo ""
-    echo "Then log out and log back in, or run:"
-    echo "  newgrp griffon"
+    echo "Then restart your computer for the change to apply."
+    echo "(Logging out and back in is often not enough.)"
 fi
 
 echo ""
