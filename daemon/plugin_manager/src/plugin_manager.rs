@@ -733,7 +733,7 @@ fn read_plugin_messages(
 }
 
 #[cfg(test)]
-mod tests {
+mod runner_launch {
     use super::PluginManager;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
