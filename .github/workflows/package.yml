@@ -30,9 +30,44 @@ env:
   VERSION: ${{ inputs.version || format('0.0.0-dev.{0}', github.run_number) }}
 
 jobs:
+  # Detects whether a PR touches an input to the package build. Push,
+  # "Run workflow" and release.yml always build packages. Skipped jobs count
+  # as passed for required status checks.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      packaging: ${{ github.event_name != 'pull_request' || steps.filter.outputs.packaging == 'true' }}
+
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          filters: |
+            packaging:
+              - '.dockerignore'
+              - '.github/workflows/package.yml'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'rust-toolchain.toml'
+              - 'daemon/**'
+              - 'shared/**'
+              - 'plugins/**'
+              - 'cli/**'
+              - 'plugin-installer/**'
+              - 'gui/**'
+              - 'packaging/**'
+              - 'assets/logo.png'
+
   build:
     name: Build Packages
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.packaging == 'true'
 
     steps:
       - uses: actions/checkout@v4
