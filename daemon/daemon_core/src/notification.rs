@@ -202,11 +202,15 @@ fn default_config_version() -> u32 {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) static TEST_CONFIG_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(test)]
+mod notification_config {
     use super::*;
 
     #[test]
     fn test_notification_config_switch() {
+        let _guard = TEST_CONFIG_LOCK.lock().unwrap();
         let plugin_uuid = [5u8; 16];
 
         let first_switch = NotificationConfig::switch_plugin_notification(plugin_uuid);
@@ -218,9 +222,14 @@ mod tests {
         assert_ne!(
             first_switch.unwrap(),
             second_switch.unwrap(),
-            "Le deuxième switch doit inverser le statut de notification"
+            "The second switch should invert the notification status"
         );
     }
+}
+
+#[cfg(test)]
+mod plugin_response_notification {
+    use super::*;
 
     #[test]
     fn test_send_plugin_response_notification_exec() {

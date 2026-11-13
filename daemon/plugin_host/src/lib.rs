@@ -99,7 +99,7 @@ impl LoadedPlugin {
 }
 
 #[cfg(test)]
-mod tests {
+mod function_parsing {
     use super::*;
 
     #[test]
@@ -109,6 +109,11 @@ mod tests {
             vec!["scan", "stop", "check"]
         );
     }
+}
+
+#[cfg(test)]
+mod wire_formatting {
+    use super::*;
 
     #[test]
     fn call_to_wire_formats_args() {

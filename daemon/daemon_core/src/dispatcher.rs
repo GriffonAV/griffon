@@ -289,73 +289,193 @@ fn send_response(reply_tx: Sender<InterfaceResponse>, response: InterfaceRespons
 }
 
 #[cfg(test)]
-mod tests {
+mod notification_switch {
     use super::*;
-    use ipc_protocol::ipc_payload_interface::InterfaceResponse;
-    use plugin_manager::PluginEvent;
 
     #[test]
-    fn test_handle_switch_notification() {
-        let dummy_uuid = [8u8; 16];
-        let response = handle_switch_notification(102, dummy_uuid);
+    fn returns_a_response_with_the_request_id() {
+        let _guard = crate::notification::TEST_CONFIG_LOCK.lock().unwrap();
+        let response = handle_switch_notification(102, [8u8; 16]);
 
         match response {
-            InterfaceResponse::SwitchDone { request_id, .. } => assert_eq!(request_id, 102),
-            InterfaceResponse::Error { request_id, .. } => assert_eq!(request_id, 102),
+            InterfaceResponse::SwitchDone { request_id, .. }
+            | InterfaceResponse::Error { request_id, .. } => assert_eq!(request_id, 102),
             _ => panic!("Unexpected response type"),
         }
     }
+}
+
+#[cfg(test)]
+mod plugin_events {
+    use super::*;
+    use plugin_manager::PluginEvent;
 
     #[test]
-    fn test_send_response_helper() {
-        let (tx, rx) = std::sync::mpsc::channel();
-        let response = InterfaceResponse::Error {
-            request_id: 1,
-            message: "test".to_string(),
-        };
-
-        send_response(tx, response, "test_context");
-
-        let received = rx.recv_timeout(std::time::Duration::from_secs(1)).unwrap();
-        match received {
-            InterfaceResponse::Error { request_id, .. } => assert_eq!(request_id, 1),
-            _ => panic!("Expected Error variant"),
-        }
-    }
-
-    #[test]
-    fn test_handle_plugin_event_response_all_variants() {
+    fn converts_plugin_events_into_interface_responses() {
         let uuid = [0u8; 16];
 
-        let ev1 = PluginEvent::Result {
+        let result = PluginEvent::Result {
             pid: 1,
             request_id: 1,
             ok: true,
             output: "ok".into(),
         };
-        let r1 = handle_plugin_event_response(10, uuid, "p", "f", ev1);
-        assert!(matches!(r1, InterfaceResponse::CallResult { ok: true, .. }));
+        assert!(matches!(
+            handle_plugin_event_response(10, uuid, "p", "f", result),
+            InterfaceResponse::CallResult {
+                request_id: 10,
+                ok: true,
+                output
+            } if output == "ok"
+        ));
 
-        let ev2 = PluginEvent::Error {
+        let error = PluginEvent::Error {
             pid: 1,
             request_id: 1,
             message: "err".into(),
         };
-        let r2 = handle_plugin_event_response(11, uuid, "p", "f", ev2);
         assert!(matches!(
-            r2,
-            InterfaceResponse::CallResult { ok: false, .. }
+            handle_plugin_event_response(11, uuid, "p", "f", error),
+            InterfaceResponse::CallResult {
+                request_id: 11,
+                ok: false,
+                output
+            } if output == "err"
         ));
 
-        let ev3 = PluginEvent::Closed {
+        let closed = PluginEvent::Closed {
             pid: 1,
             reason: "exit".into(),
         };
-        let r3 = handle_plugin_event_response(12, uuid, "p", "f", ev3);
-        assert!(matches!(r3, InterfaceResponse::Error { .. }));
+        assert!(matches!(
+            handle_plugin_event_response(12, uuid, "p", "f", closed),
+            InterfaceResponse::Error { request_id: 12, message }
+                if message == "Plugin closed: exit"
+        ));
 
-        let ev4 = PluginEvent::Heartbeat { pid: 1 };
-        let r4 = handle_plugin_event_response(13, uuid, "p", "f", ev4);
-        assert!(matches!(r4, InterfaceResponse::Error { .. }));
+        assert!(matches!(
+            handle_plugin_event_response(13, uuid, "p", "f", PluginEvent::Heartbeat { pid: 1 }),
+            InterfaceResponse::Error { request_id: 13, message }
+                if message == "Unexpected message type while waiting for response"
+        ));
+    }
+}
+
+#[cfg(test)]
+mod response_delivery {
+    use super::*;
+
+    #[test]
+    fn sends_response_to_client() {
+        let (tx, rx) = std::sync::mpsc::channel();
+        send_response(
+            tx,
+            InterfaceResponse::Error {
+                request_id: 1,
+                message: "test".into(),
+            },
+            "test_context",
+        );
+
+        assert!(matches!(
+            rx.recv_timeout(Duration::from_secs(1)).unwrap(),
+            InterfaceResponse::Error { request_id: 1, .. }
+        ));
+    }
+
+    #[test]
+    fn handles_disconnected_client() {
+        let (tx, rx) = std::sync::mpsc::channel();
+        drop(rx);
+
+        send_response(
+            tx,
+            InterfaceResponse::Error {
+                request_id: 7,
+                message: "client disconnected".into(),
+            },
+            "test_context",
+        );
+    }
+}
+
+#[cfg(test)]
+mod task_routing {
+    use super::*;
+    use std::sync::Mutex;
+
+    static RUNNER_ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    struct RunnerEnvRestore(Option<std::ffi::OsString>);
+
+    impl Drop for RunnerEnvRestore {
+        fn drop(&mut self) {
+            match self.0.take() {
+                Some(path) => unsafe { std::env::set_var("GRIFFON_RUNNER_BINARY", path) },
+                None => unsafe { std::env::remove_var("GRIFFON_RUNNER_BINARY") },
+            }
+        }
+    }
+
+    #[test]
+    fn routes_plugin_tasks_without_launching_external_runner() {
+        let _guard = RUNNER_ENV_LOCK.lock().unwrap();
+        let _restore_env = RunnerEnvRestore(std::env::var_os("GRIFFON_RUNNER_BINARY"));
+        let temp_dir = tempfile::tempdir().expect("create plugin directory");
+        // The plugin directory is empty, so this path is only used to
+        // construct PluginManager; the dispatcher never launches it.
+        unsafe { std::env::set_var("GRIFFON_RUNNER_BINARY", temp_dir.path().join("fake-runner")) };
+
+        let plugin_dir: &'static str = Box::leak(
+            temp_dir
+                .path()
+                .to_string_lossy()
+                .into_owned()
+                .into_boxed_str(),
+        );
+        let (task_tx, task_rx) = std::sync::mpsc::channel();
+        start_dispatcher(task_rx, plugin_dir);
+
+        let (switch_tx, switch_rx) = std::sync::mpsc::channel();
+        task_tx
+            .send(crate::types::DaemonTask::SwitchStatusPlugin {
+                request_id: 21,
+                plugin_uuid: [2; 16],
+                reply_tx: switch_tx,
+            })
+            .unwrap();
+
+        let (refresh_tx, refresh_rx) = std::sync::mpsc::channel();
+        task_tx
+            .send(crate::types::DaemonTask::RefreshPlugins {
+                request_id: 22,
+                reply_tx: refresh_tx,
+            })
+            .unwrap();
+
+        let (call_tx, call_rx) = std::sync::mpsc::channel();
+        task_tx
+            .send(crate::types::DaemonTask::CallPlugin {
+                request_id: 23,
+                plugin_uuid: [2; 16],
+                fn_name: "missing_function".into(),
+                args: Vec::new(),
+                reply_tx: call_tx,
+            })
+            .unwrap();
+        drop(task_tx);
+
+        assert!(matches!(
+            switch_rx.recv_timeout(Duration::from_secs(1)).unwrap(),
+            InterfaceResponse::Error { request_id: 21, .. }
+        ));
+        assert!(matches!(
+            refresh_rx.recv_timeout(Duration::from_secs(1)).unwrap(),
+            InterfaceResponse::Plugins { request_id: 22, plugins } if plugins.is_empty()
+        ));
+        assert!(matches!(
+            call_rx.recv_timeout(Duration::from_secs(1)).unwrap(),
+            InterfaceResponse::Error { request_id: 23, .. }
+        ));
     }
 }
