@@ -57,9 +57,11 @@ a starting point, not a substitute for tracing the actual callers and data flow.
 
 ## Trust boundaries
 
-Treat data as untrusted at the boundary where it enters Griffon, even when another
-Griffon component produced it. Validate again before a privileged, destructive or
-externally visible action.
+The table below defines requirements for new or changed behavior; it does not claim
+that the current checkout already satisfies every requirement. Verify the actual
+implementation and tests before relying on a boundary. Treat data as untrusted when
+it enters Griffon, even when another Griffon component produced it, and validate it
+again before a privileged, destructive or externally visible action.
 
 | Boundary | Untrusted inputs | Required handling |
 | --- | --- | --- |
@@ -81,7 +83,9 @@ For documentation-only changes, check links, paths, commands and whitespace;
 application builds are unnecessary unless executable behavior also changes.
 Report checks that could not run and why. Update this context when architecture,
 commands or contribution rules change; link to existing sources instead of
-copying large sections. Keep reports scoped and avoid committing generated output.
+copying large sections. Keep `AGENTS.md` focused on routing and cross-cutting rules;
+put volatile component details and long procedures in focused documents and link
+them here. Keep reports scoped and avoid committing generated output.
 
 ## Definition of done
 
@@ -182,6 +186,10 @@ redirecting one root redirects all filesystem use.
 | Scanner quarantine | `quarantine/` relative to the scanner working directory | platform data directory under `griffon_scanner/quarantine` | Never use the default directory as a disposable test fixture |
 | Nmap history | `.data/griffon/nmap/history.json` | `/var/lib/griffon/nmap/history.json` | Persistence failure must remain distinct from scan success |
 | Privileged installer | Development install writes to repository `.config/griffon` without the helper | `/usr/libexec/griffon-plugin-installer`, writing `/usr/lib/griffon/plugins` | Installed checks require explicit isolated packaging validation and administrator authorization |
+
+When a path constant, packaging destination, service permission or working-directory
+assumption changes, update this table and the affected tests or setup documentation
+in the same change.
 
 Use [README](README.md), [justfile](justfile),
 [rust-toolchain.toml](rust-toolchain.toml), [CI](.github/workflows/ci.yml) and the
