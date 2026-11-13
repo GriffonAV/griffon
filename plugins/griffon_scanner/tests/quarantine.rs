@@ -47,6 +47,15 @@ fn write(path: &Path, content: &[u8]) {
     std::fs::write(path, content).unwrap();
 }
 
+fn write_manifest(path: &Path, original_path: &Path) {
+    let manifest = serde_json::json!({
+        "original_path": original_path,
+        "quarantined_at": "2026-01-01T00:00:00+00:00",
+        "original_hash": hex::encode(Sha256::digest(b"quarantined payload")),
+    });
+    write(path, manifest.to_string().as_bytes());
+}
+
 #[test]
 fn new_creates_directory() {
     let ws = TempDir::new("new");
@@ -111,6 +120,7 @@ fn list_ignores_non_manifest_and_corrupt_files() {
     let (_ws, q) = setup("list");
     write(&q.dir.join("garbage.txt"), b"hello");
     write(&q.dir.join("broken.json"), b"{ not json");
+    write_manifest(&q.dir.join("unexpected.json"), Path::new("/tmp/file"));
     assert!(q.list_sorted().is_empty());
 }
 
@@ -139,8 +149,57 @@ fn quarantine_then_restore_roundtrip() {
 #[test]
 fn restore_unknown_name_fails() {
     let (_ws, q) = setup("restore_unknown");
-    let err = q.restore_file("does_not_exist.quarantined").unwrap_err();
+    let err = q
+        .restore_file("20260101_000000_0000000000000000.quarantined")
+        .unwrap_err();
     assert!(err.contains("Failed to read manifest"), "{err}");
+}
+
+#[test]
+fn restore_rejects_name_not_generated_by_quarantine() {
+    let (_ws, q) = setup("restore_invalid");
+    let err = q.restore_file("does_not_exist.quarantined").unwrap_err();
+    assert!(err.contains("Invalid quarantined file name"), "{err}");
+}
+
+#[test]
+fn restore_rejects_absolute_name() {
+    let (ws, q) = setup("restore_absolute");
+    let outside = ws.path().join("outside.quarantined");
+    let manifest = outside.with_extension("json");
+    let restored = ws.path().join("restored.bin");
+    write(&outside, b"quarantined payload");
+    write_manifest(&manifest, &restored);
+
+    let err = q.restore_file(outside.to_str().unwrap()).unwrap_err();
+
+    assert!(err.contains("Invalid quarantined file name"), "{err}");
+    assert!(outside.exists(), "the outside payload must not be moved");
+    assert!(
+        manifest.exists(),
+        "the outside manifest must not be removed"
+    );
+    assert!(!restored.exists(), "no file must be restored");
+}
+
+#[test]
+fn restore_rejects_parent_traversal() {
+    let (ws, q) = setup("restore_parent");
+    let outside = ws.path().join("outside.quarantined");
+    let manifest = outside.with_extension("json");
+    let restored = ws.path().join("restored.bin");
+    write(&outside, b"quarantined payload");
+    write_manifest(&manifest, &restored);
+
+    let err = q.restore_file("../outside.quarantined").unwrap_err();
+
+    assert!(err.contains("Invalid quarantined file name"), "{err}");
+    assert!(outside.exists(), "the outside payload must not be moved");
+    assert!(
+        manifest.exists(),
+        "the outside manifest must not be removed"
+    );
+    assert!(!restored.exists(), "no file must be restored");
 }
 
 #[test]
@@ -156,6 +215,46 @@ fn delete_quarantined_removes_both_files() {
     assert!(q.list_sorted().is_empty());
     assert_eq!(std::fs::read_dir(&q.dir).unwrap().count(), 0);
     assert!(!file.exists(), "delete must not restore the file");
+}
+
+#[test]
+fn delete_rejects_absolute_name() {
+    let (ws, q) = setup("delete_absolute");
+    let outside = ws.path().join("outside.quarantined");
+    let manifest = outside.with_extension("json");
+    write(&outside, b"quarantined payload");
+    write_manifest(&manifest, &ws.path().join("original.bin"));
+
+    let err = q
+        .delete_quarantined_file(outside.to_str().unwrap())
+        .unwrap_err();
+
+    assert!(err.contains("Invalid quarantined file name"), "{err}");
+    assert!(outside.exists(), "the outside payload must not be deleted");
+    assert!(
+        manifest.exists(),
+        "the outside manifest must not be deleted"
+    );
+}
+
+#[test]
+fn delete_rejects_parent_traversal() {
+    let (ws, q) = setup("delete_parent");
+    let outside = ws.path().join("outside.quarantined");
+    let manifest = outside.with_extension("json");
+    write(&outside, b"quarantined payload");
+    write_manifest(&manifest, &ws.path().join("original.bin"));
+
+    let err = q
+        .delete_quarantined_file("../outside.quarantined")
+        .unwrap_err();
+
+    assert!(err.contains("Invalid quarantined file name"), "{err}");
+    assert!(outside.exists(), "the outside payload must not be deleted");
+    assert!(
+        manifest.exists(),
+        "the outside manifest must not be deleted"
+    );
 }
 
 #[test]

@@ -1,4 +1,6 @@
-use crate::scanner_quarantine::{Quarantine, manifest::QuarantineManifest};
+use crate::scanner_quarantine::{
+    Quarantine, generated_quarantine_stem, manifest::QuarantineManifest,
+};
 use serde::Serialize;
 use std::path::PathBuf;
 
@@ -25,6 +27,7 @@ impl Quarantine {
                 // Extract the file name stem (e.g., "20260704_214704_e3b0c44298fc1c14")
                 let file_stem = path.file_stem()?.to_str()?;
                 let quarantine_name = format!("{}.quarantined", file_stem);
+                generated_quarantine_stem(&quarantine_name)?;
 
                 // Read and deserialize the manifest contents
                 let json = std::fs::read_to_string(&path).ok()?;
