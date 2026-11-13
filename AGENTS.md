@@ -214,22 +214,33 @@ Do not silently run heavy benchmarks or downloads for an unrelated change.
 A passing frontend build does not establish GUI interaction or end-to-end behavior.
 Mocked integration tests do not establish behavior of real Docker/Nmap or daemon IPC.
 
-## Critical scenario checklist
+## Critical paths and scenarios
 
-These are verification targets, not claims that coverage already exists. Locate
-existing tests first and mark unsupported functionality as such.
+A critical path is a workflow whose failure blocks an essential feature or creates
+a significant risk to user data, system resources or the trustworthiness of a
+security result. The main Griffon workflow is:
 
-| Scenario | Required observation |
-| --- | --- |
-| Daemon unavailable or disconnected | Clear failure in client; record pending-request and recovery behavior |
-| Disabled, missing or failed plugin runner | Error reaches the client; assess impact on other plugins and outstanding calls |
-| Invalid IPC / plugin arguments | Predictable rejection without unintended file operations or process termination |
-| Scan interruption | Determine whether cancellation is supported; test its actual contract, or document the gap |
-| Quarantine and restoration | Use harmless temporary files; check contents, metadata, collisions, failures and preservation of unrelated files |
-| Cleaner dry-run and selection | Exact before/after fixture comparison; dry-run changes nothing, real deletion affects only authorized selected fixtures |
-| Permission failure | Reproduce without elevated privileges; truthful error/partial-success reporting and unaffected files preserved |
-| Nmap and Docker failures | Mock missing tools, process errors and malformed output; no real external scan or prune |
-| Concurrent requests / history | Correct response association and persistence; no lost or misattributed results |
+```text
+startup -> daemon connection -> plugin discovery and loading -> request dispatch
+        -> scanner execution -> result reporting
+```
+
+The paths below are ordered by QA priority. They are verification targets, not
+claims that coverage or the described behavior already exists. Locate existing
+tests first, verify the current contract, and mark unsupported behavior and gaps
+explicitly. Apply permission-denial and partial-failure checks to every path where
+they are relevant.
+
+| Priority | Critical path | Required observations |
+| --- | --- | --- |
+| CP1 | Startup, daemon connection and IPC lifecycle | GUI and CLI connect and exchange requests in the intended debug and installed configurations. A missing daemon, inaccessible socket, malformed message or mid-request disconnect produces a bounded, understandable error; pending requests are resolved or rejected and recovery behavior is recorded rather than leaving the client blocked. |
+| CP2 | Plugin discovery, loading and execution | A valid manifest/library pair loads and receives calls, including concurrent calls, and every result is associated with the correct client request. Missing, disabled, invalid or ABI-incompatible plugins, invalid arguments, runner startup failure and runner termination during a call return explicit errors without making unrelated plugins or requests unusable. |
+| CP3 | Antivirus scanning and truthful reporting | Harmless known test rules detect their matching fixture and control files remain undetected. File and directory scans report detections, read or permission errors, and skipped files distinctly; archive handling, recursion and size/resource limits are exercised. Interruption or cancellation follows the actual supported contract. A file that was not scanned is never reported as clean, and aggregate results remain consistent after partial failure. |
+| CP4 | Quarantine and restoration | A harmless temporary file can be quarantined, listed and restored with identical contents and the expected metadata. Missing permissions, invalid or missing manifests, corrupted quarantined data, partial batch failure and destination collisions are reported. Restoration never silently overwrites an existing file and unrelated files remain unchanged. |
+| CP5 | File and resource cleanup | Filters, explicit selections and dry-run behavior are honored with exact before/after fixture comparisons. Dry-run changes nothing; real cleanup affects only authorized selected fixtures, handles symbolic links safely and reports each success, skip and failure accurately. Docker cleanup is tested only with mocks or an isolated disposable daemon, never against the user's resources. |
+| CP6 | Detection rule updates | A valid update produces a rule set that the scanner can load and use for a known detection. Interrupted downloads, invalid manifests or rules, path traversal attempts and write/permission failures are rejected while preserving the last usable rule database; success is not reported until the complete set is usable. Network behavior is mocked unless an explicit network test is requested. |
+| CP7 | Privileged plugin installation, upgrade and removal | In a disposable packaging environment, archive traversal, unexpected or oversized contents, invalid manifests, mismatched library/manifest identity and permission failures are rejected. Installation or upgrade leaves a complete usable pair or preserves the previous version, with intended ownership and permissions; removal targets only the selected plugin and handles partial failure truthfully. |
+| CP8 | External command execution and persisted results | Nmap targets and generated arguments cannot inject options or commands. Mock missing executables, process failures, timeouts and malformed output; verify that reported and persisted results correspond to the correct invocation. Do not run an external scan without an explicitly authorized local target, and do not use live Docker resources as fixtures. |
 
 ## Report results
 
