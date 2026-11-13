@@ -1,4 +1,4 @@
-# Single Rust version for local dev, CI and the release build (Dockerfile.build).
+# Single Rust version for local dev, CI and the release build (packaging/Dockerfile).
 # yara-x 1.22 requires Rust >= 1.95. To update Rust, change it here in a PR.
 [toolchain]
 channel = "1.95"

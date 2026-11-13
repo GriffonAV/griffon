@@ -77,7 +77,7 @@ Today the renderer has cases specific to some plugins (`scanner_*`, `cleaner_*`,
 
 Each plugin already runs in its own `griffon-daemon-runner` process, so a crash
 doesn't take down the daemon. But the daemon runs as `root`
-(`daemon/griffon-daemon.service`), and the runners inherit all of its rights.
+(`packaging/griffon-daemon.service`), and the runners inherit all of its rights.
 A buggy or malicious plugin has full control of the machine.
 
 - **Permissions in the manifest:** each plugin declares what it needs (paths it
