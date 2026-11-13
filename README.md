@@ -193,6 +193,7 @@ Start from [`plugins/plugin_template`](plugins/plugin_template), then follow [Cr
 - 🐛 Report bugs and request features via [GitHub issues](https://github.com/GriffonAV/griffon/issues).
 - 🔒 Report security vulnerabilities privately — see [SECURITY.md](SECURITY.md).
 - 🤝 Read [CONTRIBUTING.md](CONTRIBUTING.md) and our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
+- AI-assisted contributions follow our [AI policy](AI_POLICY.md); [AGENTS.md](AGENTS.md) provides project context and audit, QA, and Q&A procedures.
 
 ## Authors
 
