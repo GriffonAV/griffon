@@ -33,7 +33,7 @@ lint-fix:
 ## packaging
 
 build-deb:
-    docker build -t griffon-builder -f Dockerfile.build .
+    docker build -t griffon-builder -f packaging/Dockerfile .
     docker run --rm -v $(pwd)/dist:/out griffon-builder
 
 ## dev utils
@@ -52,6 +52,10 @@ setup-dev-env:
 
 ## testing
 
-vagrant-setup:
-    vagrant up
-    vagrant ssh
+# cleaner benchmark VM (provisioned, repo mounted at ~/Griffon)
+bench-vm:
+    cd plugins/griffon_cleaner/bench && vagrant up && vagrant ssh
+
+# stock VM to test the built .deb/.rpm (run build-deb first)
+pkg-test-vm:
+    cd packaging/test && vagrant up && vagrant ssh

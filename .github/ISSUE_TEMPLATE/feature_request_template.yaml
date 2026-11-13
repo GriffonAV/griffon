@@ -1,7 +1,7 @@
 name: Feature Request
 description: File a feature request.
 title: "[<Scope>]: "
-labels: ["feature"]
+labels: ["C-enhancement"]
 type: feature
 body:
   - type: markdown

@@ -1,0 +1,37 @@
+name: Maintenance / Tech Debt
+description: Refactoring, testing, CI/CD, or internal cleanup (not a user-facing feature)
+title: "[Chore]: "
+labels: ["C-tech-debt", "S-needs-triage"]
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What kind of internal work is this?
+      options:
+        - Tech Debt / Refactoring (C-tech-debt)
+        - Testing (C-testing)
+        - Documentation (C-documentation)
+        - Architecture (C-architecture)
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of GriffonAV does this affect?
+      options:
+        - Cleaner Extension (A-cleaner)
+        - Scanner Extension (A-scanner)
+        - UI / UX (A-ui-ux)
+        - CI / CD & Docker (A-ci-cd)
+        - Packaging (A-packaging)
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What needs to be done?
+      description: Describe the current state and the desired outcome.
+    validations:
+      required: true

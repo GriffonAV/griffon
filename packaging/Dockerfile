@@ -82,19 +82,17 @@ WORKDIR /app
 COPY --from=gui-builder /app/gui-out/ /app/target/release/
 COPY --from=workspace-builder /app/ws-out/ /app/target/release/
 
-COPY nfpm.yaml .
-COPY logo.png .
-COPY griffon.desktop .
-COPY scripts/ ./scripts/
+# nfpm.yaml, install scripts, .desktop and systemd unit
+COPY packaging/ ./packaging/
+COPY assets/logo.png ./assets/logo.png
 
 # copy plugin config files
 COPY ./plugins/griffon_cleaner/libgriffon_cleaner.toml ./plugins/griffon_cleaner/libgriffon_cleaner.toml
 COPY ./plugins/griffon_scanner/libgriffon_scanner.toml ./plugins/griffon_scanner/libgriffon_scanner.toml
-COPY daemon/griffon-daemon.service ./daemon/griffon-daemon.service
 
 COPY ./daemon/config_griffon_daemon.default.json ./daemon/config_griffon_daemon.default.json
-COPY ./bench/configs/light.json ./bench/configs/light.json
-COPY ./bench/configs/medium.json ./bench/configs/medium.json
-COPY ./bench/configs/stress.json ./bench/configs/stress.json
+COPY ./plugins/griffon_cleaner/profiles/light.json ./plugins/griffon_cleaner/profiles/light.json
+COPY ./plugins/griffon_cleaner/profiles/medium.json ./plugins/griffon_cleaner/profiles/medium.json
+COPY ./plugins/griffon_cleaner/profiles/stress.json ./plugins/griffon_cleaner/profiles/stress.json
 
-ENTRYPOINT ["sh", "scripts/build-packages.sh"]
+ENTRYPOINT ["sh", "packaging/build-packages.sh"]

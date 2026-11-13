@@ -25,6 +25,7 @@ fn scenario(name: &str) {
         .current_dir(dir.path())
         .env("GRIFFON_INTEGRATION_CASE", name)
         .env("GRIFFON_INTEGRATION_ROOT", dir.path())
+        .env("GRIFFON_CLEANER_CONFIG", dir.path().join("config.json"))
         .env("HOME", dir.path().join("home"))
         .env("PATH", dir.path().join("bin"))
         .stdin(Stdio::null())
@@ -82,14 +83,13 @@ fn call(method: &str, params: Value) -> Value {
 }
 
 fn setup(root: &Path) {
-    fs::create_dir_all(root.join("bench/configs")).unwrap();
     fs::create_dir_all(root.join("home/.cache/nested")).unwrap();
     fs::write(root.join("home/.cache/a.log"), b"abc").unwrap();
     fs::write(root.join("home/.cache/nested/b.LOG"), b"12345").unwrap();
     fs::write(root.join("home/.cache/keep.json"), b"keep").unwrap();
     fs::write(root.join("outside.log"), b"outside").unwrap();
     fs::write(
-        root.join("bench/configs/light.json"),
+        root.join("config.json"),
         json!({
             "profile":"safe", "dry_run":true, "root_paths":[],
             "max_log_retention_days":7, "max_log_size_gb":1.0, "min_bigfile_size_mb":10,
@@ -242,7 +242,7 @@ fn isolated_session() {
             assert_eq!(response["code"], 1);
             assert_eq!(call("unknown", json!({}))["code"], -32601);
             assert_eq!(call("delete_selected", json!({}))["ok"], false);
-            fs::write(root.join("bench/configs/light.json"), "broken").unwrap();
+            fs::write(root.join("config.json"), "broken").unwrap();
             for method in ["list_candidates", "run_raw", "run_front", "run_metrics"] {
                 let response = call(method, json!({"dry_run":false}));
                 assert_eq!(response["ok"], false, "{method}: {response}");
@@ -271,7 +271,7 @@ esac
 "##,
             );
             for profile in ["safe", "full"] {
-                let path = root.join("bench/configs/light.json");
+                let path = root.join("config.json");
                 let mut config: Value =
                     serde_json::from_str(&fs::read_to_string(&path).unwrap()).unwrap();
                 config["profile"] = json!(profile);
