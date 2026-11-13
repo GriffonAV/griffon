@@ -52,6 +52,11 @@ setup-dev-env:
 
 ## testing
 
+test:
+    python3 tests/fixtures/fetch_eicar.py
+    python3 tests/fixtures/generate_fixtures.py
+    cargo llvm-cov
+
 # cleaner benchmark VM (provisioned, repo mounted at ~/Griffon)
 bench-vm:
     cd plugins/griffon_cleaner/bench && vagrant up && vagrant ssh
