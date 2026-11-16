@@ -3,6 +3,8 @@ import GriffonElementRenderer from "@/renderer/GriffonElementRenderer";
 interface GriffonSectionRendererProps {
   section: {
     id: string;
+    title?: string;
+    description?: string;
     contents: any[];
   };
   store?: Record<string, any>;
@@ -18,8 +20,15 @@ export default function GriffonSectionRenderer({
   // console.log("Section contents:", section.contents);
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-row items-center py-2">
-        <span className="font-bold text-2xl">{section.id.charAt(0).toUpperCase() + section.id.slice(1).replace(/_/g, ' ')}</span>
+      <div className="flex flex-col gap-1 py-2">
+        <h2 className="text-2xl font-bold">
+          {section.title ?? section.id.charAt(0).toUpperCase() + section.id.slice(1).replace(/_/g, ' ')}
+        </h2>
+        {section.description ? (
+          <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+            {section.description}
+          </p>
+        ) : null}
       </div>
       {section.contents?.map((element) => (
         <GriffonElementRenderer

@@ -34,7 +34,9 @@ Griffon is a fast, secure, and easy-to-use antivirus and security toolbox for Li
 - a **command-line interface** (`griffon-cli`),
 - a **plugin-based engine**: write your tool as a Rust plugin, describe its UI in a TOML file, and Griffon generates the interface for you.
 
-Built-in plugins include a **YARA-based scanner** (with quarantine and rule updates) and a **system cleaner** (caches, logs, packages, big files, Docker).
+Built-in plugins include a **YARA-based scanner** (with quarantine and rule updates),
+a **system cleaner** (caches, logs, packages, big files, Docker), an authorised
+**Nmap frontend**, and a read-only **local security audit**.
 
 <p align="center">
   <img src="assets/screenshots/dashboard.png" alt="Griffon dashboard" width="49%" />
@@ -126,7 +128,7 @@ From the repository root:
 ```bash
 just setup-gui        # install the GUI's npm dependencies
 cargo build           # build the whole workspace (daemon, CLI, GUI, plugins)
-just update-plugins   # copy the scanner and cleaner plugins into .config/griffon/
+just update-plugins   # copy the built-in plugins into .config/griffon/
 ```
 
 Then run each component in its own terminal, **starting with the daemon**:
@@ -168,6 +170,7 @@ griffon/
 │   ├── griffon_scanner/ # YARA + hash based scanner, quarantine, rule updater
 │   ├── griffon_cleaner/ # system cleaner (profiles/ = shipped configs, bench/ = benchmark VM)
 │   ├── griffon_nmap/    # network scan (nmap)
+│   ├── griffon_local_audit/ # bounded, read-only Linux security posture checks
 │   ├── docker_helper/   # Docker helper plugin
 │   └── plugin_template/ # starter template for new plugins
 ├── shared/

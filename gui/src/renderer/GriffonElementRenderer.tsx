@@ -15,6 +15,8 @@ import GriffonRow from "@/components/griffon/GriffonRow";
 import GriffonColumn from "@/components/griffon/GriffonColumn";
 import GriffonFileSelect from "@/components/griffon/GriffonFileSelect";
 import GriffonFileSelectButton from "@/components/griffon/GriffonFileSelectButton";
+import GriffonMetricGrid from "@/components/griffon/GriffonMetricGrid";
+import GriffonTabNavigation from "@/components/griffon/GriffonTabNavigation";
 
 import CleanerTable from "@/components/griffon/CleanerTable";
 import CleanerCandidateList from "@/components/griffon/CleanerCandidateList";
@@ -89,6 +91,12 @@ export default function GriffonElementRenderer({
 
     case "table":
       return <GriffonTable {...commonProps} />;
+
+    case "metric_grid":
+      return <GriffonMetricGrid {...commonProps} />;
+
+    case "tab_navigation":
+      return <GriffonTabNavigation {...commonProps} />;
 
     case "tabs":
       return <GriffonTabs {...commonProps} />;

@@ -22,6 +22,10 @@ const PLUGINS: &[(&str, &str)] = &[
     ),
     ("griffon_nmap", "plugins/griffon_nmap/libgriffon_nmap.toml"),
     (
+        "griffon_local_audit",
+        "plugins/griffon_local_audit/libgriffon_local_audit.toml",
+    ),
+    (
         "docker_helper",
         "plugins/docker_helper/libdocker_helper.toml",
     ),
@@ -171,6 +175,7 @@ contract_tests! {
     scanner_contract => "griffon_scanner",
     cleaner_contract => "griffon_cleaner",
     nmap_contract => "griffon_nmap",
+    local_audit_contract => "griffon_local_audit",
     docker_helper_contract => "docker_helper",
     plugin_template_contract => "plugin_template",
 }

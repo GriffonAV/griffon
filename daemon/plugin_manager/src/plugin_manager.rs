@@ -1,6 +1,7 @@
 mod plugin_history;
 mod settings;
 
+use crossbeam_channel::{Receiver, Sender, TryRecvError, unbounded};
 use nix::libc;
 use nix::sys::socket::{AddressFamily, SockFlag, SockType, socketpair};
 use std::collections::VecDeque;
@@ -10,7 +11,6 @@ use std::os::unix::net::UnixStream;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
-use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 
 use ipc_protocol::ipc_payload_interface::PluginInfoDto;
 use ipc_protocol::ipc_payload_runner::{
@@ -109,7 +109,7 @@ fn resolve_runner_binary() -> Result<PathBuf, String> {
 impl PluginManager {
     pub fn new<P: AsRef<Path>>(dir: P) -> Self {
         let runner_binary = resolve_runner_binary().expect("runner binary not found");
-        let (events_tx, events_rx) = mpsc::channel();
+        let (events_tx, events_rx) = unbounded();
 
         Self {
             plugins_dir: dir.as_ref().to_path_buf(),
@@ -341,6 +341,10 @@ impl PluginManager {
             Ok(event) => Some(event),
             Err(TryRecvError::Empty) | Err(TryRecvError::Disconnected) => None,
         }
+    }
+
+    pub fn event_receiver(&self) -> Receiver<PluginEvent> {
+        self.events_rx.clone()
     }
 
     pub fn wait_for_response(&mut self, request_id: u32) -> io::Result<PluginEvent> {
@@ -663,9 +667,24 @@ fn read_plugin_messages(
 
             match msg {
                 Message::Result { request_id, data } => {
+                    let output_bytes = data.output.len();
+                    let ok = data.ok;
+
+                    if events_tx
+                        .send(PluginEvent::Result {
+                            pid,
+                            request_id,
+                            ok,
+                            output: data.output,
+                        })
+                        .is_err()
+                    {
+                        LOGGER_PM_NETWORK
+                            .warn(format!("Plugin {name} ({pid}) result receiver closed"));
+                    }
+
                     LOGGER_PM_NETWORK.info(format!(
-                        "Plugin {name} ({pid}) RESULT id={request_id} ok={} output={}",
-                        data.ok, data.output
+                        "Plugin {name} ({pid}) RESULT id={request_id} ok={ok} output_bytes={output_bytes}",
                     ));
 
                     plugin_history::plugin_result(
@@ -673,33 +692,37 @@ fn read_plugin_messages(
                         plugin_uuid,
                         pid,
                         request_id,
-                        data.ok,
-                        &data.output,
+                        ok,
+                        output_bytes,
                     );
-
-                    let _ = events_tx.send(PluginEvent::Result {
-                        pid,
-                        request_id,
-                        ok: data.ok,
-                        output: data.output,
-                    });
                 }
 
                 Message::Error { request_id, data } => {
+                    let message_bytes = data.message.len();
+                    if events_tx
+                        .send(PluginEvent::Error {
+                            pid,
+                            request_id,
+                            message: data.message,
+                        })
+                        .is_err()
+                    {
+                        LOGGER_PM_NETWORK
+                            .warn(format!("Plugin {name} ({pid}) error receiver closed"));
+                    }
+
                     LOGGER_PM_NETWORK.error(format!(
-                        "Plugin {name} ({pid}) ERROR id={request_id} code={} message={}",
-                        data.code, data.message
+                        "Plugin {name} ({pid}) ERROR id={request_id} code={} message_bytes={message_bytes}",
+                        data.code
                     ));
 
-                    let message = data.message.clone();
-
-                    plugin_history::plugin_error(&name, plugin_uuid, pid, request_id, &message);
-
-                    let _ = events_tx.send(PluginEvent::Error {
+                    plugin_history::plugin_error(
+                        &name,
+                        plugin_uuid,
                         pid,
                         request_id,
-                        message: data.message,
-                    });
+                        message_bytes,
+                    );
                 }
 
                 Message::Heartbeat => {

@@ -17,6 +17,7 @@ members = [
     "plugins/griffon_scanner",
     "plugins/docker_helper",
     "plugins/griffon_nmap",
+    "plugins/griffon_local_audit",
 
     # GUI and CLI
     "gui/src-tauri",
@@ -49,6 +50,7 @@ uuid = { version = "1.22.0", features = ["v4"] }
 toml = "1.1.2"
 log = "0.4.28"
 nix = "0.30.1"
+crossbeam-channel = "0.5.16"
 zip = "8.6.0"
 
 

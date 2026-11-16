@@ -1,3 +1,4 @@
+use crossbeam_channel::Sender;
 use nix::unistd::{Gid, Group, Uid, chown};
 use std::fs;
 use std::io;
@@ -104,7 +105,7 @@ pub fn setup_listener() -> io::Result<UnixListener> {
     Ok(listener)
 }
 
-pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) -> io::Result<()> {
+pub fn handle_client(mut stream: UnixStream, task_tx: Sender<DaemonTask>) -> io::Result<()> {
     LOGGER_NETWORK.debug("Client handler started");
 
     let writer = Arc::new(Mutex::new(stream.try_clone()?));
@@ -121,8 +122,8 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
         let request_id = frame.request_id;
 
         LOGGER_NETWORK.debug(format!(
-            "Header: version={}, mtype={:?}, request_id={} BODY: data={:?}",
-            frame.version, frame.mtype, request_id, req
+            "Request received: version={}, mtype={:?}, request_id={}",
+            frame.version, frame.mtype, request_id
         ));
 
         let (reply_tx, reply_rx) = mpsc::channel();
@@ -165,10 +166,10 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
                 args,
             } => {
                 LOGGER_CORE.debug(format!(
-                    "Function {} requested for plugin {} with args {:?}",
+                    "Function {} requested for plugin {} with {} argument(s)",
                     fn_name,
                     Uuid::from_bytes(plugin_uuid),
-                    args
+                    args.len()
                 ));
 
                 DaemonTask::CallPlugin {
@@ -225,10 +226,7 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
                             request_id, e
                         ));
                     } else {
-                        LOGGER_NETWORK.debug(format!(
-                            "Response sent for request {}: {:?}",
-                            request_id, response
-                        ));
+                        LOGGER_NETWORK.debug(format!("Response sent for request {}", request_id));
                     }
                 }
                 Err(e) => {
@@ -245,11 +243,11 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crossbeam_channel::unbounded;
     use ipc_protocol::ipc_payload_interface::{
         InterfaceRequest, InterfaceResponse, recv_interface_response, send_interface_request,
     };
     use std::os::unix::net::UnixStream;
-    use std::sync::mpsc;
     use std::thread;
     use std::time::Duration;
 
@@ -258,7 +256,7 @@ mod tests {
         let (mut client_socket, server_socket) =
             UnixStream::pair().expect("Failed to create socket pair");
 
-        let (task_tx, task_rx) = mpsc::channel();
+        let (task_tx, task_rx) = unbounded();
 
         let handle = thread::spawn(move || {
             let _ = handle_client(server_socket, task_tx);
@@ -313,7 +311,7 @@ mod tests {
     fn test_handle_client_unimplemented_request() {
         let (mut client_socket, server_socket) =
             UnixStream::pair().expect("Failed to create socket pair");
-        let (task_tx, _task_rx) = mpsc::channel();
+        let (task_tx, _task_rx) = unbounded();
 
         thread::spawn(move || {
             let _ = handle_client(server_socket, task_tx);
@@ -350,7 +348,7 @@ mod tests {
         let (mut client_socket, server_socket) =
             UnixStream::pair().expect("Failed to create socket pair");
 
-        let (task_tx, task_rx) = mpsc::channel::<DaemonTask>();
+        let (task_tx, task_rx) = unbounded::<DaemonTask>();
         drop(task_rx);
 
         let handle = thread::spawn(move || {
@@ -412,7 +410,7 @@ mod tests {
     #[test]
     fn test_handle_client_all_request_types() {
         let (mut client_socket, server_socket) = UnixStream::pair().unwrap();
-        let (task_tx, task_rx) = mpsc::channel();
+        let (task_tx, task_rx) = unbounded();
 
         std::thread::spawn(move || {
             let _ = handle_client(server_socket, task_tx);
@@ -457,7 +455,7 @@ mod tests {
     fn test_handle_client_invalid_payload_disconnects() {
         let (mut client_socket, server_socket) =
             UnixStream::pair().expect("Failed to create socket pair");
-        let (task_tx, _task_rx) = mpsc::channel();
+        let (task_tx, _task_rx) = unbounded();
 
         let handle = thread::spawn(move || {
             let _ = handle_client(server_socket, task_tx);
@@ -473,7 +471,7 @@ mod tests {
     fn test_handle_client_reply_channel_drop_sends_error() {
         let (mut client_socket, server_socket) =
             UnixStream::pair().expect("Failed to create socket pair");
-        let (task_tx, task_rx) = mpsc::channel();
+        let (task_tx, task_rx) = unbounded();
 
         let handle = thread::spawn(move || {
             let _ = handle_client(server_socket, task_tx);

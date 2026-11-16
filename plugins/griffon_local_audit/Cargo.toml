@@ -1,0 +1,20 @@
+[package]
+name = "griffon_local_audit"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+abi_stable = { workspace = true }
+plugin_sdk = { workspace = true }
+serde = { workspace = true }
+libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3"
+
+[package.metadata.release]
+release = false

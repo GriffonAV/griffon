@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { error } from "@tauri-apps/plugin-log";
@@ -45,6 +53,8 @@ export interface PluginManifest {
         sections: Array<{
             id: string;
             tab: string;
+            title?: string;
+            description?: string;
             contents: Array<{
                 type: string;
                 id: string;
@@ -68,12 +78,35 @@ interface PluginContextType {
 }
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
+function normalizePlugins(plugins: Plugin[]): Plugin[] {
+    return plugins.map((plugin) => ({
+        ...plugin,
+        status: plugin.manifest ? "healthy" as const : "no_manifest" as const,
+    }));
+}
+
 export function PluginProvider({ children }: { children: ReactNode }) {
     const [plugins, setPlugins] = useState<Plugin[]>([]);
     const [isPluginLoading, setIsPluginLoading] = useState(false);
     const [currentPlugin, setCurrentPlugin] = useState<Plugin | null>(null);
+    const pluginsRef = useRef(plugins);
 
-    async function callPluginFunction(fnName: string, args: string[]): Promise<string> {
+    useEffect(() => {
+        pluginsRef.current = plugins;
+    }, [plugins]);
+
+    const refreshPlugins = useCallback(async () => {
+        try {
+            const result = await invoke<Plugin[]>("list_plugins");
+            const normalized = normalizePlugins(result);
+            pluginsRef.current = normalized;
+            setPlugins(normalized);
+        } catch (err) {
+            error("Failed to load plugins: " + err);
+        }
+    }, []);
+
+    const callPluginFunction = useCallback(async (fnName: string, args: string[]): Promise<string> => {
         if (!currentPlugin) {
             throw new Error("No plugin loaded");
         }
@@ -93,9 +126,9 @@ export function PluginProvider({ children }: { children: ReactNode }) {
 
         const result = await promise;
         return result;
-    }
+    }, [currentPlugin]);
 
-    async function switchPluginStatus(pluginUuid: string): Promise<void> {
+    const switchPluginStatus = useCallback(async (pluginUuid: string): Promise<void> => {
         const { requestId, promise } = createPendingRequest();
 
         setPlugins((prev) =>
@@ -125,29 +158,25 @@ export function PluginProvider({ children }: { children: ReactNode }) {
             error(`Failed to switch plugin status: ${err}`);
             await refreshPlugins();
         }
-    }
+    }, [refreshPlugins]);
 
-    async function refreshPlugins() {
-        try {
-            const result = await invoke<Plugin[]>("list_plugins");
-            for (const plugin of result) {
-                if (!plugin.manifest) {
-                    plugin.status = "no_manifest";
-                } else {
-                    plugin.status = "healthy";
-                }
-            }
-            setPlugins(result);
-        } catch (err) {
-            error("Failed to load plugins: " + err);
-        }
-    }
-
-    async function loadPlugin(pluginName: string) {
+    const loadPlugin = useCallback(async (pluginName: string) => {
         setIsPluginLoading(true);
 
-        const plugin = plugins.find((p) => p.file_name === pluginName);
-        
+        let plugin = pluginsRef.current.find((p) => p.file_name === pluginName);
+
+        if (!plugin) {
+            try {
+                const result = await invoke<Plugin[]>("list_plugins");
+                const normalized = normalizePlugins(result);
+                pluginsRef.current = normalized;
+                setPlugins(normalized);
+                plugin = normalized.find((candidate) => candidate.file_name === pluginName);
+            } catch (err) {
+                error(`Failed to refresh plugins before loading ${pluginName}: ${err}`);
+            }
+        }
+
         if (!plugin) { // Check if the plugin exists in the list
             error(`Plugin ${pluginName} not found`);
             setIsPluginLoading(false);
@@ -173,17 +202,19 @@ export function PluginProvider({ children }: { children: ReactNode }) {
 
             const updatedPlugin = { ...plugin, manifest: normalizedManifest, status: "healthy" } satisfies Plugin;
             setCurrentPlugin(updatedPlugin);
-            setPlugins((prev) =>
-                prev.map((p) => (p.file_name === pluginName ? updatedPlugin : p))
-            );
+            setPlugins((prev) => {
+                const next = prev.map((p) => (p.file_name === pluginName ? updatedPlugin : p));
+                pluginsRef.current = next;
+                return next;
+            });
         } catch (err) {
             error(`Failed to load plugin manifest for\nname: ${pluginName}\nuuid: ${plugin.uuid}\nerror: ${err}`);
         } finally {
             setIsPluginLoading(false);
         }
-    }
+    }, []);
 
-    async function deletePlugin(pluginUuid: string) {
+    const deletePlugin = useCallback(async (pluginUuid: string) => {
         try {
             setPlugins((prev) =>
                 prev.map((plugin) =>
@@ -210,25 +241,34 @@ export function PluginProvider({ children }: { children: ReactNode }) {
             error("Failed to delete plugin: " + err);
             throw err;
         }
-    }
+    }, [currentPlugin, refreshPlugins]);
 
     useEffect(() => {
         refreshPlugins();
-    }, []);
+    }, [refreshPlugins]);
+
+    const value = useMemo(() => ({
+        plugins,
+        currentPlugin,
+        isPluginLoading,
+        refreshPlugins,
+        loadPlugin,
+        deletePlugin,
+        callPluginFunction,
+        switchPluginStatus,
+    }), [
+        callPluginFunction,
+        currentPlugin,
+        deletePlugin,
+        isPluginLoading,
+        loadPlugin,
+        plugins,
+        refreshPlugins,
+        switchPluginStatus,
+    ]);
 
     return (
-        <PluginContext.Provider
-            value={{
-                plugins,
-                currentPlugin,
-                isPluginLoading,
-                refreshPlugins,
-                loadPlugin,
-                deletePlugin,
-                callPluginFunction,
-                switchPluginStatus,
-            }}
-        >
+        <PluginContext.Provider value={value}>
             {children}
         </PluginContext.Provider>
     );

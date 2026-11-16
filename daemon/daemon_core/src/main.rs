@@ -1,6 +1,6 @@
+use crossbeam_channel::unbounded;
 use logger::Logger;
 use std::io;
-use std::sync::mpsc;
 
 mod dispatcher;
 mod network;
@@ -24,7 +24,7 @@ pub const PLUGIN_DIR_PATH: &str = if cfg!(debug_assertions) {
 };
 
 fn main() -> io::Result<()> {
-    let (task_tx, task_rx) = mpsc::channel::<types::DaemonTask>();
+    let (task_tx, task_rx) = unbounded::<types::DaemonTask>();
 
     let listener = network::setup_listener()?;
     dispatcher::start_dispatcher(task_rx, PLUGIN_DIR_PATH);

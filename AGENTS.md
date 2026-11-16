@@ -165,6 +165,9 @@ restricted permissions, filesystem isolation or protection from malicious plugin
 - [Nmap](plugins/griffon_nmap/src/lib.rs): inspect argument construction,
   targets, subprocess failures, result parsing and history. Use mocked executables
   or explicitly authorized local test targets.
+- [Local audit](plugins/griffon_local_audit/src/lib.rs): inspect filesystem and
+  procfs bounds, symlink handling, permission interpretation, partial-read
+  diagnostics and false-positive risk. Keep checks read-only and fixture-backed.
 - [Plugin template](plugins/plugin_template/src/lib.rs): consult with its
   [manifest](plugins/plugin_template/plugin_template.toml), the actual SDK and
   exported function definitions when changing a plugin contract.

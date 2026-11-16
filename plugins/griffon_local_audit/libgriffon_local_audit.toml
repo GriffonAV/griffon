@@ -1,0 +1,209 @@
+[plugin]
+name = "Local Security Audit"
+id = "6f7b1e8a-2fd5-4cab-9c72-69e0f0b43521"
+version = "0.1.0"
+author = "Griffon"
+description = "Read-only Linux security posture audit with bounded local checks."
+uuid = "6f7b1e8a-2fd5-4cab-9c72-69e0f0b43521"
+tabs = ["overview", "findings", "inventory"]
+
+[store.data.audit_request]
+include_suid = true
+max_findings = 250
+
+[store.data.audit_result]
+ok = false
+message = "Run an audit to inspect this system."
+duration_ms = 0
+critical_count = 0
+high_count = 0
+medium_count = 0
+low_count = 0
+info_count = 0
+truncated = false
+diagnostics_summary = "Diagnostics will appear here after the audit."
+findings = []
+inventory = []
+diagnostics = []
+
+[[ui.sections]]
+id = "local_audit_overview"
+tab = "overview"
+title = "Local security audit"
+description = "Read-only checks for accounts, host protections, runtime integrity, policy permissions, service exposure and privileged executables."
+
+[[ui.sections.contents]]
+type = "switch"
+id = "audit_include_suid"
+label = "Inventory privileged executables"
+description = "Inspect SUID/SGID bits and Linux file capabilities in standard binary directories without following symbolic links."
+checked = true
+action = "local_audit.set_include_suid"
+
+[[ui.sections.contents]]
+type = "button"
+id = "audit_run"
+name = "Run audit"
+variant = "primary"
+action = "local_audit.run"
+
+[[ui.sections.contents]]
+type = "text"
+id = "audit_message"
+name = "{{store.data.audit_result.message}}"
+variant = "status"
+
+[[ui.sections.contents]]
+type = "metric_grid"
+id = "audit_metrics"
+
+[[ui.sections.contents.items]]
+label = "Critical"
+from = "store.data.audit_result.critical_count"
+tone = "danger"
+zero_tone = "success"
+
+[[ui.sections.contents.items]]
+label = "High"
+from = "store.data.audit_result.high_count"
+tone = "danger"
+zero_tone = "success"
+
+[[ui.sections.contents.items]]
+label = "Medium"
+from = "store.data.audit_result.medium_count"
+tone = "warning"
+zero_tone = "success"
+
+[[ui.sections.contents.items]]
+label = "Low"
+from = "store.data.audit_result.low_count"
+tone = "info"
+zero_tone = "success"
+
+[[ui.sections.contents.items]]
+label = "Inventory"
+from = "store.data.audit_result.info_count"
+tone = "neutral"
+zero_tone = "neutral"
+
+[[ui.sections.contents]]
+type = "text"
+id = "audit_duration"
+name = "Completed in {{store.data.audit_result.duration_ms}} ms"
+variant = "caption"
+
+[[ui.sections.contents]]
+type = "text"
+id = "audit_diagnostics"
+name = "{{store.data.audit_result.diagnostics_summary}}"
+variant = "caption"
+tone = "neutral"
+
+[[ui.sections.contents]]
+type = "tab_navigation"
+id = "audit_navigation"
+
+[[ui.sections.contents.items]]
+label = "Review findings"
+description = "Inspect conditions that may require a configuration change."
+target = "findings"
+
+[[ui.sections.contents.items]]
+label = "Explore inventory"
+description = "Review system protections, accounts, services, listening ports and privileged executables observed on this system."
+target = "inventory"
+
+[[ui.sections]]
+id = "local_audit_findings"
+tab = "findings"
+title = "Actionable findings"
+description = "Only conditions that may require a configuration change are shown here."
+
+[[ui.sections.contents]]
+type = "table"
+id = "audit_findings"
+from = "store.data.audit_result.findings"
+selectable = false
+searchable = true
+filter_keys = ["severity", "category"]
+layout = "cards"
+show_count = true
+empty_message = "No actionable findings match the current audit and filters."
+
+[[ui.sections.contents.columns]]
+key = "severity"
+label = "Severity"
+cell = "badge"
+tone_map = { Critical = "danger", High = "danger", Medium = "warning", Low = "info" }
+
+[[ui.sections.contents.columns]]
+key = "category"
+label = "Category"
+cell = "badge"
+tone = "neutral"
+
+[[ui.sections.contents.columns]]
+key = "title"
+label = "Finding"
+cell = "primary"
+
+[[ui.sections.contents.columns]]
+key = "evidence"
+label = "Evidence"
+cell = "code"
+
+[[ui.sections.contents.columns]]
+key = "recommendation"
+label = "Recommendation"
+cell = "text"
+
+[[ui.sections]]
+id = "local_audit_inventory"
+tab = "inventory"
+title = "System inventory"
+description = "Informational observations are listed separately and are not findings by themselves."
+
+[[ui.sections.contents]]
+type = "table"
+id = "audit_inventory"
+from = "store.data.audit_result.inventory"
+selectable = false
+searchable = true
+filter_key = "category"
+empty_message = "Run an audit to populate the system inventory."
+
+[[ui.sections.contents.columns]]
+key = "category"
+label = "Category"
+cell = "badge"
+tone = "neutral"
+
+[[ui.sections.contents.columns]]
+key = "item"
+label = "Item"
+cell = "primary"
+
+[[ui.sections.contents.columns]]
+key = "details"
+label = "Details"
+
+[[interactions]]
+id = "local_audit_set_include_suid"
+on = "local_audit.set_include_suid"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.audit_request.include_suid"
+from = "event.checked"
+
+[[interactions]]
+id = "local_audit_run"
+on = "local_audit.run"
+
+[[interactions.steps]]
+type = "execute_function"
+key = "store.data.audit_result"
+from = "store.data.audit_request"
+returnType = "json"
+fn = "audit"

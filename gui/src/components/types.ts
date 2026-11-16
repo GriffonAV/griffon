@@ -170,6 +170,9 @@ export type TableColumn = {
   label: string;
   hide?: boolean;
   transmit?: boolean;
+  cell?: "text" | "primary" | "badge" | "code";
+  tone?: Tone;
+  tone_map?: Partial<Record<string, Tone>>;
 };
 
 export type ScannerTableColumn = {
@@ -194,6 +197,36 @@ export type TableElement = BaseElement & {
   rows?: TableRowData[];
   from?: string;
   action?: string;
+  selectable?: boolean;
+  searchable?: boolean;
+  filter_key?: string;
+  filter_keys?: string[];
+  layout?: "table" | "cards";
+  show_count?: boolean;
+  empty_message?: string;
+};
+
+export type MetricGridItem = {
+  label: string;
+  from: string;
+  tone?: Tone;
+  zero_tone?: Tone;
+};
+
+export type MetricGridElement = BaseElement & {
+  type: "metric_grid";
+  items: MetricGridItem[];
+};
+
+export type TabNavigationItem = {
+  label: string;
+  description?: string;
+  target: string;
+};
+
+export type TabNavigationElement = BaseElement & {
+  type: "tab_navigation";
+  items: TabNavigationItem[];
 };
 
 export type GriffonInteractionStep =
@@ -227,6 +260,8 @@ export type GriffonInteraction = {
 export type GriffonSection = {
   id: string;
   tab: string;
+  title?: string;
+  description?: string;
   contents: GriffonElement[];
 };
 
@@ -341,6 +376,8 @@ export type GriffonElement =
   | CardElement
   | DividerElement
   | TableElement
+  | MetricGridElement
+  | TabNavigationElement
   | GroupElement
   | RowElement
   | ColumnElement

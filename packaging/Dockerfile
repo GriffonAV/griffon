@@ -89,6 +89,7 @@ COPY assets/logo.png ./assets/logo.png
 # copy plugin config files
 COPY ./plugins/griffon_cleaner/libgriffon_cleaner.toml ./plugins/griffon_cleaner/libgriffon_cleaner.toml
 COPY ./plugins/griffon_scanner/libgriffon_scanner.toml ./plugins/griffon_scanner/libgriffon_scanner.toml
+COPY ./plugins/griffon_local_audit/libgriffon_local_audit.toml ./plugins/griffon_local_audit/libgriffon_local_audit.toml
 
 COPY ./daemon/config_griffon_daemon.default.json ./daemon/config_griffon_daemon.default.json
 COPY ./plugins/griffon_cleaner/profiles/light.json ./plugins/griffon_cleaner/profiles/light.json

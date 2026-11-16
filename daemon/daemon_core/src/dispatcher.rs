@@ -1,7 +1,8 @@
 use std::collections::HashMap;
-use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender};
+use std::sync::mpsc::Sender;
 use std::thread;
-use std::time::Duration;
+
+use crossbeam_channel::{Receiver, select};
 
 use ipc_protocol::ipc_payload_interface::{InterfaceResponse, format_uuid_bytes};
 use ipc_protocol::ipc_payload_runner::CallPayload;
@@ -34,12 +35,14 @@ pub fn start_dispatcher(task_rx: Receiver<DaemonTask>, plugin_dir_path: &'static
 
         let mut pm = plugin_manager::PluginManager::new(plugin_dir_path);
         pm.scan_dir();
+        let event_rx = pm.event_receiver();
 
         let mut pending_calls: HashMap<u32, PendingCall> = HashMap::new();
 
         loop {
-            match task_rx.recv_timeout(Duration::from_millis(50)) {
-                Ok(task) => match task {
+            select! {
+                recv(task_rx) -> task => match task {
+                    Ok(task) => match task {
                     DaemonTask::SwitchStatusNotification {
                         request_id,
                         plugin_uuid,
@@ -116,61 +119,69 @@ pub fn start_dispatcher(task_rx: Receiver<DaemonTask>, plugin_dir_path: &'static
                             }
                         }
                     }
+                    },
+                    Err(_) => {
+                        LOGGER_DISPATCHER.warn("Task channel disconnected; stopping dispatcher");
+                        break;
+                    }
                 },
-
-                Err(RecvTimeoutError::Timeout) => {}
-
-                Err(RecvTimeoutError::Disconnected) => {
-                    LOGGER_DISPATCHER.warn("Task channel disconnected; stopping dispatcher");
-                    break;
-                }
-            }
-
-            while let Some(event) = pm.try_recv_event() {
-                let plugin_request_id = match &event {
-                    plugin_manager::PluginEvent::Result { request_id, .. }
-                    | plugin_manager::PluginEvent::Error { request_id, .. } => Some(*request_id),
-                    _ => None,
-                };
-
-                if let Some(plugin_request_id) = plugin_request_id {
-                    match pending_calls.remove(&plugin_request_id) {
-                        Some(pending) => {
-                            let response = handle_plugin_event_response(
-                                pending.request_id,
-                                pending.plugin_uuid,
-                                &pending.plugin_name,
-                                &pending.function_name,
-                                event,
-                            );
-
-                            send_response(pending.reply_tx, response, "plugin call");
-                        }
-                        None => {
-                            LOGGER_DISPATCHER.warn(format!(
-                                "Received an event for unknown plugin request {}",
-                                plugin_request_id,
-                            ));
-                        }
+                recv(event_rx) -> event => match event {
+                    Ok(event) => handle_plugin_event(event, &mut pending_calls),
+                    Err(_) => {
+                        LOGGER_DISPATCHER.error("Plugin event channel disconnected; stopping dispatcher");
+                        break;
                     }
-
-                    continue;
-                }
-
-                match event {
-                    plugin_manager::PluginEvent::Closed { pid, reason } => {
-                        LOGGER_DISPATCHER.error(format!("Plugin runner {pid} closed: {reason}",));
-                    }
-
-                    plugin_manager::PluginEvent::Heartbeat { pid } => {
-                        LOGGER_DISPATCHER.debug(format!("Heartbeat received from runner {pid}",));
-                    }
-
-                    _ => {}
-                }
+                },
             }
         }
     });
+}
+
+fn handle_plugin_event(
+    event: plugin_manager::PluginEvent,
+    pending_calls: &mut HashMap<u32, PendingCall>,
+) {
+    let plugin_request_id = match &event {
+        plugin_manager::PluginEvent::Result { request_id, .. }
+        | plugin_manager::PluginEvent::Error { request_id, .. } => Some(*request_id),
+        _ => None,
+    };
+
+    if let Some(plugin_request_id) = plugin_request_id {
+        match pending_calls.remove(&plugin_request_id) {
+            Some(pending) => {
+                let response = handle_plugin_event_response(
+                    pending.request_id,
+                    pending.plugin_uuid,
+                    &pending.plugin_name,
+                    &pending.function_name,
+                    event,
+                );
+
+                send_response(pending.reply_tx, response, "plugin call");
+            }
+            None => {
+                LOGGER_DISPATCHER.warn(format!(
+                    "Received an event for unknown plugin request {}",
+                    plugin_request_id,
+                ));
+            }
+        }
+
+        return;
+    }
+
+    match event {
+        plugin_manager::PluginEvent::Closed { pid, reason } => {
+            LOGGER_DISPATCHER.error(format!("Plugin runner {pid} closed: {reason}",));
+        }
+
+        plugin_manager::PluginEvent::Heartbeat { pid } => {
+            LOGGER_DISPATCHER.debug(format!("Heartbeat received from runner {pid}",));
+        }
+
+        _ => {}
+    }
 }
 
 fn handle_switch_notification(request_id: u32, plugin_uuid: [u8; 16]) -> InterfaceResponse {
@@ -279,7 +290,7 @@ fn send_plugin_notification(
 }
 
 fn send_response(reply_tx: Sender<InterfaceResponse>, response: InterfaceResponse, context: &str) {
-    LOGGER_DISPATCHER.debug(format!("Sending {context} response: {response:?}"));
+    LOGGER_DISPATCHER.debug(format!("Sending {context} response"));
 
     if let Err(e) = reply_tx.send(response) {
         LOGGER_DISPATCHER.error(format!(
@@ -357,5 +368,40 @@ mod tests {
         let ev4 = PluginEvent::Heartbeat { pid: 1 };
         let r4 = handle_plugin_event_response(13, uuid, "p", "f", ev4);
         assert!(matches!(r4, InterfaceResponse::Error { .. }));
+    }
+
+    #[test]
+    fn plugin_event_is_forwarded_without_polling() {
+        let (reply_tx, reply_rx) = std::sync::mpsc::channel();
+        let mut pending_calls = HashMap::from([(
+            5,
+            PendingCall {
+                request_id: 77,
+                plugin_uuid: [0; 16],
+                plugin_name: "audit".to_string(),
+                function_name: "run".to_string(),
+                reply_tx,
+            },
+        )]);
+
+        handle_plugin_event(
+            PluginEvent::Result {
+                pid: 1,
+                request_id: 5,
+                ok: true,
+                output: "done".to_string(),
+            },
+            &mut pending_calls,
+        );
+
+        assert!(pending_calls.is_empty());
+        assert!(matches!(
+            reply_rx.try_recv(),
+            Ok(InterfaceResponse::CallResult {
+                request_id: 77,
+                ok: true,
+                ..
+            })
+        ));
     }
 }

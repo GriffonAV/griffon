@@ -1,6 +1,9 @@
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::OnceLock;
+use std::sync::mpsc::{SyncSender, TrySendError, sync_channel};
+use std::thread;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ipc_protocol::ipc_payload_interface::{PluginInfoDto, format_uuid_bytes};
@@ -15,6 +18,17 @@ static LOGGER_PLUGIN_HISTORY: Logger = if cfg!(debug_assertions) {
         Some("/var/log/griffon/griffon-daemon.log"),
     )
 };
+
+const HISTORY_QUEUE_CAPACITY: usize = 1024;
+
+struct HistoryRecord {
+    level: &'static str,
+    plugin_name: String,
+    plugin_uuid: [u8; 16],
+    message: String,
+}
+
+static HISTORY_SENDER: OnceLock<SyncSender<HistoryRecord>> = OnceLock::new();
 
 pub fn info(plugin_name: &str, plugin_uuid: [u8; 16], message: String) {
     write_history("INFO", plugin_name, plugin_uuid, message);
@@ -162,21 +176,32 @@ pub fn plugin_result(
     pid: u32,
     request_id: u32,
     ok: bool,
-    output: &str,
+    output_bytes: usize,
 ) {
     info(
         plugin_name,
         plugin_uuid,
-        format!(
-            "event=plugin_result name=\"{}\" uuid=\"{}\" pid={} request_id={} ok={} output=\"{}\"",
-            plugin_name,
-            format_uuid_bytes(&plugin_uuid),
-            pid,
-            request_id,
-            ok,
-            output
-        ),
+        plugin_result_message(plugin_name, plugin_uuid, pid, request_id, ok, output_bytes),
     );
+}
+
+fn plugin_result_message(
+    plugin_name: &str,
+    plugin_uuid: [u8; 16],
+    pid: u32,
+    request_id: u32,
+    ok: bool,
+    output_bytes: usize,
+) -> String {
+    format!(
+        "event=plugin_result name=\"{}\" uuid=\"{}\" pid={} request_id={} ok={} output_bytes={}",
+        plugin_name,
+        format_uuid_bytes(&plugin_uuid),
+        pid,
+        request_id,
+        ok,
+        output_bytes
+    )
 }
 
 pub fn plugin_error(
@@ -184,18 +209,18 @@ pub fn plugin_error(
     plugin_uuid: [u8; 16],
     pid: u32,
     request_id: u32,
-    message: &str,
+    message_bytes: usize,
 ) {
     error(
         plugin_name,
         plugin_uuid,
         format!(
-            "event=plugin_error name=\"{}\" uuid=\"{}\" pid={} request_id={} message=\"{}\"",
+            "event=plugin_error name=\"{}\" uuid=\"{}\" pid={} request_id={} message_bytes={}",
             plugin_name,
             format_uuid_bytes(&plugin_uuid),
             pid,
             request_id,
-            message
+            message_bytes
         ),
     );
 }
@@ -214,8 +239,44 @@ pub fn plugin_unknown_message(plugin_name: &str, plugin_uuid: [u8; 16], pid: u32
     );
 }
 
-fn write_history(level: &str, plugin_name: &str, plugin_uuid: [u8; 16], message: String) {
-    let path = plugin_history_path(plugin_uuid);
+fn write_history(level: &'static str, plugin_name: &str, plugin_uuid: [u8; 16], message: String) {
+    let record = HistoryRecord {
+        level,
+        plugin_name: plugin_name.to_string(),
+        plugin_uuid,
+        message,
+    };
+
+    match history_sender().try_send(record) {
+        Ok(()) => {}
+        Err(TrySendError::Full(_)) => {
+            LOGGER_PLUGIN_HISTORY.warn("Plugin history queue is full; dropping one record");
+        }
+        Err(TrySendError::Disconnected(_)) => {
+            LOGGER_PLUGIN_HISTORY.error("Plugin history worker is unavailable");
+        }
+    }
+}
+
+fn history_sender() -> &'static SyncSender<HistoryRecord> {
+    HISTORY_SENDER.get_or_init(|| {
+        let (sender, receiver) = sync_channel(HISTORY_QUEUE_CAPACITY);
+        if let Err(error) = thread::Builder::new()
+            .name("griffon-plugin-history".to_string())
+            .spawn(move || {
+                while let Ok(record) = receiver.recv() {
+                    write_history_record(record);
+                }
+            })
+        {
+            LOGGER_PLUGIN_HISTORY.error(format!("Failed to start plugin history worker: {error}"));
+        }
+        sender
+    })
+}
+
+fn write_history_record(record: HistoryRecord) {
+    let path = plugin_history_path(record.plugin_uuid);
 
     if let Some(parent) = path.parent()
         && let Err(e) = fs::create_dir_all(parent)
@@ -241,10 +302,10 @@ fn write_history(level: &str, plugin_name: &str, plugin_uuid: [u8; 16], message:
     let line = format!(
         "[{}][{}][{}][{}] {}\n",
         now_unix_timestamp(),
-        level,
-        plugin_name,
-        format_uuid_bytes(&plugin_uuid),
-        message
+        record.level,
+        record.plugin_name,
+        format_uuid_bytes(&record.plugin_uuid),
+        record.message
     );
 
     if let Err(e) = file.write_all(line.as_bytes()) {
@@ -278,4 +339,17 @@ fn now_unix_timestamp() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::plugin_result_message;
+
+    #[test]
+    fn result_history_records_size_instead_of_payload() {
+        let message = plugin_result_message("audit", [1; 16], 42, 7, true, 65_536);
+
+        assert!(message.contains("ok=true output_bytes=65536"));
+        assert!(!message.contains("output=\""));
+    }
 }

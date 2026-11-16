@@ -2454,6 +2454,7 @@ dependencies = [
 name = "griffon-daemon"
 version = "0.3.3"
 dependencies = [
+ "crossbeam-channel",
  "ipc_protocol",
  "logger",
  "nix 0.30.1",
@@ -2509,6 +2510,17 @@ dependencies = [
  "thiserror 2.0.21",
  "uuid",
  "walkdir",
+]
+
+[[package]]
+name = "griffon_local_audit"
+version = "0.1.0"
+dependencies = [
+ "abi_stable",
+ "libc",
+ "plugin_sdk",
+ "serde",
+ "tempfile",
 ]
 
 [[package]]
@@ -4278,6 +4290,7 @@ dependencies = [
 name = "plugin_manager"
 version = "0.3.3"
 dependencies = [
+ "crossbeam-channel",
  "ipc_protocol",
  "logger",
  "nix 0.30.1",
