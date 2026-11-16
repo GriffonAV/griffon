@@ -134,6 +134,16 @@ pub fn send_plugin_response_notification(
         return Ok(());
     }
 
+    let (title, body, level) = build_plugin_response_notification(plugin_name, function_name, ok);
+
+    send_system_notification(&title, &body, level)
+}
+
+fn build_plugin_response_notification(
+    plugin_name: &str,
+    function_name: &str,
+    ok: bool,
+) -> (String, String, NotificationLevel) {
     let title = if ok {
         format!("{plugin_name} finished")
     } else {
@@ -146,15 +156,13 @@ pub fn send_plugin_response_notification(
         format!("Function `{function_name}` returned an error.")
     };
 
-    send_system_notification(
-        &title,
-        &body,
-        if ok {
-            NotificationLevel::Success
-        } else {
-            NotificationLevel::Error
-        },
-    )
+    let level = if ok {
+        NotificationLevel::Success
+    } else {
+        NotificationLevel::Error
+    };
+
+    (title, body, level)
 }
 
 pub fn send_system_notification(
@@ -223,12 +231,12 @@ mod tests {
     }
 
     #[test]
-    fn test_send_plugin_response_notification_exec() {
-        let plugin_uuid = [7u8; 16];
+    fn plugin_response_notification_is_built_without_desktop_side_effects() {
+        let (title, body, level) =
+            build_plugin_response_notification("test_plugin", "test_function", false);
 
-        let result =
-            send_plugin_response_notification(plugin_uuid, "test_plugin", "test_function", true);
-
-        let _ = result;
+        assert_eq!(title, "test_plugin failed");
+        assert_eq!(body, "Function `test_function` returned an error.");
+        assert!(matches!(level, NotificationLevel::Error));
     }
 }

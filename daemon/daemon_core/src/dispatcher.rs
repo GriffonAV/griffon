@@ -126,7 +126,11 @@ pub fn start_dispatcher(task_rx: Receiver<DaemonTask>, plugin_dir_path: &'static
                     }
                 },
                 recv(event_rx) -> event => match event {
-                    Ok(event) => handle_plugin_event(event, &mut pending_calls),
+                    Ok(event) => handle_plugin_event(
+                        event,
+                        &mut pending_calls,
+                        send_plugin_notification,
+                    ),
                     Err(_) => {
                         LOGGER_DISPATCHER.error("Plugin event channel disconnected; stopping dispatcher");
                         break;
@@ -137,10 +141,13 @@ pub fn start_dispatcher(task_rx: Receiver<DaemonTask>, plugin_dir_path: &'static
     });
 }
 
-fn handle_plugin_event(
+fn handle_plugin_event<N>(
     event: plugin_manager::PluginEvent,
     pending_calls: &mut HashMap<u32, PendingCall>,
-) {
+    mut notify: N,
+) where
+    N: FnMut([u8; 16], &str, &str, bool),
+{
     let plugin_request_id = match &event {
         plugin_manager::PluginEvent::Result { request_id, .. }
         | plugin_manager::PluginEvent::Error { request_id, .. } => Some(*request_id),
@@ -150,13 +157,14 @@ fn handle_plugin_event(
     if let Some(plugin_request_id) = plugin_request_id {
         match pending_calls.remove(&plugin_request_id) {
             Some(pending) => {
-                let response = handle_plugin_event_response(
-                    pending.request_id,
-                    pending.plugin_uuid,
-                    &pending.plugin_name,
-                    &pending.function_name,
-                    event,
-                );
+                let response = handle_plugin_event_response(pending.request_id, event, |ok| {
+                    notify(
+                        pending.plugin_uuid,
+                        &pending.plugin_name,
+                        &pending.function_name,
+                        ok,
+                    );
+                });
 
                 send_response(pending.reply_tx, response, "plugin call");
             }
@@ -238,16 +246,17 @@ fn handle_refresh_plugins(
     }
 }
 
-fn handle_plugin_event_response(
+fn handle_plugin_event_response<N>(
     request_id: u32,
-    plugin_uuid: [u8; 16],
-    plugin_name: &str,
-    function_name: &str,
     plugin_event: plugin_manager::PluginEvent,
-) -> InterfaceResponse {
+    mut notify: N,
+) -> InterfaceResponse
+where
+    N: FnMut(bool),
+{
     match plugin_event {
         plugin_manager::PluginEvent::Result { ok, output, .. } => {
-            send_plugin_notification(plugin_uuid, plugin_name, function_name, ok);
+            notify(ok);
 
             InterfaceResponse::CallResult {
                 request_id,
@@ -257,7 +266,7 @@ fn handle_plugin_event_response(
         }
 
         plugin_manager::PluginEvent::Error { message, .. } => {
-            send_plugin_notification(plugin_uuid, plugin_name, function_name, false);
+            notify(false);
 
             InterfaceResponse::CallResult {
                 request_id,
@@ -336,15 +345,13 @@ mod tests {
 
     #[test]
     fn test_handle_plugin_event_response_all_variants() {
-        let uuid = [0u8; 16];
-
         let ev1 = PluginEvent::Result {
             pid: 1,
             request_id: 1,
             ok: true,
             output: "ok".into(),
         };
-        let r1 = handle_plugin_event_response(10, uuid, "p", "f", ev1);
+        let r1 = handle_plugin_event_response(10, ev1, |_| {});
         assert!(matches!(r1, InterfaceResponse::CallResult { ok: true, .. }));
 
         let ev2 = PluginEvent::Error {
@@ -352,21 +359,23 @@ mod tests {
             request_id: 1,
             message: "err".into(),
         };
-        let r2 = handle_plugin_event_response(11, uuid, "p", "f", ev2);
+        let mut notification_results = Vec::new();
+        let r2 = handle_plugin_event_response(11, ev2, |ok| notification_results.push(ok));
         assert!(matches!(
             r2,
             InterfaceResponse::CallResult { ok: false, .. }
         ));
+        assert_eq!(notification_results, vec![false]);
 
         let ev3 = PluginEvent::Closed {
             pid: 1,
             reason: "exit".into(),
         };
-        let r3 = handle_plugin_event_response(12, uuid, "p", "f", ev3);
+        let r3 = handle_plugin_event_response(12, ev3, |_| {});
         assert!(matches!(r3, InterfaceResponse::Error { .. }));
 
         let ev4 = PluginEvent::Heartbeat { pid: 1 };
-        let r4 = handle_plugin_event_response(13, uuid, "p", "f", ev4);
+        let r4 = handle_plugin_event_response(13, ev4, |_| {});
         assert!(matches!(r4, InterfaceResponse::Error { .. }));
     }
 
@@ -392,6 +401,7 @@ mod tests {
                 output: "done".to_string(),
             },
             &mut pending_calls,
+            |_, _, _, _| {},
         );
 
         assert!(pending_calls.is_empty());
