@@ -55,3 +55,18 @@ during executable inventory, and the SUID/SGID/file-capability walk stops after 
 fixed number of filesystem entries. Report limits supplied by the caller are
 clamped by the plugin. Read failures and unsupported checks are returned as
 diagnostics instead of being treated as successful checks.
+
+## Profiles and report semantics
+
+The request supports three bounded profiles:
+
+- `quick`: skips the privileged-file walk for a faster posture snapshot;
+- `standard`: runs the normal read-only checks;
+- `deep`: runs the privileged-file walk and performs best-effort mapping of
+  listening ports to processes through procfs socket inodes.
+
+Every response includes a status (`clean`, `findings`, `partial` or `truncated`),
+the runner scope, stable finding identifiers and per-check coverage summaries.
+`partial` means at least one check could not be evaluated; it must not be read as
+clean. Port ownership is advisory and may be unavailable when procfs permissions
+or process lifetime prevent correlation.

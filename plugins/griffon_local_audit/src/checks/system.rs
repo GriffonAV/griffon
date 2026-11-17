@@ -84,10 +84,7 @@ fn check_security_modules(state: &mut AuditState) {
             "Linux security modules",
             &lsm,
         ));
-        if !["apparmor", "selinux", "smack", "landlock"]
-            .iter()
-            .any(|module| lsm.split(',').any(|active| active == *module))
-        {
+        if !has_global_mac(&lsm) {
             state.push(Finding::new(
                 "Low",
                 "Protections",
@@ -191,6 +188,14 @@ fn check_security_modules(state: &mut AuditState) {
             ));
         }
     }
+}
+
+fn has_global_mac(lsm: &str) -> bool {
+    ["apparmor", "selinux", "smack"].iter().any(|module| {
+        lsm.split(',')
+            .map(str::trim)
+            .any(|active| active == *module)
+    })
 }
 
 fn secure_boot_state() -> Option<bool> {
@@ -326,8 +331,12 @@ fn check_sysctl_minimum(
     title: &'static str,
     state: &mut AuditState,
 ) {
-    let Ok(value) = fs::read_to_string(path) else {
-        return;
+    let value = match fs::read_to_string(path) {
+        Ok(value) => value,
+        Err(error) => {
+            state.diagnostic(format!("Could not read {path}: {error}"));
+            return;
+        }
     };
     let Ok(observed) = value.trim().parse::<i64>() else {
         state.diagnostic(format!("Unexpected value in {path}."));
@@ -350,8 +359,12 @@ fn check_sysctl_zero(
     title: &'static str,
     state: &mut AuditState,
 ) {
-    let Ok(value) = fs::read_to_string(path) else {
-        return;
+    let value = match fs::read_to_string(path) {
+        Ok(value) => value,
+        Err(error) => {
+            state.diagnostic(format!("Could not read {path}: {error}"));
+            return;
+        }
     };
     let Ok(observed) = value.trim().parse::<i64>() else {
         state.diagnostic(format!("Unexpected value in {path}."));
@@ -626,5 +639,12 @@ mod tests {
                 .iter()
                 .all(|finding| !finding.evidence.contains("/srv"))
         );
+    }
+
+    #[test]
+    fn landlock_alone_does_not_count_as_global_mac() {
+        assert!(!has_global_mac("landlock"));
+        assert!(has_global_mac("landlock,apparmor"));
+        assert!(has_global_mac("selinux"));
     }
 }

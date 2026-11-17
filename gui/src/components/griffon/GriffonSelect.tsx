@@ -6,23 +6,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { GriffonActionHandler, SelectElement } from "@/components/types";
+import { resolveFromPath } from "@/lib/utils";
 
 type Props = {
   element: SelectElement;
+  store?: Record<string, any>;
   onAction?: GriffonActionHandler;
 };
 
-export default function GriffonSelect({ element, onAction }: Props) {
+export default function GriffonSelect({ element, store = {}, onAction }: Props) {
+  const value = element.value_from
+    ? String(resolveFromPath(element.value_from, { store }) ?? element.value ?? "")
+    : element.value;
+
   return (
     <div id={element.id} className="flex flex-col gap-2">
       {element.label ? (
-        <label className="text-sm font-medium leading-none">
+        <label htmlFor={element.id} className="text-sm font-medium leading-none">
           {element.label}
         </label>
       ) : null}
 
       <Select
-        defaultValue={element.value}
+        value={value}
         disabled={element.disabled}
         onValueChange={(value) => {
           if (element.action && onAction) {
@@ -33,7 +39,7 @@ export default function GriffonSelect({ element, onAction }: Props) {
           }
         }}
       >
-        <SelectTrigger className="w-full">
+        <SelectTrigger id={element.id} className="w-full">
           <SelectValue placeholder={element.placeholder ?? "Select an option"} />
         </SelectTrigger>
 

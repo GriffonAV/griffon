@@ -20,8 +20,12 @@ pub(super) fn run(state: &mut AuditState) {
 }
 
 fn check_privileged_groups(path: &Path, state: &mut AuditState) {
-    let Ok(contents) = read_small(path) else {
-        return;
+    let contents = match read_small(path) {
+        Ok(contents) => contents,
+        Err(error) => {
+            state.diagnostic(format!("Could not read {}: {error}", path.display()));
+            return;
+        }
     };
     let privileged = [
         ("docker", "Medium"),

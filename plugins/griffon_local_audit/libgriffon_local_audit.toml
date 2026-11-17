@@ -5,14 +5,18 @@ version = "0.1.0"
 author = "Griffon"
 description = "Read-only Linux security posture audit with bounded local checks."
 uuid = "6f7b1e8a-2fd5-4cab-9c72-69e0f0b43521"
-tabs = ["overview", "findings", "inventory"]
+tabs = ["overview", "inventory"]
 
 [store.data.audit_request]
 include_suid = true
 max_findings = 250
+profile = "standard"
 
 [store.data.audit_result]
 ok = false
+status = "not_run"
+profile = "standard"
+scope = ""
 message = "Run an audit to inspect this system."
 duration_ms = 0
 critical_count = 0
@@ -25,6 +29,7 @@ diagnostics_summary = "Diagnostics will appear here after the audit."
 findings = []
 inventory = []
 diagnostics = []
+checks = []
 
 [[ui.sections]]
 id = "local_audit_overview"
@@ -38,125 +43,44 @@ id = "audit_include_suid"
 label = "Inventory privileged executables"
 description = "Inspect SUID/SGID bits and Linux file capabilities in standard binary directories without following symbolic links."
 checked = true
+checked_from = "store.data.audit_request.include_suid"
 action = "local_audit.set_include_suid"
 
 [[ui.sections.contents]]
-type = "button"
-id = "audit_run"
-name = "Run audit"
-variant = "primary"
-action = "local_audit.run"
+type = "select"
+id = "audit_profile"
+label = "Audit profile"
+description = "Quick skips privileged-file inventory; deep also resolves best-effort port owners."
+value = "standard"
+value_from = "store.data.audit_request.profile"
+action = "local_audit.set_profile"
+
+[[ui.sections.contents.options]]
+label = "Quick"
+value = "quick"
+
+[[ui.sections.contents.options]]
+label = "Standard"
+value = "standard"
+
+[[ui.sections.contents.options]]
+label = "Deep"
+value = "deep"
 
 [[ui.sections.contents]]
-type = "text"
-id = "audit_message"
-name = "{{store.data.audit_result.message}}"
-variant = "status"
-
-[[ui.sections.contents]]
-type = "metric_grid"
-id = "audit_metrics"
-
-[[ui.sections.contents.items]]
-label = "Critical"
-from = "store.data.audit_result.critical_count"
-tone = "danger"
-zero_tone = "success"
-
-[[ui.sections.contents.items]]
-label = "High"
-from = "store.data.audit_result.high_count"
-tone = "danger"
-zero_tone = "success"
-
-[[ui.sections.contents.items]]
-label = "Medium"
-from = "store.data.audit_result.medium_count"
-tone = "warning"
-zero_tone = "success"
-
-[[ui.sections.contents.items]]
-label = "Low"
-from = "store.data.audit_result.low_count"
-tone = "info"
-zero_tone = "success"
-
-[[ui.sections.contents.items]]
-label = "Inventory"
-from = "store.data.audit_result.info_count"
-tone = "neutral"
-zero_tone = "neutral"
-
-[[ui.sections.contents]]
-type = "text"
-id = "audit_duration"
-name = "Completed in {{store.data.audit_result.duration_ms}} ms"
-variant = "caption"
-
-[[ui.sections.contents]]
-type = "text"
-id = "audit_diagnostics"
-name = "{{store.data.audit_result.diagnostics_summary}}"
-variant = "caption"
-tone = "neutral"
+type = "local_audit_report"
+id = "audit_report"
+from = "store.data.audit_result"
+plugin_uuid = "6f7b1e8a-2fd5-4cab-9c72-69e0f0b43521"
 
 [[ui.sections.contents]]
 type = "tab_navigation"
 id = "audit_navigation"
 
 [[ui.sections.contents.items]]
-label = "Review findings"
-description = "Inspect conditions that may require a configuration change."
-target = "findings"
-
-[[ui.sections.contents.items]]
 label = "Explore inventory"
 description = "Review system protections, accounts, services, listening ports and privileged executables observed on this system."
 target = "inventory"
-
-[[ui.sections]]
-id = "local_audit_findings"
-tab = "findings"
-title = "Actionable findings"
-description = "Only conditions that may require a configuration change are shown here."
-
-[[ui.sections.contents]]
-type = "table"
-id = "audit_findings"
-from = "store.data.audit_result.findings"
-selectable = false
-searchable = true
-filter_keys = ["severity", "category"]
-layout = "cards"
-show_count = true
-empty_message = "No actionable findings match the current audit and filters."
-
-[[ui.sections.contents.columns]]
-key = "severity"
-label = "Severity"
-cell = "badge"
-tone_map = { Critical = "danger", High = "danger", Medium = "warning", Low = "info" }
-
-[[ui.sections.contents.columns]]
-key = "category"
-label = "Category"
-cell = "badge"
-tone = "neutral"
-
-[[ui.sections.contents.columns]]
-key = "title"
-label = "Finding"
-cell = "primary"
-
-[[ui.sections.contents.columns]]
-key = "evidence"
-label = "Evidence"
-cell = "code"
-
-[[ui.sections.contents.columns]]
-key = "recommendation"
-label = "Recommendation"
-cell = "text"
 
 [[ui.sections]]
 id = "local_audit_inventory"
@@ -196,6 +120,15 @@ on = "local_audit.set_include_suid"
 type = "set"
 key = "store.data.audit_request.include_suid"
 from = "event.checked"
+
+[[interactions]]
+id = "local_audit_set_profile"
+on = "local_audit.set_profile"
+
+[[interactions.steps]]
+type = "set"
+key = "store.data.audit_request.profile"
+from = "event.value"
 
 [[interactions]]
 id = "local_audit_run"

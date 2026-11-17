@@ -17,6 +17,7 @@ import GriffonFileSelect from "@/components/griffon/GriffonFileSelect";
 import GriffonFileSelectButton from "@/components/griffon/GriffonFileSelectButton";
 import GriffonMetricGrid from "@/components/griffon/GriffonMetricGrid";
 import GriffonTabNavigation from "@/components/griffon/GriffonTabNavigation";
+import LocalAuditReport from "@/components/griffon/LocalAuditReport";
 
 import CleanerTable from "@/components/griffon/CleanerTable";
 import CleanerCandidateList from "@/components/griffon/CleanerCandidateList";
@@ -91,6 +92,9 @@ export default function GriffonElementRenderer({
 
     case "table":
       return <GriffonTable {...commonProps} />;
+
+    case "local_audit_report":
+      return <LocalAuditReport {...commonProps} />;
 
     case "metric_grid":
       return <GriffonMetricGrid {...commonProps} />;

@@ -104,6 +104,7 @@ export type SelectElement = BaseElement & {
   placeholder?: string;
   description?: string;
   value?: string;
+  value_from?: string;
   disabled?: boolean;
   options?: SelectOption[];
   action?: string;
@@ -126,6 +127,7 @@ export type SwitchElement = BaseElement & {
   label: string;
   description?: string;
   checked?: boolean;
+  checked_from?: string;
   disabled?: boolean;
   action?: string;
 };
@@ -204,6 +206,12 @@ export type TableElement = BaseElement & {
   layout?: "table" | "cards";
   show_count?: boolean;
   empty_message?: string;
+};
+
+export type LocalAuditReportElement = BaseElement & {
+  type: "local_audit_report";
+  from?: string;
+  plugin_uuid?: string;
 };
 
 export type MetricGridItem = {
@@ -376,6 +384,7 @@ export type GriffonElement =
   | CardElement
   | DividerElement
   | TableElement
+  | LocalAuditReportElement
   | MetricGridElement
   | TabNavigationElement
   | GroupElement

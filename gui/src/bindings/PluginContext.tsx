@@ -111,7 +111,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
             throw new Error("No plugin loaded");
         }
 
-        const { requestId, promise } = createPendingRequest();
+        const { requestId, promise } = createPendingRequest<string>();
 
         if (args.length === 0) {
             args = ["{}"];
@@ -129,7 +129,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     }, [currentPlugin]);
 
     const switchPluginStatus = useCallback(async (pluginUuid: string): Promise<void> => {
-        const { requestId, promise } = createPendingRequest();
+        const { requestId, promise } = createPendingRequest<{ enable: boolean }>();
 
         setPlugins((prev) =>
             prev.map((plugin) =>

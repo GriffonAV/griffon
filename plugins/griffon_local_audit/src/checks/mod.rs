@@ -12,10 +12,14 @@ use crate::AuditState;
 const MAX_TEXT_FILE_BYTES: u64 = 64 * 1024;
 
 pub(super) fn run_all(state: &mut AuditState) {
-    system::run(state);
-    accounts::run(state);
-    policy::run(state);
-    runtime::run(state);
+    state.run_check("system", "System protections", system::run);
+    state.run_check(
+        "accounts_policy",
+        "Accounts and authentication",
+        accounts::run,
+    );
+    state.run_check("policy", "Policy integrity", policy::run);
+    state.run_check("runtime", "Runtime integrity", runtime::run);
 }
 
 pub(super) fn read_limited(path: &Path, max_bytes: u64) -> io::Result<String> {

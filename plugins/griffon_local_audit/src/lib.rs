@@ -24,6 +24,8 @@ struct AuditRequest {
     include_suid: bool,
     #[serde(default = "default_max_findings")]
     max_findings: usize,
+    #[serde(default = "default_profile")]
+    profile: String,
 }
 
 fn default_include_suid() -> bool {
@@ -34,8 +36,38 @@ fn default_max_findings() -> usize {
     250
 }
 
+fn default_profile() -> String {
+    "standard".to_string()
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AuditProfile {
+    Quick,
+    Standard,
+    Deep,
+}
+
+impl AuditProfile {
+    fn parse(value: &str) -> Self {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "quick" => Self::Quick,
+            "deep" => Self::Deep,
+            _ => Self::Standard,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Quick => "quick",
+            Self::Standard => "standard",
+            Self::Deep => "deep",
+        }
+    }
+}
+
 #[derive(Serialize)]
 struct Finding {
+    id: String,
     severity: &'static str,
     category: &'static str,
     title: String,
@@ -68,19 +100,52 @@ impl Finding {
         evidence: impl Into<String>,
         recommendation: impl Into<String>,
     ) -> Self {
+        let title = title.into();
+        let evidence = evidence.into();
         Self {
+            id: stable_finding_id(category, &title, &evidence),
             severity,
             category,
-            title: title.into(),
-            evidence: evidence.into(),
+            title,
+            evidence,
             recommendation: recommendation.into(),
         }
     }
 }
 
+fn stable_finding_id(category: &str, title: &str, evidence: &str) -> String {
+    let mut hash = 0xcbf29ce484222325u64;
+    for byte in category
+        .bytes()
+        .chain([0])
+        .chain(title.bytes())
+        .chain([0])
+        .chain(evidence.bytes())
+    {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("finding-{hash:016x}")
+}
+
+#[derive(Serialize)]
+struct CheckSummary {
+    id: &'static str,
+    label: &'static str,
+    status: &'static str,
+    duration_ms: u128,
+    findings: usize,
+    inventory: usize,
+    diagnostics: usize,
+}
+
 #[derive(Serialize)]
 struct AuditResponse {
     ok: bool,
+    status: &'static str,
+    profile: &'static str,
+    scope: &'static str,
+    checks: Vec<CheckSummary>,
     message: String,
     duration_ms: u128,
     critical_count: usize,
@@ -102,6 +167,7 @@ struct AuditState {
     max_findings: usize,
     max_inventory: usize,
     truncated: bool,
+    checks: Vec<CheckSummary>,
 }
 
 impl AuditState {
@@ -113,7 +179,45 @@ impl AuditState {
             max_findings,
             max_inventory: max_findings,
             truncated: false,
+            checks: Vec::new(),
         }
+    }
+
+    fn run_check<F>(&mut self, id: &'static str, label: &'static str, check: F)
+    where
+        F: FnOnce(&mut Self),
+    {
+        let started_at = Instant::now();
+        let findings_before = self.findings.len();
+        let inventory_before = self.inventory.len();
+        let diagnostics_before = self.diagnostics.len();
+        check(self);
+        let diagnostics = self.diagnostics.len().saturating_sub(diagnostics_before);
+        self.checks.push(CheckSummary {
+            id,
+            label,
+            status: if diagnostics == 0 {
+                "complete"
+            } else {
+                "unavailable"
+            },
+            duration_ms: started_at.elapsed().as_millis(),
+            findings: self.findings.len().saturating_sub(findings_before),
+            inventory: self.inventory.len().saturating_sub(inventory_before),
+            diagnostics,
+        });
+    }
+
+    fn skip_check(&mut self, id: &'static str, label: &'static str) {
+        self.checks.push(CheckSummary {
+            id,
+            label,
+            status: "skipped",
+            duration_ms: 0,
+            findings: 0,
+            inventory: 0,
+            diagnostics: 0,
+        });
     }
 
     fn push(&mut self, finding: Finding) {
@@ -163,26 +267,38 @@ export_plugin! {
 
 fn audit(request: AuditRequest) -> Result<AuditResponse, String> {
     let started_at = Instant::now();
+    let profile = AuditProfile::parse(&request.profile);
     let mut state = AuditState::new(request.max_findings.clamp(MIN_FINDINGS, MAX_FINDINGS));
 
-    check_accounts(Path::new("/etc/passwd"), &mut state);
-    check_sensitive_paths(&mut state);
-    check_kernel_hardening(&mut state);
-    check_sshd_config(Path::new("/etc/ssh/sshd_config"), &mut state);
-    check_scheduled_tasks(&mut state);
+    state.run_check("accounts", "Account basics", |state| {
+        check_accounts(Path::new("/etc/passwd"), state)
+    });
+    state.run_check("sensitive_paths", "Sensitive paths", check_sensitive_paths);
+    state.run_check("kernel", "Kernel hardening", check_kernel_hardening);
+    state.run_check("ssh", "SSH configuration", |state| {
+        check_sshd_config(Path::new("/etc/ssh/sshd_config"), state)
+    });
+    state.run_check("scheduled_tasks", "Scheduled tasks", check_scheduled_tasks);
     checks::run_all(&mut state);
 
-    if request.include_suid {
+    if request.include_suid && profile != AuditProfile::Quick {
         let roots = [
             Path::new("/usr/bin"),
             Path::new("/usr/sbin"),
             Path::new("/bin"),
             Path::new("/sbin"),
         ];
-        check_privileged_executables(&roots, &mut state);
+        state.run_check("privileged_files", "Privileged files", |state| {
+            check_privileged_executables(&roots, state)
+        });
+    } else {
+        state.skip_check("privileged_files", "Privileged files");
     }
-    check_listening_tcp_ports(&mut state);
-    check_bound_udp_ports(&mut state);
+    state.run_check("network", "Network exposure", |state| {
+        let include_owners = profile == AuditProfile::Deep;
+        check_listening_tcp_ports(state, include_owners);
+        check_bound_udp_ports(state, include_owners);
+    });
 
     deduplicate_findings(&mut state.findings);
     state
@@ -220,7 +336,11 @@ fn audit(request: AuditRequest) -> Result<AuditResponse, String> {
     }
 
     Ok(AuditResponse {
-        ok: true,
+        ok: diagnostic_count == 0 && !state.truncated,
+        status: report_status(actionable_count, diagnostic_count, state.truncated),
+        profile: profile.as_str(),
+        scope: "runner process namespace; read-only /proc, /sys and selected /etc paths",
+        checks: state.checks,
         message,
         duration_ms: started_at.elapsed().as_millis(),
         critical_count,
@@ -263,6 +383,22 @@ fn count_severity(findings: &[Finding], severity: &str) -> usize {
         .iter()
         .filter(|finding| finding.severity == severity)
         .count()
+}
+
+fn report_status(
+    actionable_count: usize,
+    diagnostic_count: usize,
+    truncated: bool,
+) -> &'static str {
+    if truncated {
+        "truncated"
+    } else if diagnostic_count > 0 {
+        "partial"
+    } else if actionable_count > 0 {
+        "findings"
+    } else {
+        "clean"
+    }
 }
 
 fn check_accounts(path: &Path, state: &mut AuditState) {
@@ -447,7 +583,9 @@ fn check_sshd_config(path: &Path, state: &mut AuditState) {
         }
     };
 
-    let directives = parse_global_sshd_directives(&contents);
+    let includes = load_sshd_include_contents(&contents);
+    let directives =
+        parse_global_sshd_directives_with_includes(&contents, includes.iter().map(String::as_str));
     if directives
         .get("permitrootlogin")
         .is_some_and(|value| value == "yes")
@@ -508,6 +646,93 @@ fn parse_global_sshd_directives(contents: &str) -> HashMap<String, String> {
             .or_insert_with(|| value.to_ascii_lowercase());
     }
     directives
+}
+
+fn parse_global_sshd_directives_with_includes<'a>(
+    contents: &str,
+    includes: impl IntoIterator<Item = &'a str>,
+) -> HashMap<String, String> {
+    let included_directives = includes
+        .into_iter()
+        .map(parse_global_sshd_directives)
+        .collect::<Vec<_>>();
+    let mut directives = HashMap::new();
+    let mut includes_applied = false;
+    for line in contents.lines() {
+        let line = line.split('#').next().unwrap_or_default().trim();
+        if line.is_empty() {
+            continue;
+        }
+        let mut fields = line.split_whitespace();
+        let Some(key) = fields.next() else {
+            continue;
+        };
+        if key.eq_ignore_ascii_case("match") {
+            break;
+        }
+        if key.eq_ignore_ascii_case("include") {
+            if !includes_applied {
+                for included in &included_directives {
+                    for (key, value) in included {
+                        directives
+                            .entry(key.clone())
+                            .or_insert_with(|| value.clone());
+                    }
+                }
+                includes_applied = true;
+            }
+            continue;
+        }
+        let Some(value) = fields.next() else {
+            continue;
+        };
+        directives
+            .entry(key.to_ascii_lowercase())
+            .or_insert_with(|| value.to_ascii_lowercase());
+    }
+    directives
+}
+
+fn load_sshd_include_contents(contents: &str) -> Vec<String> {
+    let mut included = Vec::new();
+    let mut paths = Vec::new();
+    for raw_line in contents.lines() {
+        let line = raw_line.split('#').next().unwrap_or_default().trim();
+        let mut fields = line.split_whitespace();
+        if !fields
+            .next()
+            .is_some_and(|key| key.eq_ignore_ascii_case("include"))
+        {
+            continue;
+        }
+        for pattern in fields.take(8) {
+            let path = Path::new(pattern);
+            if let Some(directory) = path.parent()
+                && path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name == "*.conf")
+            {
+                let Ok(entries) = fs::read_dir(directory) else {
+                    continue;
+                };
+                paths.extend(entries.flatten().map(|entry| entry.path()).filter(|path| {
+                    path.extension()
+                        .is_some_and(|extension| extension == "conf")
+                }));
+            } else if path.is_absolute() {
+                paths.push(path.to_path_buf());
+            }
+        }
+    }
+    paths.sort();
+    paths.dedup();
+    for path in paths.into_iter().take(32) {
+        if let Ok(content) = checks::read_limited(&path, 64 * 1024) {
+            included.push(content);
+        }
+    }
+    included
 }
 
 fn check_scheduled_tasks(state: &mut AuditState) {
@@ -602,22 +827,27 @@ fn is_cron_spool_path(path: &Path) -> bool {
     path.starts_with("/var/spool/cron")
 }
 
-fn check_listening_tcp_ports(state: &mut AuditState) {
-    let mut ports = HashSet::new();
+fn check_listening_tcp_ports(state: &mut AuditState, include_owners: bool) {
+    let mut sockets = HashMap::new();
     for path in [Path::new("/proc/net/tcp"), Path::new("/proc/net/tcp6")] {
         match checks::read_limited(path, 2 * 1024 * 1024) {
-            Ok(contents) => parse_listening_tcp_ports(&contents, &mut ports),
+            Ok(contents) => parse_listening_tcp_endpoints(&contents, &mut sockets),
             Err(error) => state.diagnostic(format!("Could not read {}: {error}", path.display())),
         }
     }
 
-    let mut ports: Vec<_> = ports.into_iter().collect();
-    ports.sort_unstable();
-    for port in ports {
+    let owners = include_owners.then(|| socket_owners(&sockets.values().copied().collect()));
+    let mut sockets: Vec<_> = sockets.into_iter().collect();
+    sockets.sort_unstable_by_key(|(port, _)| *port);
+    for (port, inode) in sockets {
         state.push_inventory(InventoryItem::new(
             "Network",
             format!("TCP port {port}"),
-            "Listening in the runner process network namespace",
+            network_socket_details(
+                "Listening in the runner process network namespace",
+                inode,
+                owners.as_ref(),
+            ),
         ));
         if state.inventory_is_full() {
             break;
@@ -625,22 +855,27 @@ fn check_listening_tcp_ports(state: &mut AuditState) {
     }
 }
 
-fn check_bound_udp_ports(state: &mut AuditState) {
-    let mut ports = HashSet::new();
+fn check_bound_udp_ports(state: &mut AuditState, include_owners: bool) {
+    let mut sockets = HashMap::new();
     for path in [Path::new("/proc/net/udp"), Path::new("/proc/net/udp6")] {
         match checks::read_limited(path, 2 * 1024 * 1024) {
-            Ok(contents) => parse_bound_udp_ports(&contents, &mut ports),
+            Ok(contents) => parse_bound_udp_endpoints(&contents, &mut sockets),
             Err(error) => state.diagnostic(format!("Could not read {}: {error}", path.display())),
         }
     }
 
-    let mut ports: Vec<_> = ports.into_iter().collect();
-    ports.sort_unstable();
-    for port in ports {
+    let owners = include_owners.then(|| socket_owners(&sockets.values().copied().collect()));
+    let mut sockets: Vec<_> = sockets.into_iter().collect();
+    sockets.sort_unstable_by_key(|(port, _)| *port);
+    for (port, inode) in sockets {
         state.push_inventory(InventoryItem::new(
             "Network",
             format!("UDP port {port}"),
-            "Bound in the runner process network namespace",
+            network_socket_details(
+                "Bound in the runner process network namespace",
+                inode,
+                owners.as_ref(),
+            ),
         ));
         if state.inventory_is_full() {
             break;
@@ -648,40 +883,117 @@ fn check_bound_udp_ports(state: &mut AuditState) {
     }
 }
 
+#[cfg(test)]
 fn parse_listening_tcp_ports(contents: &str, ports: &mut HashSet<u16>) {
+    let mut sockets = HashMap::new();
+    parse_listening_tcp_endpoints(contents, &mut sockets);
+    ports.extend(sockets.into_keys());
+}
+
+fn parse_listening_tcp_endpoints(contents: &str, sockets: &mut HashMap<u16, u64>) {
     for line in contents.lines().skip(1) {
-        let mut fields = line.split_whitespace();
-        let Some(local_address) = fields.nth(1) else {
+        let fields: Vec<_> = line.split_whitespace().collect();
+        let Some(local_address) = fields.get(1) else {
             continue;
         };
-        let Some(state) = fields.nth(1) else {
+        let Some(state) = fields.get(3) else {
             continue;
         };
-        if state != "0A" {
+        if *state != "0A" {
             continue;
         }
         let Some(port_hex) = local_address.rsplit(':').next() else {
             continue;
         };
+        let inode = fields
+            .get(11)
+            .and_then(|value| value.parse::<u64>().ok())
+            .unwrap_or(0);
         if let Ok(port) = u16::from_str_radix(port_hex, 16) {
-            ports.insert(port);
+            sockets.entry(port).or_insert(inode);
         }
     }
 }
 
+#[cfg(test)]
 fn parse_bound_udp_ports(contents: &str, ports: &mut HashSet<u16>) {
+    let mut sockets = HashMap::new();
+    parse_bound_udp_endpoints(contents, &mut sockets);
+    ports.extend(sockets.into_keys());
+}
+
+fn parse_bound_udp_endpoints(contents: &str, sockets: &mut HashMap<u16, u64>) {
     for line in contents.lines().skip(1) {
-        let Some(local_address) = line.split_whitespace().nth(1) else {
+        let fields: Vec<_> = line.split_whitespace().collect();
+        let Some(local_address) = fields.get(1) else {
             continue;
         };
         let Some(port_hex) = local_address.rsplit(':').next() else {
             continue;
         };
+        let inode = fields
+            .get(11)
+            .and_then(|value| value.parse::<u64>().ok())
+            .unwrap_or(0);
         if let Ok(port) = u16::from_str_radix(port_hex, 16)
             && port != 0
         {
-            ports.insert(port);
+            sockets.entry(port).or_insert(inode);
         }
+    }
+}
+
+fn socket_owners(inodes: &HashSet<u64>) -> HashMap<u64, String> {
+    let mut owners = HashMap::new();
+    let Ok(entries) = fs::read_dir("/proc") else {
+        return owners;
+    };
+    for entry in entries.flatten().take(4096) {
+        let Ok(pid) = entry.file_name().to_string_lossy().parse::<u32>() else {
+            continue;
+        };
+        let name = fs::read_to_string(format!("/proc/{pid}/comm"))
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| "unknown".to_string());
+        let Ok(fds) = fs::read_dir(format!("/proc/{pid}/fd")) else {
+            continue;
+        };
+        for fd in fds.flatten().take(512) {
+            let Ok(target) = fs::read_link(fd.path()) else {
+                continue;
+            };
+            let target = target.to_string_lossy();
+            let Some(inode) = target
+                .strip_prefix("socket:[")
+                .and_then(|value| value.strip_suffix(']'))
+                .and_then(|value| value.parse::<u64>().ok())
+            else {
+                continue;
+            };
+            if inodes.contains(&inode) {
+                owners
+                    .entry(inode)
+                    .or_insert_with(|| format!("{name} (PID {pid})"));
+            }
+        }
+        if owners.len() == inodes.len() {
+            break;
+        }
+    }
+    owners
+}
+
+fn network_socket_details(
+    description: &str,
+    inode: u64,
+    owners: Option<&HashMap<u64, String>>,
+) -> String {
+    match owners.and_then(|owners| owners.get(&inode)) {
+        Some(owner) => format!("{description}; owner: {owner}"),
+        None if owners.is_some() => format!("{description}; owner unavailable"),
+        None => description.to_string(),
     }
 }
 
@@ -980,6 +1292,16 @@ mod tests {
     }
 
     #[test]
+    fn tcp_parser_preserves_socket_inode_for_deep_inventory() {
+        let input = "sl local_address rem_address st tx_queue rx_queue tr tm->when retrnsmt uid timeout inode\n0: 0100007F:0016 00000000:0000 0A 0 0 0 0 0 0 0 12345\n";
+        let mut sockets = HashMap::new();
+
+        parse_listening_tcp_endpoints(input, &mut sockets);
+
+        assert_eq!(sockets.get(&22), Some(&12345));
+    }
+
+    #[test]
     fn duplicate_findings_are_collapsed() {
         let mut findings = vec![
             Finding::new("High", "Test", "Same", "Evidence", "Recommendation"),
@@ -1062,10 +1384,76 @@ mod tests {
         let response = audit(AuditRequest {
             include_suid: false,
             max_findings: 25,
+            profile: "quick".to_string(),
         })
         .unwrap();
 
         assert!(response.findings.len() <= 25);
         assert!(response.inventory.len() <= 25);
+        assert_eq!(response.profile, "quick");
+        assert!(!response.checks.is_empty());
+    }
+
+    #[test]
+    fn report_status_distinguishes_clean_findings_partial_and_truncated() {
+        assert_eq!(report_status(0, 0, false), "clean");
+        assert_eq!(report_status(1, 0, false), "findings");
+        assert_eq!(report_status(0, 1, false), "partial");
+        assert_eq!(report_status(1, 1, false), "partial");
+        assert_eq!(report_status(0, 0, true), "truncated");
+    }
+
+    #[test]
+    fn finding_ids_are_stable_for_the_same_observation() {
+        let first = Finding::new(
+            "High",
+            "Accounts",
+            "Shared UID",
+            "alice,bob",
+            "Review the accounts",
+        );
+        let second = Finding::new(
+            "High",
+            "Accounts",
+            "Shared UID",
+            "alice,bob",
+            "A different recommendation",
+        );
+
+        assert_eq!(first.id, second.id);
+        assert!(!first.id.is_empty());
+    }
+
+    #[test]
+    fn profile_names_have_bounded_fallbacks() {
+        assert_eq!(AuditProfile::parse("quick"), AuditProfile::Quick);
+        assert_eq!(AuditProfile::parse("deep"), AuditProfile::Deep);
+        assert_eq!(AuditProfile::parse("unknown"), AuditProfile::Standard);
+    }
+
+    #[test]
+    fn ssh_include_files_are_considered_before_main_defaults() {
+        let directives = parse_global_sshd_directives_with_includes(
+            "Include /etc/ssh/sshd_config.d/*.conf\n",
+            ["PasswordAuthentication no\n"],
+        );
+
+        assert_eq!(
+            directives.get("passwordauthentication").map(String::as_str),
+            Some("no")
+        );
+    }
+
+    #[test]
+    fn ssh_directive_before_include_keeps_first_value() {
+        let directives = parse_global_sshd_directives_with_includes(
+            "PasswordAuthentication yes\nInclude /etc/ssh/sshd_config.d/*.conf\n",
+            ["PasswordAuthentication no\n"],
+        );
+
+        assert_eq!(
+            directives.get("passwordauthentication").map(String::as_str),
+            Some("yes")
+        );
     }
 }

@@ -19,8 +19,12 @@ struct Account {
 }
 
 pub(super) fn run(state: &mut AuditState) {
-    let Ok(passwd) = read_small(Path::new("/etc/passwd")) else {
-        return;
+    let passwd = match read_small(Path::new("/etc/passwd")) {
+        Ok(passwd) => passwd,
+        Err(error) => {
+            state.diagnostic(format!("Could not read /etc/passwd: {error}"));
+            return;
+        }
     };
     let accounts = parse_passwd(&passwd);
     check_duplicate_uids(&accounts, state);
@@ -210,8 +214,12 @@ fn inspect_ssh_path(
 }
 
 fn check_shadow_policy(path: &Path, accounts: &[Account], state: &mut AuditState) {
-    let Ok(contents) = read_small(path) else {
-        return;
+    let contents = match read_small(path) {
+        Ok(contents) => contents,
+        Err(error) => {
+            state.diagnostic(format!("Could not read {}: {error}", path.display()));
+            return;
+        }
     };
     let interactive: HashSet<_> = accounts
         .iter()

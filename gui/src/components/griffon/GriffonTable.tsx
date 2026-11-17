@@ -15,7 +15,17 @@ import type {
 import { cn, resolveFromPath } from "@/lib/utils";
 import { Checkbox } from "../ui/checkbox";
 import { Input } from "../ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { filterSelectClassName } from "@/lib/filterStyles";
 import { useMemo, useState } from "react";
+
+const ALL_FILTERS_VALUE = "__all__";
 
 type Props = {
   element: TableElement;
@@ -184,25 +194,33 @@ export default function GriffonTable({ element, store = {}, onAction }: Props) {
               const label =
                 visibleColumns.find((column) => column.key === key)?.label ?? key;
               return (
-                <select
+                <Select
                   key={key}
-                  value={activeFilters[key] ?? ""}
-                  onChange={(event) =>
+                  value={activeFilters[key] || ALL_FILTERS_VALUE}
+                  onValueChange={(value) =>
                     setFilters((current) => ({
                       ...current,
-                      [key]: event.target.value,
+                      [key]: value === ALL_FILTERS_VALUE ? "" : value,
                     }))
                   }
-                  aria-label={`Filter by ${label}`}
-                  className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-xs"
                 >
-                  <option value="">All {label.toLocaleLowerCase()}</option>
-                  {filterOptions[key]?.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    className={filterSelectClassName}
+                    aria-label={`Filter by ${label}`}
+                  >
+                    <SelectValue placeholder={`All ${label.toLocaleLowerCase()}`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_FILTERS_VALUE}>
+                      All {label.toLocaleLowerCase()}
+                    </SelectItem>
+                    {filterOptions[key]?.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               );
             })}
             {query || Object.values(activeFilters).some(Boolean) ? (
