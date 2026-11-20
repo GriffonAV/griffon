@@ -41,7 +41,7 @@ function formatEvent(event?: string | null) {
 }
 
 export default function HomePage() {
-  const { plugins } = usePlugins();
+  const { plugins, refreshPlugins } = usePlugins();
 
 
     const [historyEntries, setHistoryEntries] = useState<PluginHistoryEntry[]>([]);
@@ -68,7 +68,7 @@ export default function HomePage() {
         try {
             setIsRefreshingService(true);
             await Promise.all([
-                invoke("refresh_plugin"),
+                refreshPlugins(),
                 loadPluginHistory(),
                 new Promise((resolve) => setTimeout(resolve, 500)),
             ]);

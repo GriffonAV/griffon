@@ -14,6 +14,7 @@ export type Plugin = {
     author: string;
     description: string;
     notifications_enabled: boolean;
+    notification_status: "idle" | "busy" | "error";
     manifest: PluginManifest | null;
     status: "healthy" | "busy" | "disabled" | "error";
 };
@@ -67,6 +68,7 @@ interface PluginContextType {
     deletePlugin: (pluginName: string) => Promise<void>;
     callPluginFunction: (fnName: string, args: string[]) => Promise<any>;
     switchPluginStatus: (pluginUuid: string) => Promise<void>;
+    switchPluginNotificationStatus: (pluginUuid: string) => Promise<void>;
 }
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
@@ -130,11 +132,68 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         }
     }
 
+    async function switchPluginNotificationStatus(pluginUuid: string): Promise<void> {
+        const { requestId, promise } = createPendingRequest<{ enable: boolean }>();
+
+        setPlugins((previous) =>
+            previous.map((plugin) =>
+                plugin.uuid === pluginUuid
+                    ? { ...plugin, notification_status: "busy" }
+                    : plugin
+            )
+        );
+
+        try {
+            await invoke("switch_status_notification", {
+                pluginUuid,
+                requestId,
+            });
+
+            const result = await promise;
+
+            setPlugins((previous) =>
+                previous.map((plugin) =>
+                    plugin.uuid === pluginUuid
+                        ? {
+                            ...plugin,
+                            notifications_enabled: result.enable,
+                            notification_status: "idle",
+                        }
+                        : plugin
+                )
+            );
+        } catch (err) {
+            setPlugins((previous) =>
+                previous.map((plugin) =>
+                    plugin.uuid === pluginUuid
+                        ? { ...plugin, notification_status: "error" }
+                        : plugin
+                )
+            );
+            error(`Failed to switch plugin notification status: ${err}`);
+            throw err;
+        }
+    }
+
     async function refreshPlugins() {
         debugLog("Refreshing plugins...");
 
-        const plugin_list = await invoke<Plugin[]>("list_plugins");
-        setPlugins(plugin_list);
+        const pluginList = await invoke<Array<Omit<Plugin, "manifest" | "status" | "notification_status">>>(
+            "list_plugins"
+        );
+
+        setPlugins((previous) =>
+            pluginList.map((plugin) => {
+                const existing = previous.find((item) => item.uuid === plugin.uuid);
+
+                return {
+                    ...plugin,
+                    manifest: existing?.manifest ?? null,
+                    status: existing?.status ?? "disabled",
+                    notification_status: "idle",
+                };
+            })
+        );
 
         const { requestId, promise } = createPendingRequest();
 
@@ -252,6 +311,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                 deletePlugin,
                 callPluginFunction,
                 switchPluginStatus,
+                switchPluginNotificationStatus,
             }}
         >
             {children}

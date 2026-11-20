@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useState } from "react";
 import { ChangeThemeButtonTest, ModeToggleGroup } from "@/components/layout/ModeToggle";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { PluginToggleSettings } from "@/components/settings/PluginToggleSettings";
@@ -15,38 +14,11 @@ import { getVersion } from '@tauri-apps/api/app';
 
 const PLUGIN_DOC_URL = "https://griffon-av.vercel.app/";
 
-const createRequestId = () => {
-  return Math.floor(Date.now() % 1_000_000_000);
-};
-
 export default function SettingsPage() {
-  const { plugins, refreshPlugins } = usePlugins();
-
-  const [pluginNotificationBeingSwitched, setPluginNotificationBeingSwitched] = useState<string | null>(null);
-  const [pluginRefreshKey, setPluginRefreshKey] = useState(0);
+  const { refreshPlugins } = usePlugins();
 
   const refreshPluginUi = async () => {
-    await invoke("refresh_plugin");
-    await new Promise((resolve) => setTimeout(resolve, 500));
     await refreshPlugins();
-    setPluginRefreshKey((key) => key + 1);
-  };
-
-  const handleSwitchNotification = async (pluginUuid: string, pluginDisplayName: string) => {
-    try {
-      setPluginNotificationBeingSwitched(pluginUuid);
-      await invoke("switch_status_notification", {
-        pluginUuid,
-        requestId: createRequestId(),
-      });
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      await refreshPluginUi();
-    } catch (err) {
-      console.error(err);
-      alert(`Failed to switch notifications for "${pluginDisplayName}".`);
-    } finally {
-      setPluginNotificationBeingSwitched(null);
-    }
   };
 
   const [version, setVersion] = useState("");
@@ -86,11 +58,7 @@ export default function SettingsPage() {
 
           <GlobalNotificationToggle onToggle={refreshPluginUi} />
 
-          <NotificationSettingsTable
-            plugins={plugins}
-            switchingPluginUuid={pluginNotificationBeingSwitched}
-            onToggle={handleSwitchNotification}
-          />
+          <NotificationSettingsTable />
         </section>
       </div>
 
@@ -137,7 +105,7 @@ export default function SettingsPage() {
                 </p>
               </div>
               <div className="mt-4">
-                <PluginToggleSettings key={pluginRefreshKey} />
+                <PluginToggleSettings />
               </div>
             </div>
 
