@@ -1,6 +1,6 @@
 use ipc_protocol::ipc_payload_interface::{
-    alloc_request_id, parse_uuid_16, recv_interface_response, send_interface_request,
-    InterfaceRequest, InterfaceResponse,
+    parse_uuid_16, recv_interface_response, send_interface_request, InterfaceRequest,
+    InterfaceResponse,
 };
 use serde::Deserialize;
 use serde::Serialize;
@@ -405,35 +405,23 @@ fn switch_status_notification_inner(
 }
 
 #[tauri::command]
-fn refresh_plugin(state: State<'_, DaemonConnection>) -> Result<(), String> {
-    refresh_plugin_inner(&state)
+fn refresh_plugin(state: State<'_, DaemonConnection>, request_id: u32) -> Result<(), String> {
+    refresh_plugin_inner(&state, request_id)
 }
 
-fn refresh_plugin_inner(conn: &DaemonConnection) -> Result<(), String> {
+fn refresh_plugin_inner(conn: &DaemonConnection, request_id: u32) -> Result<(), String> {
     LOGGER.debug("REFRESH");
 
     let mut sock_guard = conn.0.lock().map_err(|e| e.to_string())?;
-    let mut id_guard = conn.1.lock().map_err(|e| e.to_string())?;
 
     let mut sock = sock_guard
         .as_mut()
         .ok_or_else(|| "Daemon not connected".to_string())?;
 
-    let next_request_id = alloc_request_id(*id_guard);
+    send_interface_request(&mut sock, &InterfaceRequest::RefreshPlugins {}, request_id)
+        .map_err(|e| e.to_string())?;
 
-    send_interface_request(
-        &mut sock,
-        &InterfaceRequest::RefreshPlugins {},
-        next_request_id,
-    )
-    .map_err(|e| e.to_string())?;
-
-    let _ = list_plugins();
-    LOGGER_NETWORK.debug(format!(
-        "Refresh plugins sent with request_id={next_request_id}"
-    ));
-
-    *id_guard = next_request_id;
+    LOGGER_NETWORK.debug(format!("Refresh plugins sent with request_id={request_id}"));
 
     Ok(())
 }
@@ -472,24 +460,41 @@ fn run_reader_loop(mut read_sock: UnixStream, app_handle: tauri::AppHandle) {
                     InterfaceResponse::Ok { request_id: _ } => {}
                     InterfaceResponse::CallAccepted { request_id: _ } => {}
                     InterfaceResponse::Plugins {
-                        request_id: _,
-                        plugins: _,
+                        request_id,
+                        plugins,
                     } => {
-                        let _ = app_handle.emit("plugins-updated", ());
+                        let _ = app_handle.emit(
+                            "plugins-updated",
+                            serde_json::json!({
+                                "request_id": request_id,
+                                "plugins": plugins,
+                            }),
+                        );
                     }
                     InterfaceResponse::Error {
                         request_id,
                         message,
                     } => {
                         LOGGER_NETWORK.error(&message);
-                        let _ = app_handle.emit("plugin-error", serde_json::json!({ "request_id": request_id, "ok": false,  "output": message }));
+                        let _ = app_handle.emit(
+                            "plugin-error",
+                            serde_json::json!({
+                                "request_id": request_id,
+                                "message": message
+                            }),
+                        );
                     }
                     InterfaceResponse::CallResult {
                         request_id,
                         ok,
                         output,
                     } => {
-                        let _ = app_handle.emit("plugin-call-result", serde_json::json!({ "request_id": request_id, "ok": ok, "output": output }));
+                        let _ = app_handle.emit(
+                            "plugin-call-result",
+                            serde_json::json!({
+                                "request_id": request_id,
+                                "ok": ok, "output": output
+                            }));
                     }
                 }
             }
@@ -528,7 +533,7 @@ fn main() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        .manage(DaemonConnection(Mutex::new(None), Mutex::new(0)))
+        .manage(DaemonConnection(Mutex::new(None)))
         .setup(|app| {
             let app_handle = app.handle().clone();
 
