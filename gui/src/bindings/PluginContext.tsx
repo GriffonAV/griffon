@@ -2,8 +2,9 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { error } from "@tauri-apps/plugin-log";
-import { createPendingRequest } from "@/services/requestManager";
+import { createPendingRequest, type DaemonPlugin } from "@/services/requestManager";
 import { debugLog } from "@/services/debugManager";
+import { uuidBytesToString } from "@/lib/utils";
 
 export type Plugin = {
     file_name: string;
@@ -130,22 +131,29 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     }
 
     async function refreshPlugins() {
+        debugLog("Refreshing plugins...");
+
+        const plugin_list = await invoke<Plugin[]>("list_plugins");
+        setPlugins(plugin_list);
+
+        const { requestId, promise } = createPendingRequest();
+
         try {
-            const result = await invoke<Plugin[]>("list_plugins");
+            await invoke("refresh_plugin", { requestId });
+            const result: DaemonPlugin[] = await promise;
 
-            setPlugins((previous) =>
-                result.map((plugin) => {
-                    const existing = previous.find((item) => item.uuid === plugin.uuid);
-
-                    return {
-                        ...plugin,
-                        manifest: existing?.manifest ?? null,
-                        status: existing?.status ?? "disabled",
-                    };
-                })
-            );
+            for (const plugin of result) {
+                setPlugins((prev) =>
+                    prev.map((p) =>
+                        p.uuid === uuidBytesToString(plugin.plugin_uuid)
+                            ? { ...p, status: plugin.status ? "healthy" : "error" }
+                            : p
+                    )
+                );
+            }
+            debugLog("Plugin statuses refreshed:", result);
         } catch (err) {
-            error("Failed to load plugins: " + err);
+            error(`Failed to refresh plugin statuses: ${err}`);
         }
     }
 
@@ -229,6 +237,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     }, [plugins]);
 
     useEffect(() => {
+        debugLog("Initializing PluginProvider and refreshing plugins...");
         refreshPlugins();
     }, []);
 
