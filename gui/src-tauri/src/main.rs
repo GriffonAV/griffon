@@ -478,9 +478,12 @@ fn run_reader_loop(mut read_sock: UnixStream, app_handle: tauri::AppHandle) {
                         let _ = app_handle.emit("plugins-updated", ());
                     }
                     InterfaceResponse::Error {
-                        request_id: _,
-                        message: _,
-                    } => {}
+                        request_id,
+                        message,
+                    } => {
+                        LOGGER_NETWORK.error(&message);
+                        let _ = app_handle.emit("plugin-error", serde_json::json!({ "request_id": request_id, "ok": false,  "output": message }));
+                    }
                     InterfaceResponse::CallResult {
                         request_id,
                         ok,

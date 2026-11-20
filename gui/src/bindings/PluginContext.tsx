@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { error } from "@tauri-apps/plugin-log";
 import { createPendingRequest } from "@/services/requestManager";
+import { debugLog } from "@/services/debugManager";
 
 export type Plugin = {
     file_name: string;
@@ -13,7 +14,7 @@ export type Plugin = {
     description: string;
     notifications_enabled: boolean;
     manifest: PluginManifest | null;
-    status: "healthy" | "busy" | "disabled" | "no_manifest" | "error";
+    status: "healthy" | "busy" | "disabled" | "error";
 };
 
 export interface InteractionStep {
@@ -121,6 +122,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                         } : plugin
                 )
             );
+            debugLog("Plugin status switched successfully:", result);
         } catch (err) {
             error(`Failed to switch plugin status: ${err}`);
             await refreshPlugins();
@@ -130,14 +132,18 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     async function refreshPlugins() {
         try {
             const result = await invoke<Plugin[]>("list_plugins");
-            for (const plugin of result) {
-                if (!plugin.manifest) {
-                    plugin.status = "no_manifest";
-                } else {
-                    plugin.status = "healthy";
-                }
-            }
-            setPlugins(result);
+
+            setPlugins((previous) =>
+                result.map((plugin) => {
+                    const existing = previous.find((item) => item.uuid === plugin.uuid);
+
+                    return {
+                        ...plugin,
+                        manifest: existing?.manifest ?? null,
+                        status: existing?.status ?? "disabled",
+                    };
+                })
+            );
         } catch (err) {
             error("Failed to load plugins: " + err);
         }
@@ -211,6 +217,16 @@ export function PluginProvider({ children }: { children: ReactNode }) {
             throw err;
         }
     }
+
+    useEffect(() => {
+        setCurrentPlugin((prev) => {
+            if (prev) {
+                const updatedPlugin = plugins.find((p) => p.uuid === prev.uuid);
+                return updatedPlugin ?? null;
+            }
+            return null;
+        });
+    }, [plugins]);
 
     useEffect(() => {
         refreshPlugins();

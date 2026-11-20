@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { debugLog } from "./debugManager";
 
 type PendingRequest = {
     resolve: (value: any) => void;
@@ -58,6 +59,16 @@ export async function initializeRequestManager() {
         }
     });
 
+    await listen("plugin-error", (event) => {
+        const { request_id, error } = event.payload as any;
+
+        resolvePendingRequest(
+            request_id,
+            new Error(error),
+            true
+        );
+    });
+
     await listen("plugin-switch-done", (event) => {
         const { request_id, enable } = event.payload as any;
 
@@ -70,6 +81,8 @@ export function createPendingRequest<T = any>() {
     const requestId: number = generateRequestId();
 
     let timeout: ReturnType<typeof setTimeout>;
+
+    debugLog("Creating pending request:", requestId, "Pending requests count:", pending.size);
 
     const promise = new Promise<T>((resolve, reject) => {
 
