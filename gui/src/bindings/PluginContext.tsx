@@ -82,6 +82,10 @@ export function PluginProvider({ children }: { children: ReactNode }) {
             throw new Error("No plugin loaded");
         }
 
+        if (currentPlugin.status !== "healthy") {
+            throw new Error(`Plugin ${currentPlugin.display_name} is not enabled`);
+        }
+
         const { requestId, promise } = createPendingRequest();
 
         if (args.length === 0) {
@@ -223,6 +227,14 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         
         if (!plugin) { // Check if the plugin exists in the list
             error(`Plugin ${pluginName} not found`);
+            setCurrentPlugin(null);
+            setIsPluginLoading(false);
+            return;
+        }
+
+        if (plugin.status !== "healthy") {
+            error(`Plugin ${pluginName} is not enabled`);
+            setCurrentPlugin(null);
             setIsPluginLoading(false);
             return;
         }
@@ -244,7 +256,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                 interactions: manifest.interactions ?? [],
             };
 
-            const updatedPlugin = { ...plugin, manifest: normalizedManifest, status: "healthy" } satisfies Plugin;
+            const updatedPlugin = { ...plugin, manifest: normalizedManifest } satisfies Plugin;
             setCurrentPlugin(updatedPlugin);
             setPlugins((prev) =>
                 prev.map((p) => (p.file_name === pluginName ? updatedPlugin : p))
