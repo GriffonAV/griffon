@@ -418,10 +418,16 @@ fn refresh_plugin_inner(conn: &DaemonConnection, request_id: u32) -> Result<(), 
         .as_mut()
         .ok_or_else(|| "Daemon not connected".to_string())?;
 
-    send_interface_request(&mut sock, &InterfaceRequest::RefreshPlugins {}, request_id)
-        .map_err(|e| e.to_string())?;
+    send_interface_request(
+        &mut sock,
+        &InterfaceRequest::RefreshPlugins {}, 
+        request_id
+    )
+    .map_err(|e| e.to_string())?;
 
-    LOGGER_NETWORK.debug(format!("Refresh plugins sent with request_id={request_id}"));
+    LOGGER_NETWORK.debug(format!(
+        "Refresh plugins sent with request_id={request_id}"
+    ));
 
     Ok(())
 }
