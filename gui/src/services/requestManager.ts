@@ -6,6 +6,23 @@ type PendingRequest = {
     reject: (reason?: any) => void;
 };
 
+type PluginCallEvent = {
+    request_id: number;
+    ok: boolean;
+    output: string;
+};
+
+type PluginError = {
+    request_id: number;
+    message: string;
+};
+
+type PluginSwitchEvent = {
+    request_id: number;
+    enable: boolean;
+};
+
+
 const pending = new Map<number, PendingRequest>();
 
 let initialized = false;
@@ -45,8 +62,8 @@ export async function initializeRequestManager() {
 
     initialized = true;
 
-    await listen("plugin-call-result", (event) => {
-        const { request_id, ok, output } = event.payload as any;
+    await listen<PluginCallEvent>("plugin-call-result", (event) => {
+        const { request_id, ok, output } = event.payload;
 
         if (ok) {
             resolvePendingRequest(request_id, output);
@@ -59,18 +76,18 @@ export async function initializeRequestManager() {
         }
     });
 
-    await listen("plugin-error", (event) => {
-        const { request_id, error } = event.payload as any;
+    await listen<PluginError>("plugin-error", (event) => {
+        const { request_id, message } = event.payload;
 
         resolvePendingRequest(
             request_id,
-            new Error(error),
+            new Error(message),
             true
         );
     });
 
-    await listen("plugin-switch-done", (event) => {
-        const { request_id, enable } = event.payload as any;
+    await listen<PluginSwitchEvent>("plugin-switch-done", (event) => {
+        const { request_id, enable } = event.payload;
 
         resolvePendingRequest(request_id, { enable });
     });
