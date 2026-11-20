@@ -2,7 +2,9 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { error } from "@tauri-apps/plugin-log";
-import { createPendingRequest } from "@/services/requestManager";
+import { createPendingRequest, type DaemonPlugin } from "@/services/requestManager";
+import { debugLog } from "@/services/debugManager";
+import { uuidBytesToString } from "@/lib/utils";
 
 export type Plugin = {
     file_name: string;
@@ -12,8 +14,9 @@ export type Plugin = {
     author: string;
     description: string;
     notifications_enabled: boolean;
+    notification_status: "idle" | "busy" | "error";
     manifest: PluginManifest | null;
-    status: "healthy" | "busy" | "disabled" | "no_manifest" | "error";
+    status: "healthy" | "busy" | "disabled" | "error";
 };
 
 export interface InteractionStep {
@@ -65,6 +68,7 @@ interface PluginContextType {
     deletePlugin: (pluginName: string) => Promise<void>;
     callPluginFunction: (fnName: string, args: string[]) => Promise<any>;
     switchPluginStatus: (pluginUuid: string) => Promise<void>;
+    switchPluginNotificationStatus: (pluginUuid: string) => Promise<void>;
 }
 const PluginContext = createContext<PluginContextType | undefined>(undefined);
 
@@ -76,6 +80,10 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     async function callPluginFunction(fnName: string, args: string[]): Promise<string> {
         if (!currentPlugin) {
             throw new Error("No plugin loaded");
+        }
+
+        if (currentPlugin.status !== "healthy") {
+            throw new Error(`Plugin ${currentPlugin.display_name} is not enabled`);
         }
 
         const { requestId, promise } = createPendingRequest();
@@ -121,25 +129,94 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                         } : plugin
                 )
             );
+            debugLog("Plugin status switched successfully:", result);
         } catch (err) {
             error(`Failed to switch plugin status: ${err}`);
             await refreshPlugins();
         }
     }
 
-    async function refreshPlugins() {
+    async function switchPluginNotificationStatus(pluginUuid: string): Promise<void> {
+        const { requestId, promise } = createPendingRequest<{ enable: boolean }>();
+
+        setPlugins((previous) =>
+            previous.map((plugin) =>
+                plugin.uuid === pluginUuid
+                    ? { ...plugin, notification_status: "busy" }
+                    : plugin
+            )
+        );
+
         try {
-            const result = await invoke<Plugin[]>("list_plugins");
-            for (const plugin of result) {
-                if (!plugin.manifest) {
-                    plugin.status = "no_manifest";
-                } else {
-                    plugin.status = "healthy";
-                }
-            }
-            setPlugins(result);
+            await invoke("switch_status_notification", {
+                pluginUuid,
+                requestId,
+            });
+
+            const result = await promise;
+
+            setPlugins((previous) =>
+                previous.map((plugin) =>
+                    plugin.uuid === pluginUuid
+                        ? {
+                            ...plugin,
+                            notifications_enabled: result.enable,
+                            notification_status: "idle",
+                        }
+                        : plugin
+                )
+            );
         } catch (err) {
-            error("Failed to load plugins: " + err);
+            setPlugins((previous) =>
+                previous.map((plugin) =>
+                    plugin.uuid === pluginUuid
+                        ? { ...plugin, notification_status: "error" }
+                        : plugin
+                )
+            );
+            error(`Failed to switch plugin notification status: ${err}`);
+            throw err;
+        }
+    }
+
+    async function refreshPlugins() {
+        debugLog("Refreshing plugins...");
+
+        const pluginList = await invoke<Array<Omit<Plugin, "manifest" | "status" | "notification_status">>>(
+            "list_plugins"
+        );
+
+        setPlugins((previous) =>
+            pluginList.map((plugin) => {
+                const existing = previous.find((item) => item.uuid === plugin.uuid);
+
+                return {
+                    ...plugin,
+                    manifest: existing?.manifest ?? null,
+                    status: existing?.status ?? "disabled",
+                    notification_status: "idle",
+                };
+            })
+        );
+
+        const { requestId, promise } = createPendingRequest();
+
+        try {
+            await invoke("refresh_plugin", { requestId });
+            const result: DaemonPlugin[] = await promise;
+
+            for (const plugin of result) {
+                setPlugins((prev) =>
+                    prev.map((p) =>
+                        p.uuid === uuidBytesToString(plugin.plugin_uuid)
+                            ? { ...p, status: plugin.status ? "healthy" : "error" }
+                            : p
+                    )
+                );
+            }
+            debugLog("Plugin statuses refreshed:", result);
+        } catch (err) {
+            error(`Failed to refresh plugin statuses: ${err}`);
         }
     }
 
@@ -150,6 +227,14 @@ export function PluginProvider({ children }: { children: ReactNode }) {
         
         if (!plugin) { // Check if the plugin exists in the list
             error(`Plugin ${pluginName} not found`);
+            setCurrentPlugin(null);
+            setIsPluginLoading(false);
+            return;
+        }
+
+        if (plugin.status !== "healthy") {
+            error(`Plugin ${pluginName} is not enabled`);
+            setCurrentPlugin(null);
             setIsPluginLoading(false);
             return;
         }
@@ -171,7 +256,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                 interactions: manifest.interactions ?? [],
             };
 
-            const updatedPlugin = { ...plugin, manifest: normalizedManifest, status: "healthy" } satisfies Plugin;
+            const updatedPlugin = { ...plugin, manifest: normalizedManifest } satisfies Plugin;
             setCurrentPlugin(updatedPlugin);
             setPlugins((prev) =>
                 prev.map((p) => (p.file_name === pluginName ? updatedPlugin : p))
@@ -213,6 +298,17 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     }
 
     useEffect(() => {
+        setCurrentPlugin((prev) => {
+            if (prev) {
+                const updatedPlugin = plugins.find((p) => p.uuid === prev.uuid);
+                return updatedPlugin ?? null;
+            }
+            return null;
+        });
+    }, [plugins]);
+
+    useEffect(() => {
+        debugLog("Initializing PluginProvider and refreshing plugins...");
         refreshPlugins();
     }, []);
 
@@ -227,6 +323,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                 deletePlugin,
                 callPluginFunction,
                 switchPluginStatus,
+                switchPluginNotificationStatus,
             }}
         >
             {children}
