@@ -12,6 +12,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Folder, File } from "lucide-react";
 import { resolveFromPath } from "@/lib/utils";
+import {
+    buildCleanerSelectionValue,
+    toggleCleanerSelectionValue,
+} from "@/lib/cleanerSelection";
 import type { GriffonActionHandler } from "../types";
 
 interface CleanerCandidateListProps {
@@ -81,37 +85,32 @@ function isSelected(
 function toggleCandidate(
     candidate: CleanerCandidate,
     element: CleanerCandidateListProps["element"],
-    onAction?: GriffonActionHandler,
-    selectedPaths: string[] = [],
-    dryRun: boolean = true,
-    fileTypes: string[] = []
+    onAction: GriffonActionHandler | undefined,
+    selectedPaths: string[],
+    dryRun: boolean,
+    fileTypes: string[]
 ) {
     if (!element?.action || !onAction) {
         return;
     }
 
-    const exists = selectedPaths.includes(candidate.path);
-
-    const nextSelected = exists
-        ? selectedPaths.filter((path) => path !== candidate.path)
-        : [...selectedPaths, candidate.path];
-
     onAction(element.action, {
         ...element,
-        value: {
-            paths: nextSelected,
-            dry_run: dryRun,
-            file_types: fileTypes,
-        },
+        value: toggleCleanerSelectionValue(
+            candidate.path,
+            selectedPaths,
+            dryRun,
+            fileTypes
+        ),
     });
 }
 
 function selectAll(
     candidates: CleanerCandidate[],
     element: CleanerCandidateListProps["element"],
-    onAction?: GriffonActionHandler,
-    dryRun: boolean = true,
-    fileTypes: string[] = []
+    onAction: GriffonActionHandler | undefined,
+    dryRun: boolean,
+    fileTypes: string[]
 ) {
     if (!element?.action || !onAction) {
         return;
@@ -119,19 +118,19 @@ function selectAll(
 
     onAction(element.action, {
         ...element,
-        value: {
-            paths: candidates.map((candidate) => candidate.path),
-            dry_run: dryRun,
-            file_types: fileTypes,
-        },
+        value: buildCleanerSelectionValue(
+            candidates.map((candidate) => candidate.path),
+            dryRun,
+            fileTypes
+        ),
     });
 }
 
 function clearSelection(
     element: CleanerCandidateListProps["element"],
-    onAction?: GriffonActionHandler,
-    dryRun: boolean = true,
-    fileTypes: string[] = []
+    onAction: GriffonActionHandler | undefined,
+    dryRun: boolean,
+    fileTypes: string[]
 ) {
     if (!element?.action || !onAction) {
         return;
@@ -139,20 +138,16 @@ function clearSelection(
 
     onAction(element.action, {
         ...element,
-        value: {
-            paths: [],
-            dry_run: dryRun,
-            file_types: fileTypes,
-        },
+        value: buildCleanerSelectionValue([], dryRun, fileTypes),
     });
 }
 
 function deleteCandidateNow(
     candidate: CleanerCandidate,
     element: CleanerCandidateListProps["element"],
-    onAction?: GriffonActionHandler,
-    dryRun: boolean = true,
-    fileTypes: string[] = []
+    onAction: GriffonActionHandler | undefined,
+    dryRun: boolean,
+    fileTypes: string[]
 ) {
     if (!element.deleteAction || !onAction) {
         return;
@@ -160,11 +155,11 @@ function deleteCandidateNow(
 
     onAction(element.deleteAction, {
         ...element,
-        value: {
-            paths: [candidate.path],
-            dry_run: dryRun,
-            file_types: fileTypes,
-        },
+        value: buildCleanerSelectionValue(
+            [candidate.path],
+            dryRun,
+            fileTypes
+        ),
     });
 }
 
@@ -291,7 +286,8 @@ export default function CleanerCandidateList({
                                                 element,
                                                 onAction,
                                                 selectedPaths,
-                                                dryRun
+                                                dryRun,
+                                                fileTypes
                                             )
                                         }
                                     >
@@ -308,7 +304,8 @@ export default function CleanerCandidateList({
                                                         element,
                                                         onAction,
                                                         selectedPaths,
-                                                        dryRun
+                                                        dryRun,
+                                                        fileTypes
                                                     )
                                                 }
                                             />
