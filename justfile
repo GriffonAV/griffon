@@ -18,7 +18,7 @@ build-gui:
     cd gui && npx tauri build --no-bundle
 
 build-workspace:
-    cargo build --release --workspace --exclude griffon-gui
+    cargo build --workspace --exclude griffon-gui
 
 ## linting and formatting
 
