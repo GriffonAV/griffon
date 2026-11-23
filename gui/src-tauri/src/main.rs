@@ -418,16 +418,10 @@ fn refresh_plugin_inner(conn: &DaemonConnection, request_id: u32) -> Result<(), 
         .as_mut()
         .ok_or_else(|| "Daemon not connected".to_string())?;
 
-    send_interface_request(
-        &mut sock,
-        &InterfaceRequest::RefreshPlugins {}, 
-        request_id
-    )
-    .map_err(|e| e.to_string())?;
+    send_interface_request(&mut sock, &InterfaceRequest::RefreshPlugins {}, request_id)
+        .map_err(|e| e.to_string())?;
 
-    LOGGER_NETWORK.debug(format!(
-        "Refresh plugins sent with request_id={request_id}"
-    ));
+    LOGGER_NETWORK.debug(format!("Refresh plugins sent with request_id={request_id}"));
 
     Ok(())
 }
@@ -455,55 +449,54 @@ fn run_reader_loop(mut read_sock: UnixStream, app_handle: tauri::AppHandle) {
 
     loop {
         match recv_interface_response(&mut read_sock) {
-            Ok(resp) => {
-                match resp {
-                    InterfaceResponse::SwitchDone { request_id, enable } => {
-                        let _ = app_handle.emit(
-                            "plugin-switch-done",
-                            serde_json::json!({ "request_id": request_id, "enable": enable }),
-                        );
-                    }
-                    InterfaceResponse::Ok { request_id: _ } => {}
-                    InterfaceResponse::CallAccepted { request_id: _ } => {}
-                    InterfaceResponse::Plugins {
-                        request_id,
-                        plugins,
-                    } => {
-                        let _ = app_handle.emit(
-                            "plugins-updated",
-                            serde_json::json!({
-                                "request_id": request_id,
-                                "plugins": plugins,
-                            }),
-                        );
-                    }
-                    InterfaceResponse::Error {
-                        request_id,
-                        message,
-                    } => {
-                        LOGGER_NETWORK.error(&message);
-                        let _ = app_handle.emit(
-                            "plugin-error",
-                            serde_json::json!({
-                                "request_id": request_id,
-                                "message": message
-                            }),
-                        );
-                    }
-                    InterfaceResponse::CallResult {
-                        request_id,
-                        ok,
-                        output,
-                    } => {
-                        let _ = app_handle.emit(
-                            "plugin-call-result",
-                            serde_json::json!({
-                                "request_id": request_id,
-                                "ok": ok, "output": output
-                            }));
-                    }
+            Ok(resp) => match resp {
+                InterfaceResponse::SwitchDone { request_id, enable } => {
+                    let _ = app_handle.emit(
+                        "plugin-switch-done",
+                        serde_json::json!({ "request_id": request_id, "enable": enable }),
+                    );
                 }
-            }
+                InterfaceResponse::Ok { request_id: _ } => {}
+                InterfaceResponse::CallAccepted { request_id: _ } => {}
+                InterfaceResponse::Plugins {
+                    request_id,
+                    plugins,
+                } => {
+                    let _ = app_handle.emit(
+                        "plugins-updated",
+                        serde_json::json!({
+                            "request_id": request_id,
+                            "plugins": plugins,
+                        }),
+                    );
+                }
+                InterfaceResponse::Error {
+                    request_id,
+                    message,
+                } => {
+                    LOGGER_NETWORK.error(&message);
+                    let _ = app_handle.emit(
+                        "plugin-error",
+                        serde_json::json!({
+                            "request_id": request_id,
+                            "message": message
+                        }),
+                    );
+                }
+                InterfaceResponse::CallResult {
+                    request_id,
+                    ok,
+                    output,
+                } => {
+                    let _ = app_handle.emit(
+                        "plugin-call-result",
+                        serde_json::json!({
+                            "request_id": request_id,
+                            "ok": ok, "output": output
+                        }),
+                    );
+                }
+            },
             Err(e) => {
                 let error_msg = format!("Reader thread stopped, failed to receive response: {}", e);
                 LOGGER_NETWORK.error(&error_msg);
