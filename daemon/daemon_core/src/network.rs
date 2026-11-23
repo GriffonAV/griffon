@@ -243,7 +243,7 @@ pub fn handle_client(mut stream: UnixStream, task_tx: mpsc::Sender<DaemonTask>) 
 }
 
 #[cfg(test)]
-mod tests {
+mod client_handling {
     use super::*;
     use ipc_protocol::ipc_payload_interface::{
         InterfaceRequest, InterfaceResponse, recv_interface_response, send_interface_request,
@@ -254,7 +254,7 @@ mod tests {
     use std::time::Duration;
 
     #[test]
-    fn test_handle_client_refresh_plugins_success() {
+    fn handle_client_refresh_plugins_success() {
         let (mut client_socket, server_socket) =
             UnixStream::pair().expect("Failed to create socket pair");
 
@@ -310,7 +310,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handle_client_unimplemented_request() {
+    fn handle_client_unimplemented_request() {
         let (mut client_socket, server_socket) =
             UnixStream::pair().expect("Failed to create socket pair");
         let (task_tx, _task_rx) = mpsc::channel();
@@ -337,7 +337,7 @@ mod tests {
                 assert_eq!(resp_req_id, request_id);
                 assert!(
                     message.contains("Request not implemented"),
-                    "Message d'erreur inattendu : {}",
+                    "Unexpected error message: {}",
                     message
                 );
             }
@@ -346,7 +346,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handle_client_task_tx_disconnected() {
+    fn handle_client_task_tx_disconnected() {
         let (mut client_socket, server_socket) =
             UnixStream::pair().expect("Failed to create socket pair");
 
@@ -373,7 +373,7 @@ mod tests {
                 assert_eq!(resp_req_id, request_id);
                 assert!(
                     message.contains("Failed to queue task"),
-                    "Le message devrait indiquer l'échec d'envoi de la tâche : {}",
+                    "The message should report that queuing the task failed: {}",
                     message
                 );
             }
@@ -385,7 +385,7 @@ mod tests {
     }
 
     #[test]
-    fn test_setup_listener_removes_old_socket() {
+    fn setup_listener_removes_old_socket() {
         use std::path::Path;
 
         let path = Path::new(DAEMON_SOCK_PATH);
@@ -400,7 +400,7 @@ mod tests {
 
         assert!(
             listener.is_ok(),
-            "setup_listener a échoué avec l'erreur: {:?}",
+            "setup_listener failed with error: {:?}",
             listener.err()
         );
         assert!(path.exists());
@@ -410,7 +410,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handle_client_all_request_types() {
+    fn handle_client_all_request_types() {
         let (mut client_socket, server_socket) = UnixStream::pair().unwrap();
         let (task_tx, task_rx) = mpsc::channel();
 
@@ -442,7 +442,7 @@ mod tests {
 
         let req3 = InterfaceRequest::CallPlugin {
             plugin_uuid: dummy_uuid,
-            fn_name: "test_fn".into(),
+            fn_name: "fn".into(),
             args: vec!["arg1".into()],
         };
         send_interface_request(&mut client_socket, &req3, 3).unwrap();
@@ -454,7 +454,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handle_client_invalid_payload_disconnects() {
+    fn handle_client_invalid_payload_disconnects() {
         let (mut client_socket, server_socket) =
             UnixStream::pair().expect("Failed to create socket pair");
         let (task_tx, _task_rx) = mpsc::channel();
@@ -470,7 +470,7 @@ mod tests {
     }
 
     #[test]
-    fn test_handle_client_reply_channel_drop_sends_error() {
+    fn handle_client_reply_channel_drop_sends_error() {
         let (mut client_socket, server_socket) =
             UnixStream::pair().expect("Failed to create socket pair");
         let (task_tx, task_rx) = mpsc::channel();

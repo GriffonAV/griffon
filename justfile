@@ -18,7 +18,7 @@ build-gui:
     cd gui && npx tauri build --no-bundle
 
 build-workspace:
-    cargo build --release --workspace --exclude griffon-gui
+    cargo build --workspace --exclude griffon-gui
 
 ## linting and formatting
 
@@ -51,6 +51,11 @@ setup-dev-env:
     git config core.hooksPath .githooks
 
 ## testing
+
+test:
+    python3 plugins/griffon_scanner/tests/fixtures/fetch_eicar.py
+    python3 plugins/griffon_scanner/tests/fixtures/generate_fixtures.py
+    cargo llvm-cov
 
 # cleaner benchmark VM (provisioned, repo mounted at ~/Griffon)
 bench-vm:
