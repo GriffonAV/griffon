@@ -73,6 +73,11 @@ RUN --mount=type=cache,target=/root/.cargo/registry \
     mkdir -p /app/ws-out && \
     find /app/target/release -maxdepth 1 -type f -exec cp {} /app/ws-out/ \;
 
+# Installable plugin ZIPs (library + manifest) published with each release
+RUN apt-get update && apt-get install -y --no-install-recommends zip \
+    && rm -rf /var/lib/apt/lists/*
+RUN sh packaging/build-plugin-zips.sh /app/ws-out /app /app/plugin-zips
+
 
 # --- STAGE 3: packaging avec nfpm ---
 FROM goreleaser/nfpm:latest AS packager
@@ -81,6 +86,7 @@ WORKDIR /app
 # Copie des binaires compilés depuis les dossiers NON-CACHÉS
 COPY --from=gui-builder /app/gui-out/ /app/target/release/
 COPY --from=workspace-builder /app/ws-out/ /app/target/release/
+COPY --from=workspace-builder /app/plugin-zips/ /app/plugin-zips/
 
 # nfpm.yaml, install scripts, .desktop and systemd unit
 COPY packaging/ ./packaging/

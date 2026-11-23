@@ -31,6 +31,48 @@ pub(crate) mod test_utils {
     }
 }
 
+#[cfg(test)]
+mod prepare_tests {
+    use super::ScanEngine;
+    use super::scanargs::PrepArgs;
+
+    fn prepare_with(dir: &std::path::Path) -> Result<(i32, i32), String> {
+        ScanEngine::new().prepare(&PrepArgs {
+            yara_rules: Some(dir.to_string_lossy().into_owned()),
+            ..Default::default()
+        })
+    }
+
+    fn unique_temp_dir(tag: &str) -> std::path::PathBuf {
+        std::env::temp_dir().join(format!("griffon_prepare_{tag}_{}", std::process::id()))
+    }
+
+    #[test]
+    fn missing_rules_dir_is_an_error_not_a_panic() {
+        let dir = unique_temp_dir("missing");
+        let _ = std::fs::remove_dir_all(&dir);
+        let err = prepare_with(&dir).unwrap_err();
+        assert!(err.contains("no YARA rules found"), "{err}");
+    }
+
+    #[test]
+    fn empty_rules_dir_is_an_error() {
+        let dir = unique_temp_dir("empty");
+        std::fs::create_dir_all(&dir).unwrap();
+        let result = prepare_with(&dir);
+        let _ = std::fs::remove_dir_all(&dir);
+        let err = result.unwrap_err();
+        assert!(err.contains("no YARA rules found"), "{err}");
+    }
+
+    #[test]
+    fn committed_test_rules_load() {
+        let (_, rules) =
+            prepare_with(std::path::Path::new(super::test_utils::TEST_RULES_DIR)).unwrap();
+        assert!(rules > 0);
+    }
+}
+
 use std::sync::OnceLock;
 static THREAD_POOL_INIT: OnceLock<()> = OnceLock::new();
 
@@ -57,7 +99,7 @@ impl ScanEngine {
         //         .expect("Failed to load signature DB");
         // }
         self.load_yara_rules(args)
-            .expect("Failed to load YARA rules");
+            .map_err(|e| format!("Failed to load YARA rules: {e:#}"))?;
 
         Ok((
             self.hash_db.as_ref().map_or(0, |db| db.count() as i32),

@@ -93,6 +93,7 @@ jobs:
           files: |
             dist/*.deb
             dist/*.rpm
+            dist/*.zip
           # The changelog is appended after this body
           body: |
             ## Installation
@@ -110,6 +111,17 @@ jobs:
             **Then log out and back in** (or run `newgrp griffon`): the install adds your user to the `griffon` group, which the GUI and CLI need to talk to the daemon.
 
             Check: `systemctl status griffon-daemon` should say *active (running)*. Full guide and troubleshooting: [README](https://github.com/GriffonAV/griffon#installation).
+
+            ## Plugins
+
+            Each plugin is also published as a ZIP (shared library + manifest) that can be installed from the Griffon GUI:
+
+            | Plugin | Archive | Included in the .deb/.rpm |
+            | --- | --- | --- |
+            | Scanner | `libgriffon_scanner-${{ needs.verify.outputs.version }}.zip` | Yes |
+            | Cleaner | `libgriffon_cleaner-${{ needs.verify.outputs.version }}.zip` | Yes |
+            | Nmap | `libgriffon_nmap-${{ needs.verify.outputs.version }}.zip` | No |
+            | Docker Helper | `libdocker_helper-${{ needs.verify.outputs.version }}.zip` | No |
           generate_release_notes: true
           draft: false
           prerelease: false

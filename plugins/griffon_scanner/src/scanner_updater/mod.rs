@@ -17,18 +17,6 @@ struct Manifest {
 }
 
 #[allow(dead_code)]
-fn default_rules_dir() -> PathBuf {
-    if cfg!(debug_assertions) {
-        PathBuf::from("rules/")
-    } else {
-        dirs::data_local_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("griffon_scanner")
-            .join("rules")
-    }
-}
-
-#[allow(dead_code)]
 pub struct ScannerUpdater {
     pub rules_dir: PathBuf,
 }
@@ -144,11 +132,12 @@ impl ScannerUpdater {
     }
 }
 
-impl Default for ScannerUpdater {
-    fn default() -> Self {
-        let dir = default_rules_dir();
-        std::fs::create_dir_all(&dir).expect("Failed to create rules directory");
-        log::info!("Updater directory: {}", dir.display());
-        Self { rules_dir: dir }
+impl ScannerUpdater {
+    /// Updater for the default rules directory. Fails (instead of panicking)
+    /// when the directory cannot be created, e.g. missing permissions.
+    pub fn with_default_dir() -> Result<Self, String> {
+        let dir = crate::paths::default_rules_dir();
+        Self::new(&dir)
+            .map_err(|e| format!("Failed to create rules directory {}: {e}", dir.display()))
     }
 }

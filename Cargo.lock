@@ -2532,7 +2532,6 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
- "dirs",
  "hex",
  "infer",
  "lazy_static",
