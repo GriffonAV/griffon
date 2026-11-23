@@ -37,7 +37,7 @@ export function NotificationSettingsTable() {
                                             : "text-muted-foreground"
                                     }
                                 >
-                                    {isBusy ? "Enabled" : "Disabled"}
+                                    {isEnabled ? "Enabled" : "Disabled"}
                                 </span>
                             </td>
                             <td className="px-4 py-3 text-right">

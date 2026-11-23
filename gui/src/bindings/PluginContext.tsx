@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { error } from "@tauri-apps/plugin-log";
-import { createPendingRequest, type DaemonPlugin } from "@/services/requestManager";
+import { listen } from "@tauri-apps/api/event";
+import { createPendingRequest, initializeRequestManager, type DaemonPlugin } from "@/services/requestManager";
 import { debugLog } from "@/services/debugManager";
 import { uuidBytesToString } from "@/lib/utils";
 
@@ -86,6 +87,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
             throw new Error(`Plugin ${currentPlugin.display_name} is not enabled`);
         }
 
+        await initializeRequestManager();
         const { requestId, promise } = createPendingRequest();
 
         if (args.length === 0) {
@@ -104,6 +106,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     }
 
     async function switchPluginStatus(pluginUuid: string): Promise<void> {
+        await initializeRequestManager();
         const { requestId, promise } = createPendingRequest();
 
         setPlugins((prev) =>
@@ -137,6 +140,7 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     }
 
     async function switchPluginNotificationStatus(pluginUuid: string): Promise<void> {
+        await initializeRequestManager();
         const { requestId, promise } = createPendingRequest<{ enable: boolean }>();
 
         setPlugins((previous) =>
@@ -182,9 +186,13 @@ export function PluginProvider({ children }: { children: ReactNode }) {
     async function refreshPlugins() {
         debugLog("Refreshing plugins...");
 
-        const pluginList = await invoke<Array<Omit<Plugin, "manifest" | "status" | "notification_status">>>(
-            "list_plugins"
-        );
+        let pluginList: Array<Omit<Plugin, "manifest" | "status" | "notification_status">>;
+        try {
+            pluginList = await invoke("list_plugins");
+        } catch (err) {
+            error(`Failed to load plugins: ${err}`);
+            return;
+        }
 
         setPlugins((previous) =>
             pluginList.map((plugin) => {
@@ -193,30 +201,44 @@ export function PluginProvider({ children }: { children: ReactNode }) {
                 return {
                     ...plugin,
                     manifest: existing?.manifest ?? null,
-                    status: existing?.status ?? "disabled",
+                    // Unknown until the daemon confirms it below.
+                    status: existing?.status ?? "busy",
                     notification_status: "idle",
                 };
             })
         );
 
-        const { requestId, promise } = createPendingRequest();
-
         try {
+            // The daemon reply arrives as a Tauri event: make sure the
+            // listeners exist before sending the request.
+            await initializeRequestManager();
+            const { requestId, promise } = createPendingRequest<DaemonPlugin[]>();
             await invoke("refresh_plugin", { requestId });
-            const result: DaemonPlugin[] = await promise;
+            const result = await promise;
 
-            for (const plugin of result) {
-                setPlugins((prev) =>
-                    prev.map((p) =>
-                        p.uuid === uuidBytesToString(plugin.plugin_uuid)
-                            ? { ...p, status: plugin.status ? "healthy" : "error" }
-                            : p
-                    )
-                );
-            }
+            // The daemon reports `status: false` both for plugins the user
+            // disabled and for failed enable attempts; both can be re-enabled
+            // from Settings, so show them as "disabled". Plugins the daemon
+            // does not report (or reports without a UUID after a failed
+            // handshake) are not usable: show them as "error".
+            const daemonStatuses = new Map<string, Plugin["status"]>(
+                result.map((plugin) => [
+                    uuidBytesToString(plugin.plugin_uuid),
+                    plugin.status ? "healthy" : "disabled",
+                ])
+            );
+
+            setPlugins((prev) =>
+                prev.map((p) => ({
+                    ...p,
+                    status: daemonStatuses.get(p.uuid.toLowerCase()) ?? "error",
+                }))
+            );
             debugLog("Plugin statuses refreshed:", result);
         } catch (err) {
             error(`Failed to refresh plugin statuses: ${err}`);
+            // Without a daemon answer no plugin state is confirmed.
+            setPlugins((prev) => prev.map((p) => ({ ...p, status: "error" })));
         }
     }
 
@@ -309,7 +331,31 @@ export function PluginProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         debugLog("Initializing PluginProvider and refreshing plugins...");
-        refreshPlugins();
+        void refreshPlugins();
+
+        // Statuses fetched while the daemon was unreachable are "error":
+        // refresh them once the GUI (re)connects.
+        let disposed = false;
+        let unlisten: (() => void) | undefined;
+        listen<{ status: string } | string>("daemon-status", ({ payload }) => {
+            const status = typeof payload === "string" ? payload : payload?.status;
+            if (status === "Connected") {
+                void refreshPlugins();
+            }
+        })
+            .then((fn) => {
+                if (disposed) {
+                    fn();
+                } else {
+                    unlisten = fn;
+                }
+            })
+            .catch((err) => error(`Failed to listen for daemon status: ${err}`));
+
+        return () => {
+            disposed = true;
+            unlisten?.();
+        };
     }, []);
 
     return (
