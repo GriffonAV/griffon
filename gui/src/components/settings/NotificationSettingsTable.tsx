@@ -1,26 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { usePlugins } from "@/bindings/PluginContext";
 
-// Define the type based on the properties used in your SettingsPage
-type Plugin = {
-    uuid: string;
-    display_name: string;
-    file_name: string;
-    version: string;
-    author: string;
-    notifications_enabled: boolean;
-};
+export function NotificationSettingsTable() {
+    const { plugins, switchPluginNotificationStatus } = usePlugins();
 
-type NotificationSettingsTableProps = {
-    plugins: Plugin[];
-    switchingPluginUuid: string | null;
-    onToggle: (uuid: string, displayName: string) => void;
-};
-
-export function NotificationSettingsTable({
-    plugins,
-    switchingPluginUuid,
-    onToggle,
-}: NotificationSettingsTableProps) {
     if (plugins.length === 0) {
         return <p className="mt-4 text-sm text-muted-foreground">No installed plugin found.</p>;
     }
@@ -37,8 +20,11 @@ export function NotificationSettingsTable({
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                    {plugins.map((plugin) => (
-                        <tr key={plugin.uuid} className="bg-card hover:bg-muted/20 transition-colors">
+                    {plugins.map((plugin) => {
+                        const isEnabled = plugin.notifications_enabled;
+                        const isBusy = plugin.notification_status === "busy";
+
+                        return <tr key={plugin.uuid} className="bg-card hover:bg-muted/20 transition-colors">
                             <td className="px-4 py-3 font-semibold">{plugin.display_name}</td>
                             <td className="px-4 py-3 text-muted-foreground text-xs">
                                 {plugin.file_name} • v{plugin.version} • {plugin.author}
@@ -46,31 +32,31 @@ export function NotificationSettingsTable({
                             <td className="px-4 py-3">
                                 <span
                                     className={
-                                        plugin.notifications_enabled
+                                        isEnabled
                                             ? "text-green-600 font-medium"
                                             : "text-muted-foreground"
                                     }
                                 >
-                                    {plugin.notifications_enabled ? "Enabled" : "Disabled"}
+                                    {isEnabled ? "Enabled" : "Disabled"}
                                 </span>
                             </td>
                             <td className="px-4 py-3 text-right">
                                 <Button
                                     size="sm"
-                                    variant={plugin.notifications_enabled ? "secondary" : "default"}
-                                    disabled={switchingPluginUuid === plugin.uuid}
-                                    onClick={() => onToggle(plugin.uuid, plugin.display_name)}
+                                    variant={isEnabled ? "secondary" : "default"}
+                                    disabled={isBusy}
+                                    onClick={() => void switchPluginNotificationStatus(plugin.uuid)}
                                     className="cursor-pointer min-w-24"
                                 >
-                                    {switchingPluginUuid === plugin.uuid
+                                    {isBusy
                                         ? "Switching..."
-                                        : plugin.notifications_enabled
+                                        : isEnabled
                                             ? "Disable"
                                             : "Enable"}
                                 </Button>
                             </td>
-                        </tr>
-                    ))}
+                        </tr>;
+                    })}
                 </tbody>
             </table>
         </div>

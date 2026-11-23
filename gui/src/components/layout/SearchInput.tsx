@@ -81,14 +81,32 @@ function SearchInput({ isCollapsed }: { isCollapsed: boolean }) {
           </CommandGroup>
 
           <CommandGroup heading="Extensions">
-            {plugins.map((plugin) => (
-              <CommandItem
-                key={plugin.uuid}
-                onSelect={() => handlePluginSelect(plugin.file_name)}
-              >
-                {plugin.display_name}
-              </CommandItem>
-            ))}
+            {plugins.map((plugin) => {
+              const isAvailable = plugin.status === "healthy";
+
+              return (
+                <CommandItem
+                  key={plugin.uuid}
+                  disabled={!isAvailable}
+                  onSelect={() => {
+                    if (isAvailable) {
+                      handlePluginSelect(plugin.file_name);
+                    }
+                  }}
+                >
+                  <span>{plugin.display_name}</span>
+                  {!isAvailable && (
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {plugin.status === "busy"
+                        ? "Updating"
+                        : plugin.status === "disabled"
+                          ? "Disabled"
+                          : "Unavailable"}
+                    </span>
+                  )}
+                </CommandItem>
+              );
+            })}
           </CommandGroup>
 
           <CommandGroup heading="Settings">

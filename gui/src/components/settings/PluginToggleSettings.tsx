@@ -30,12 +30,21 @@ export function PluginToggleSettings() {
                             <ToyBrick className="shrink-0" />
 
                             <div>
-                                <Link
-                                    to={`/plugin/${plugin.file_name}`}
-                                    className="text-sm text-muted-foreground hover:underline"
-                                >
-                                    <p className="text-base font-semibold">{plugin.display_name}</p>
-                                </Link>
+                                {isEnabled ? (
+                                    <Link
+                                        to={`/plugin/${plugin.file_name}`}
+                                        className="text-sm text-muted-foreground hover:underline"
+                                    >
+                                        <p className="text-base font-semibold">{plugin.display_name}</p>
+                                    </Link>
+                                ) : (
+                                    <p
+                                        className="text-base font-semibold text-muted-foreground"
+                                        aria-disabled="true"
+                                    >
+                                        {plugin.display_name}
+                                    </p>
+                                )}
                                 <p className="mt-1 text-xs text-muted-foreground">
                                     {plugin.description || "No description available."}
                                 </p>

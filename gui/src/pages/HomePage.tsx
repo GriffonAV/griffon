@@ -41,7 +41,7 @@ function formatEvent(event?: string | null) {
 }
 
 export default function HomePage() {
-  const { plugins } = usePlugins();
+  const { plugins, refreshPlugins } = usePlugins();
 
 
     const [historyEntries, setHistoryEntries] = useState<PluginHistoryEntry[]>([]);
@@ -68,7 +68,7 @@ export default function HomePage() {
         try {
             setIsRefreshingService(true);
             await Promise.all([
-                invoke("refresh_plugin"),
+                refreshPlugins(),
                 loadPluginHistory(),
                 new Promise((resolve) => setTimeout(resolve, 500)),
             ]);
@@ -145,21 +145,60 @@ export default function HomePage() {
                                 </p>
                             ) : (
                                 <div className="flex flex-col gap-2">
-                                    {plugins.map((plugin) => (
-                                        <Link
-                                            key={plugin.uuid}
-                                            to={`/plugin/${plugin.file_name}`}
-                                            className="group flex items-center justify-between rounded-md border border-border bg-card p-3 transition-colors hover:bg-muted/50"
-                                        >
-                                            <div>
-                                                <p className="text-sm font-semibold">{plugin.display_name}</p>
-                                                <p className="text-xs text-muted-foreground mt-0.5">
-                                                    v{plugin.version} • {plugin.file_name}
-                                                </p>
-                                            </div>
-                                            <ArrowRight className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                                        </Link>
-                                    ))}
+                                    {plugins.map((plugin) => {
+                                        const isAvailable = plugin.status === "healthy";
+
+                                        const content = (
+                                            <>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="text-sm font-semibold">{plugin.display_name}</p>
+                                                        {!isAvailable && (
+                                                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+                                                                {plugin.status === "busy"
+                                                                    ? "Updating"
+                                                                    : plugin.status === "disabled"
+                                                                        ? "Disabled"
+                                                                        : "Unavailable"}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                                        v{plugin.version} • {plugin.file_name}
+                                                    </p>
+                                                </div>
+                                                <ArrowRight
+                                                    className={`size-4 text-muted-foreground transition-opacity ${
+                                                        isAvailable
+                                                            ? "opacity-0 group-hover:opacity-100"
+                                                            : "opacity-30"
+                                                    }`}
+                                                />
+                                            </>
+                                        );
+
+                                        if (!isAvailable) {
+                                            return (
+                                                <div
+                                                    key={plugin.uuid}
+                                                    aria-disabled="true"
+                                                    className="flex cursor-not-allowed items-center justify-between rounded-md border border-border bg-muted/30 p-3 opacity-60"
+                                                >
+                                                    {content}
+                                                </div>
+                                            );
+                                        }
+
+                                        return (
+                                            <Link
+                                                key={plugin.uuid}
+                                                to={`/plugin/${plugin.file_name}`}
+                                                className="group flex items-center justify-between rounded-md border border-border bg-card p-3 transition-colors hover:bg-muted/50"
+                                            >
+                                                {content}
+                                            </Link>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>

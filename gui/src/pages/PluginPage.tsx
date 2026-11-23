@@ -1,24 +1,52 @@
-import { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Link, useParams } from "react-router-dom";
 import { usePlugins } from "@/bindings/PluginContext";
 import GriffonSectionRenderer from "@/renderer/GriffonSectionRenderer";
 import type { GriffonSection } from "@/components/types";
 import { useGriffonStore } from "@/hooks/useGriffonStore";
 import { PageLayout } from "@/components/layout/PageLayout";
+import { Button } from "@/components/ui/button";
 
 export default function PluginPage() {
   const { name } = useParams();
-  const { currentPlugin, loadPlugin, isPluginLoading } = usePlugins();
+  const { plugins, currentPlugin, loadPlugin, isPluginLoading } = usePlugins();
   const { store, handleAction } = useGriffonStore(currentPlugin?.manifest || null);
+  const requestedPlugin = plugins.find((plugin) => plugin.file_name === name);
+  const lastLoadAttempt = useRef<string | null>(null);
 
   useEffect(() => {
-    if (name) {
+    const loadAttempt = `${name}:${requestedPlugin?.status}`;
+
+    if (
+      name &&
+      requestedPlugin?.status === "healthy" &&
+      !isPluginLoading &&
+      currentPlugin?.file_name !== name &&
+      lastLoadAttempt.current !== loadAttempt
+    ) {
+      lastLoadAttempt.current = loadAttempt;
       loadPlugin(name);
     }
-  }, [name, loadPlugin]);
+  }, [name, requestedPlugin?.status, currentPlugin?.file_name, isPluginLoading, loadPlugin]);
 
 
-  if (isPluginLoading || !currentPlugin) {
+  if (requestedPlugin && requestedPlugin.status !== "healthy") {
+    return (
+      <PageLayout title={requestedPlugin.display_name}>
+        <div className="m-5 rounded-md border border-border bg-muted/30 p-6">
+          <h2 className="text-lg font-semibold">Extension unavailable</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Enable this extension before opening or using it.
+          </p>
+          <Button asChild className="mt-4">
+            <Link to="/settings">Open extension settings</Link>
+          </Button>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (isPluginLoading || !currentPlugin || currentPlugin.file_name !== name) {
     return <div>Loading extension...</div>;
   }
 
