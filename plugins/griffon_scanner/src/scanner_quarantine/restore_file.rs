@@ -4,10 +4,7 @@ use crate::scanner_quarantine::{Quarantine, manifest::QuarantineManifest};
 
 impl Quarantine {
     pub fn restore_file(&self, quarantined_name: &str) -> Result<PathBuf, String> {
-        let dest_path = self.dir.join(quarantined_name);
-        let manifest_path = self
-            .dir
-            .join(quarantined_name.replace(".quarantined", ".json"));
+        let (dest_path, manifest_path) = self.paths_for_quarantined_name(quarantined_name)?;
 
         let manifest_json = std::fs::read_to_string(&manifest_path).map_err(|e| {
             format!(
@@ -73,10 +70,7 @@ impl Quarantine {
     }
 
     pub fn delete_quarantined_file(&self, quarantined_name: &str) -> Result<(), String> {
-        let dest_path = self.dir.join(quarantined_name);
-        let manifest_path = self
-            .dir
-            .join(quarantined_name.replace(".quarantined", ".json"));
+        let (dest_path, manifest_path) = self.paths_for_quarantined_name(quarantined_name)?;
 
         std::fs::remove_file(&dest_path)
             .map_err(|e| format!("Failed to delete quarantined file: {}", e))?;
