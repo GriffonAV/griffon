@@ -63,12 +63,34 @@ jobs:
           docker run --rm -e VERSION="$VERSION" -v "$(pwd)/dist:/out" griffon-builder
           ls -la dist/
 
+      # Each plugin ZIP must hold exactly one .so and one .toml at its root,
+      # the layout griffon-plugin-installer accepts
+      - name: Check plugin ZIPs
+        shell: bash
+        run: |
+          fail=0
+          for plugin in griffon_scanner griffon_cleaner griffon_nmap docker_helper; do
+            zip="dist/lib${plugin}-${VERSION}.zip"
+            if [ ! -f "$zip" ]; then
+              echo "❌ missing $zip"; fail=1; continue
+            fi
+            entries=$(unzip -Z1 "$zip" | sort | tr '\n' ' ')
+            expected="lib${plugin}.so lib${plugin}.toml "
+            if [ "$entries" = "$expected" ]; then
+              echo "✅ $zip"
+            else
+              echo "❌ $zip contains: $entries"; fail=1
+            fi
+          done
+          exit $fail
+
       - uses: actions/upload-artifact@v4
         with:
           name: packages
           path: |
             dist/*.deb
             dist/*.rpm
+            dist/*.zip
           if-no-files-found: error
 
   install:
