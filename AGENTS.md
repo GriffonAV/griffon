@@ -5,7 +5,7 @@ plugins, a CLI, and a React/Tauri desktop application.
 
 ## Start here
 
-- Read [AI policy](AI_POLICY.md), [contribution rules](CONTRIBUTING.md), and
+- Read [AI policy](https://griffon-av.vercel.app/docs/contributing/ai_policy), [contribution rules](CONTRIBUTING.md), and
   [security reporting](SECURITY.md).
 - Use the [architecture map](#architecture-map-for-ai-assisted-work) to find relevant code.
   Verify behavior in the current checkout; documentation can lag behind it.
