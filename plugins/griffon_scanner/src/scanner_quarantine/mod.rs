@@ -12,7 +12,11 @@ pub struct Quarantine {
 
 impl Quarantine {
     pub fn new(dir: &Path) -> std::io::Result<Self> {
+        use std::os::unix::fs::PermissionsExt;
+
         std::fs::create_dir_all(dir)?;
+        // Quarantined files are potentially malicious: keep them owner-only.
+        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))?;
         log::info!("Quarantine directory: {}", dir.display());
         Ok(Self {
             dir: dir.to_path_buf(),
@@ -20,14 +24,6 @@ impl Quarantine {
     }
 
     pub fn default_dir() -> PathBuf {
-        if cfg!(debug_assertions) {
-            PathBuf::from("quarantine")
-        } else {
-            // is equal to ~/.local/share/griffon_scanner/quarantine
-            dirs::data_local_dir()
-                .unwrap_or_else(|| PathBuf::from("."))
-                .join("griffon_scanner")
-                .join("quarantine")
-        }
+        crate::paths::default_quarantine_dir()
     }
 }

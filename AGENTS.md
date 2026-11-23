@@ -182,8 +182,9 @@ redirecting one root redirects all filesystem use.
 | Plugin libraries and manifests | Daemon: `.config/griffon`; GUI and development installer resolve the repository `.config/griffon` | `/usr/lib/griffon/plugins` | Daemon and GUI choose their paths independently |
 | Runner binary | `GRIFFON_RUNNER_BINARY` override, otherwise resolved from the daemon executable directory | `/usr/bin/griffon-daemon-runner` | Verify the selected executable exists before attributing load failure to a plugin |
 | Plugin history | `/tmp/griffon/plugin-history` | `/var/log/griffon/plugin-history` | GUI reads both locations; write failures must not be reported as successful persistence |
-| Scanner rules | `rules/` relative to the scanner working directory | platform data directory under `griffon_scanner/rules` | Explicit `PrepArgs` paths override the default loader path |
-| Scanner quarantine | `quarantine/` relative to the scanner working directory | platform data directory under `griffon_scanner/quarantine` | Never use the default directory as a disposable test fixture |
+| Scanner rules | `rules/` relative to the scanner working directory | `/var/lib/griffon/scanner/rules` | Defined in `plugins/griffon_scanner/src/paths.rs`; explicit `PrepArgs` paths override the default loader path; an empty rule set is a startup error |
+| Scanner quarantine | `quarantine/` relative to the scanner working directory | `/var/lib/griffon/scanner/quarantine` | Directory mode `0700`; never use the default directory as a disposable test fixture |
+| Scanner `##/download` path | Expanded by the GUI (Tauri `call_plugin`) to the GUI user's Downloads folder | Same | The daemon runs as root and rejects unresolved placeholders |
 | Nmap history | `.data/griffon/nmap/history.json` | `/var/lib/griffon/nmap/history.json` | Persistence failure must remain distinct from scan success |
 | Privileged installer | Development install writes to repository `.config/griffon` without the helper | `/usr/libexec/griffon-plugin-installer`, writing `/usr/lib/griffon/plugins` | Installed checks require explicit isolated packaging validation and administrator authorization |
 

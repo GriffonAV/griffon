@@ -18,11 +18,13 @@ use crate::daemon::{get_daemon_status, DaemonConnection};
 use logger::{LogLevel, Logger};
 
 mod manifests;
+mod path_placeholders;
 mod plugin_history;
 mod plugin_installer;
 
 use manifests::load_plugin_manifest;
 use manifests::PluginManifest;
+use path_placeholders::expand_path_placeholders;
 
 static LOGGER: Logger = Logger::new("GUI", LogLevel::Debug, None);
 static LOGGER_NETWORK: Logger = Logger::new("GUI-NETWORK", LogLevel::Debug, None);
@@ -269,13 +271,29 @@ fn list_plugins() -> Result<Vec<Plugin>, String> {
 }
 #[tauri::command]
 fn call_plugin(
+    app: tauri::AppHandle,
     state: State<'_, DaemonConnection>,
     plugin_uuid: String,
     fn_name: String,
     args: Vec<String>,
     request_id: u32,
 ) -> Result<(), String> {
+    // The daemon runs as a system service and cannot resolve the user's
+    // folders, so placeholders are expanded here, as the GUI user.
+    let args = expand_path_placeholders(args, || user_download_dir(&app)).map_err(|e| {
+        LOGGER.error(format!("Failed to expand path placeholders: {e}"));
+        e
+    })?;
     call_plugin_inner(&state, &plugin_uuid, &fn_name, args, request_id)
+}
+
+/// The user's Downloads folder (XDG), falling back to `~/Downloads`.
+fn user_download_dir(app: &tauri::AppHandle) -> Option<PathBuf> {
+    let paths = app.path();
+    paths
+        .download_dir()
+        .or_else(|_| paths.home_dir().map(|home| home.join("Downloads")))
+        .ok()
 }
 
 fn call_plugin_inner(

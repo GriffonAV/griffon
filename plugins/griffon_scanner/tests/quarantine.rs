@@ -223,3 +223,12 @@ fn list_is_sorted_newest_first() {
         "20260101_000000_bbbbbbbbbbbbbbbb.quarantined"
     );
 }
+
+#[test]
+fn quarantine_dir_is_owner_only() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let (_ws, q) = setup("perms");
+    let mode = std::fs::metadata(&q.dir).unwrap().permissions().mode() & 0o777;
+    assert_eq!(mode, 0o700, "quarantine dir mode is {mode:o}");
+}

@@ -1,3 +1,4 @@
+pub mod paths;
 pub mod scanner_engine;
 pub mod scanner_quarantine;
 pub mod scanner_updater;
@@ -39,10 +40,19 @@ fn engine_state_label(state: u8) -> &'static str {
 
 lazy_static::lazy_static! {
     static ref ENGINE: Mutex<Option<ScanEngine>> = Mutex::new(None);
+    /// Reason of the last failed engine initialization, if any.
+    static ref ENGINE_ERROR: Mutex<Option<String>> = Mutex::new(None);
 }
 
-/// Returned whenever a function requires the engine and it isn't ready.azer
-/// `Some(RString)` short-circuits the caller with that error JSON;
+fn engine_error_message() -> String {
+    match ENGINE_ERROR.lock().ok().and_then(|e| e.clone()) {
+        Some(reason) => format!("Engine failed to initialize: {reason}"),
+        None => "Engine failed to initialize".into(),
+    }
+}
+
+/// Returned whenever a function requires the engine and it isn't ready.
+/// `Some(EngineStatus)` short-circuits the caller with that error;
 /// `None` means the engine is ready to use.
 fn engine_not_ready() -> Option<EngineStatus> {
     match ENGINE_STATE.load(Ordering::SeqCst) {
@@ -52,11 +62,29 @@ fn engine_not_ready() -> Option<EngineStatus> {
             message: match other {
                 STATE_LOADING => "Engine is still loading signatures, try again shortly".into(),
                 STATE_STOPPED => "Engine is not running, call start first".into(),
-                STATE_ERROR => "Engine failed to initialize".into(),
+                STATE_ERROR => engine_error_message(),
                 _ => "Engine is in an unknown state".into(),
             },
         }),
     }
+}
+
+/// Placeholder for the user's Downloads folder. Clients (GUI) must replace it
+/// with a real path before calling `scan`: the daemon runs as a system
+/// service and cannot know which user's Downloads folder is meant.
+const DOWNLOAD_PLACEHOLDER: &str = "##/download";
+
+/// Validates the paths requested by a `scan` call.
+fn resolve_scan_paths(paths: &[String]) -> Result<Vec<PathBuf>, String> {
+    if paths.is_empty() {
+        return Err("No paths provided for scan".into());
+    }
+    if let Some(p) = paths.iter().find(|p| p.starts_with(DOWNLOAD_PLACEHOLDER)) {
+        return Err(format!(
+            "Unresolved path placeholder \"{p}\": the client must replace it with a real path"
+        ));
+    }
+    Ok(paths.iter().map(PathBuf::from).collect())
 }
 
 // =========================================================
@@ -145,7 +173,7 @@ fn build_router() -> PluginRouter {
                 message: match state {
                     STATE_READY => "Engine is ready".into(),
                     STATE_LOADING => "Engine is still loading signatures".into(),
-                    STATE_ERROR => "Engine failed to initialize".into(),
+                    STATE_ERROR => engine_error_message(),
                     _ => "Engine is not running".into(),
                 },
             })
@@ -156,6 +184,8 @@ fn build_router() -> PluginRouter {
         .method(
             "scan",
             |opts: ScanOptions| -> Result<GuiScanResponse, String> {
+                let paths = resolve_scan_paths(&opts.paths)?;
+
                 if let Some(status) = engine_not_ready() {
                     return Err(status.message);
                 }
@@ -163,23 +193,10 @@ fn build_router() -> PluginRouter {
                 let mut lock = ENGINE.lock().unwrap();
                 let engine = lock.as_mut().ok_or("Engine state is invalid")?;
 
-                let default_download_path = dirs::download_dir()
-                    .ok_or("Failed to get default download directory")?
-                    .to_string_lossy()
-                    .to_string();
-
-                let paths = if opts.paths.is_empty() {
-                    Vec::new()
-                } else if opts.paths.len() == 1 && opts.paths[0] == "##/download" {
-                    vec![default_download_path]
-                } else {
-                    opts.paths.clone()
-                };
-
                 let scanargs = ScanArgs {
                     archives: opts.archive,
                     recursive: opts.folder,
-                    paths: paths.iter().map(PathBuf::from).collect(),
+                    paths,
                     threads: opts.threading,
                     nb_threads: opts.threads.parse::<u32>().unwrap_or(1),
                     include: opts
@@ -230,8 +247,9 @@ fn build_router() -> PluginRouter {
                 let engine = lock.as_ref().ok_or("Engine state is invalid")?;
                 let rules_count = engine.yara_rules.as_ref().map_or(0, |r| r.rule_count());
 
-                let updater = ScannerUpdater::default();
-                let update_status = match updater.check_for_updates() {
+                let update_status = match ScannerUpdater::with_default_dir()
+                    .and_then(|updater| updater.check_for_updates())
+                {
                     Ok(msg) => msg,
                     Err(e) => format!("Failed to check for updates: {e}"),
                 };
@@ -244,12 +262,17 @@ fn build_router() -> PluginRouter {
             },
         )
         .method("db_update", |_: NoParams| -> Result<Ack, String> {
-            let updater = ScannerUpdater::default();
+            let updater =
+                ScannerUpdater::with_default_dir().map_err(|e| format!("Update failed: {e}"))?;
             updater
                 .update()
                 .map_err(|e| format!("Update failed: {e}"))?;
 
-            if ENGINE_STATE.load(Ordering::SeqCst) == STATE_READY {
+            // Also restart after a failed start (e.g. fresh install without rules).
+            if matches!(
+                ENGINE_STATE.load(Ordering::SeqCst),
+                STATE_READY | STATE_ERROR
+            ) {
                 log::info!(
                     "[LIBSCANNER] Signatures updated. Restarting engine to apply changes..."
                 );
@@ -362,10 +385,16 @@ fn start_engine() {
         Ok((hashes, rules)) => {
             log::info!("[LIBSCANNER] Ready — {} hashes, {} rulesets", hashes, rules);
             *ENGINE.lock().unwrap() = Some(engine);
+            if let Ok(mut err) = ENGINE_ERROR.lock() {
+                *err = None;
+            }
             ENGINE_STATE.store(STATE_READY, Ordering::SeqCst);
         }
         Err(e) => {
             log::error!("[LIBSCANNER] Failed to prepare engine: {}", e);
+            if let Ok(mut err) = ENGINE_ERROR.lock() {
+                *err = Some(e);
+            }
             ENGINE_STATE.store(STATE_ERROR, Ordering::SeqCst);
         }
     }
@@ -453,6 +482,32 @@ mod router_tests {
         let (code, msg) = call("scan", json!({ "paths": ["/tmp"] })).unwrap_err();
         assert_eq!(code, 1);
         assert_eq!(msg, "Engine is not running, call start first");
+    }
+
+    #[test]
+    fn explicit_scan_paths_do_not_need_a_download_dir() {
+        // Regression: scan used to resolve the daemon user's Downloads folder
+        // before looking at the requested paths, failing every scan when the
+        // daemon runs as root without XDG user dirs.
+        let paths = resolve_scan_paths(&["/srv/a".into(), "relative/b".into()]).unwrap();
+        assert_eq!(
+            paths,
+            [PathBuf::from("/srv/a"), PathBuf::from("relative/b")]
+        );
+    }
+
+    #[test]
+    fn scan_rejects_unresolved_download_placeholder() {
+        let (code, msg) = call("scan", json!({ "paths": ["##/download"] })).unwrap_err();
+        assert_eq!(code, 1);
+        assert!(msg.contains("Unresolved path placeholder"), "{msg}");
+    }
+
+    #[test]
+    fn scan_rejects_empty_paths() {
+        let (code, msg) = call("scan", json!({ "paths": [] })).unwrap_err();
+        assert_eq!(code, 1);
+        assert_eq!(msg, "No paths provided for scan");
     }
 
     #[test]
