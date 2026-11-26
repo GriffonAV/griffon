@@ -76,13 +76,9 @@ ignore = [
     "RUSTSEC-2023-0071",
     # serde_cbor unmaintained - direct dep in ipc_protocol, TODO replace with postcard or serde_json
     "RUSTSEC-2021-0127",
-    # zip extract() symlink/SUID issues - we never call extract(): the scanner reads
-    # entries in memory and the installers use enclosed_name(). Fixed in zip 9,
-    # but yara-x still requires zip 8
-    "RUSTSEC-2026-0367",
-    "RUSTSEC-2026-0368",
-    "RUSTSEC-2026-0369",
-    "RUSTSEC-2026-0429",
+    # chrono unmaintained, no fixed version - direct dep of griffon_scanner and
+    # griffon_cleaner (timestamps only), TODO migrate to jiff or time
+    "RUSTSEC-2026-0543",
     #"RUSTSEC-0000-0000",
     #{ id = "RUSTSEC-0000-0000", reason = "you can specify a reason the advisory is ignored" },
     #"a-crate-that-is-yanked@0.1.1", # you can also ignore yanked crate versions if you wish
