@@ -43,9 +43,12 @@ jobs:
     name: CI
     needs: [verify]
     uses: ./.github/workflows/ci.yml
+    # Must cover every scope a job in ci.yml requests, even unused ones
+    # (the paths-filter step in "changes" only runs on pull_request)
     permissions:
       contents: read
       checks: write
+      pull-requests: read
 
   # CI only checks advisories on PRs that touch dependencies, so a release
   # always runs the full check
